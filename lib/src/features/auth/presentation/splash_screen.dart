@@ -1,6 +1,7 @@
 import 'package:bb_logistics/src/features/auth/data/mock_auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -123,9 +124,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 padding: const EdgeInsets.only(
                   bottom: 100.0,
                 ), // Adjust to allow space for bottom image
-                child: Image.asset(
-                  'assets/B&B Logo.png',
-                  width: size.width * 0.6,
+                child: SvgPicture.asset(
+                  'assets/logo.svg',
+                  width: size.width * 0.4,
                 ),
               ),
             ),
