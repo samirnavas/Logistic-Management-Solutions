@@ -14,7 +14,7 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
   final _formKey = GlobalKey<FormState>();
   String _shippingMode = 'By Air';
   String _deliveryType = 'Door to Door';
-  String _countryCode = '+1'; // Default USA
+  String _countryCode = '+91'; // Default India
 
   // Controllers
   final _itemNameController = TextEditingController();
