@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class QuotationScreen extends ConsumerWidget {
   const QuotationScreen({super.key});
@@ -77,7 +78,12 @@ class QuotationScreen extends ConsumerWidget {
                         topRight: Radius.circular(30),
                       ),
                     ),
-                    padding: const EdgeInsets.fromLTRB(20, 30, 20, 20),
+                    padding: EdgeInsets.fromLTRB(
+                      MediaQuery.of(context).size.width < 380 ? 16 : 20,
+                      30,
+                      MediaQuery.of(context).size.width < 380 ? 16 : 20,
+                      20,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -137,7 +143,10 @@ class QuotationScreen extends ConsumerWidget {
                                   const SizedBox(height: 12),
                               itemBuilder: (context, index) {
                                 final quotation = quotations[index];
-                                return _QuotationCard(quotation: quotation);
+                                return _QuotationCard(quotation: quotation)
+                                    .animate()
+                                    .fadeIn(delay: (100 * index).ms)
+                                    .slideX();
                               },
                             );
                           },
@@ -212,15 +221,27 @@ class _QuotationCard extends StatelessWidget {
       decimalDigits: 2,
     );
 
+    // Get screen width for responsive layout
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 400;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppTheme.background.withValues(alpha: 0.5)),
         boxShadow: [
+          // Subtle light blue glow for depth
           BoxShadow(
-            color: AppTheme.textDark.withValues(alpha: 0.04),
-            blurRadius: 8,
+            color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+            blurRadius: 12,
+            spreadRadius: 0,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: AppTheme.primaryBlue.withValues(alpha: 0.04),
+            blurRadius: 20,
+            spreadRadius: 2,
             offset: const Offset(0, 2),
           ),
         ],
@@ -232,96 +253,118 @@ class _QuotationCard extends StatelessWidget {
           onTap: () => context.push('/quotations/${quotation.id}'),
           child: Padding(
             padding: const EdgeInsets.all(12),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Status Indicator
-                Container(
-                  width: 4,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(width: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Status Indicator
+                    Container(
+                      width: 4,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
 
-                // Content
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                    // Content
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Wrap(
+                            children: [
+                              Text(
+                                'Quotation ID: ',
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(color: AppTheme.textGrey),
+                              ),
+                              Text(
+                                quotation.id,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: AppTheme.primaryBlue,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
                           Text(
-                            'Quotation ID: ',
-                            style: Theme.of(context).textTheme.bodyMedium
+                            'Created on: ${dateFormat.format(quotation.createdDate)}',
+                            style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: AppTheme.textGrey),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          Text(
-                            quotation.id,
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: AppTheme.primaryBlue,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Created on: ${dateFormat.format(quotation.createdDate)}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textGrey,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          _buildStatusChip(context),
-                          const SizedBox(width: 12),
-                          Text(
-                            currencyFormat.format(quotation.totalAmount),
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  color: AppTheme.primaryBlue,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              _buildStatusChip(context),
+                              Text(
+                                currencyFormat.format(quotation.totalAmount),
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      color: AppTheme.primaryBlue,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
+                    ),
 
-                // View Button
-                TextButton(
-                  onPressed: () => context.push('/quotations/${quotation.id}'),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'View Quotation',
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: AppTheme.primaryBlue,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.chevron_right,
-                        size: 18,
-                        color: AppTheme.primaryBlue,
-                      ),
-                    ],
-                  ),
+                    // View Button - only show on larger screens in the row
+                    if (!isSmallScreen) _buildViewButton(context),
+                  ],
                 ),
+                // View Button - show at bottom on small screens
+                if (isSmallScreen) ...[
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: _buildViewButton(context),
+                  ),
+                ],
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildViewButton(BuildContext context) {
+    return TextButton(
+      onPressed: () => context.push('/quotations/${quotation.id}'),
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'View',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: AppTheme.primaryBlue,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(width: 2),
+          const Icon(
+            Icons.chevron_right,
+            size: 18,
+            color: AppTheme.primaryBlue,
+          ),
+        ],
       ),
     );
   }

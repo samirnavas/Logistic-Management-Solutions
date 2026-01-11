@@ -2,6 +2,7 @@ import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class RequestShipmentScreen extends StatefulWidget {
   const RequestShipmentScreen({super.key});
@@ -115,9 +116,9 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
                         ),
                       ),
                       padding: EdgeInsets.fromLTRB(
-                        24,
+                        MediaQuery.of(context).size.width < 380 ? 16 : 24,
                         30,
-                        24,
+                        MediaQuery.of(context).size.width < 380 ? 16 : 24,
                         contentBottomPadding,
                       ),
                       child: Form(
@@ -126,7 +127,9 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // 1. Shipping Mode
-                            _buildSectionTitle('Choose Shipping Mode'),
+                            _buildSectionTitle(
+                              'Choose Shipping Mode',
+                            ).animate().fadeIn(delay: 100.ms).slideX(),
                             const SizedBox(height: 12),
                             SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
@@ -145,11 +148,13 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
                                   }),
                                 ],
                               ),
-                            ),
+                            ).animate().fadeIn(delay: 150.ms).slideX(),
                             const SizedBox(height: 24),
 
                             // 2. Delivery Type
-                            _buildSectionTitle('Choose Delivery Type'),
+                            _buildSectionTitle(
+                              'Choose Delivery Type',
+                            ).animate().fadeIn(delay: 200.ms).slideX(),
                             const SizedBox(height: 12),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,11 +175,13 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
                                   },
                                 ),
                               ],
-                            ),
+                            ).animate().fadeIn(delay: 250.ms).slideX(),
                             const SizedBox(height: 24),
 
                             // 3. Package Details
-                            _buildSectionTitle('Package Details'),
+                            _buildSectionTitle(
+                              'Package Details',
+                            ).animate().fadeIn(delay: 300.ms).slideX(),
                             const SizedBox(height: 16),
                             _buildTextField(
                               hint: 'Item Name',
@@ -183,7 +190,7 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
                                   value == null || value.isEmpty
                                   ? 'Item name is required'
                                   : null,
-                            ),
+                            ).animate().fadeIn(delay: 350.ms),
                             const SizedBox(height: 16),
                             Row(
                               children: [
@@ -211,12 +218,12 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
                                   ),
                                 ),
                               ],
-                            ),
+                            ).animate().fadeIn(delay: 400.ms),
                             const SizedBox(height: 16),
                             _buildTextField(
                               hint: 'HS Code',
                               controller: _hsCodeController,
-                            ),
+                            ).animate().fadeIn(delay: 450.ms),
                             const SizedBox(height: 24),
 
                             // 4. Product Photos

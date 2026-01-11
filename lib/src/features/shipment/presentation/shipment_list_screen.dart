@@ -5,6 +5,7 @@ import 'package:bb_logistics/src/features/shipment/presentation/widgets/shipment
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class ShipmentListScreen extends ConsumerWidget {
   const ShipmentListScreen({super.key});
@@ -90,7 +91,9 @@ class ShipmentListScreen extends ConsumerWidget {
                         topRight: Radius.circular(30),
                       ),
                     ),
-                    padding: const EdgeInsets.all(20),
+                    padding: EdgeInsets.all(
+                      MediaQuery.of(context).size.width < 380 ? 16 : 20,
+                    ),
                     child: shipmentsAsync.when(
                       // Loading State
                       loading: () => const Padding(
@@ -206,7 +209,7 @@ class ShipmentListScreen extends ConsumerWidget {
                                 onViewDetails: () {
                                   // TODO: Navigate to details screen
                                 },
-                              ),
+                              ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
                             ),
                             const SizedBox(height: 20),
                           ],

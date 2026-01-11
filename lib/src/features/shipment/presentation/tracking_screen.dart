@@ -240,7 +240,9 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
 
               // Panel Content
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: EdgeInsets.symmetric(
+                  horizontal: MediaQuery.of(context).size.width < 380 ? 16 : 24,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

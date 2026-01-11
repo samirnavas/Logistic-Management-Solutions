@@ -1,6 +1,7 @@
 import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -84,6 +85,10 @@ class ProfileScreen extends StatelessWidget {
                                   size: 50,
                                   color: Color(0xFF0288D1),
                                 ),
+                              ).animate().scale(
+                                delay: 100.ms,
+                                duration: 400.ms,
+                                curve: Curves.easeOutBack,
                               ),
                               const SizedBox(height: 16),
                               Text(
@@ -91,42 +96,53 @@ class ProfileScreen extends StatelessWidget {
                                 style: Theme.of(
                                   context,
                                 ).textTheme.displayMedium,
-                              ),
+                              ).animate().fadeIn(delay: 200.ms),
                               Text(
                                 'user@example.com',
                                 style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(color: Colors.grey),
-                              ),
+                              ).animate().fadeIn(delay: 300.ms),
                             ],
                           ),
                         ),
                         const SizedBox(height: 30),
                         // Placeholder for profile options
                         ListTile(
-                          leading: const Icon(Icons.settings_outlined),
-                          title: Text(
-                            'Settings',
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                          trailing: const Icon(Icons.chevron_right),
-                        ),
+                              leading: const Icon(Icons.settings_outlined),
+                              title: Text(
+                                'Settings',
+                                style: Theme.of(context).textTheme.bodyLarge,
+                              ),
+                              trailing: const Icon(Icons.chevron_right),
+                            )
+                            .animate()
+                            .fadeIn(delay: 400.ms)
+                            .slideX(begin: 0.1, end: 0),
                         ListTile(
-                          leading: const Icon(Icons.help_outline),
-                          title: Text(
-                            'Help & Support',
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                          trailing: const Icon(Icons.chevron_right),
-                        ),
+                              leading: const Icon(Icons.help_outline),
+                              title: Text(
+                                'Help & Support',
+                                style: Theme.of(context).textTheme.bodyLarge,
+                              ),
+                              trailing: const Icon(Icons.chevron_right),
+                            )
+                            .animate()
+                            .fadeIn(delay: 500.ms)
+                            .slideX(begin: 0.1, end: 0),
                         ListTile(
-                          leading: const Icon(Icons.logout, color: Colors.red),
-                          title: Text(
-                            'Logout',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodyLarge?.copyWith(color: Colors.red),
-                          ),
-                        ),
+                              leading: const Icon(
+                                Icons.logout,
+                                color: Colors.red,
+                              ),
+                              title: Text(
+                                'Logout',
+                                style: Theme.of(context).textTheme.bodyLarge
+                                    ?.copyWith(color: Colors.red),
+                              ),
+                            )
+                            .animate()
+                            .fadeIn(delay: 600.ms)
+                            .slideX(begin: 0.1, end: 0),
                         const SizedBox(height: 100),
                       ],
                     ),

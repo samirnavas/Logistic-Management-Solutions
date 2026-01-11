@@ -152,10 +152,16 @@ class AppTheme {
 
       cardTheme: CardThemeData(
         color: surface,
-        elevation: 2,
-        shadowColor: Colors.black.withValues(alpha: 0.05),
+        elevation: 4,
+        shadowColor: primaryBlue.withValues(alpha: 0.12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      ),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: <TargetPlatform, PageTransitionsBuilder>{
+          TargetPlatform.android: ZoomPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        },
       ),
     );
   }

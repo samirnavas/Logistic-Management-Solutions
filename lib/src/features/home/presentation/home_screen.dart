@@ -3,6 +3,7 @@ import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:bb_logistics/src/features/shipment/presentation/widgets/shipment_card.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -70,25 +71,36 @@ class HomeScreen extends StatelessWidget {
                         topRight: Radius.circular(30),
                       ),
                     ),
-                    padding: const EdgeInsets.fromLTRB(20, 30, 20, 100),
+                    padding: EdgeInsets.fromLTRB(
+                      MediaQuery.of(context).size.width < 380 ? 16 : 20,
+                      30,
+                      MediaQuery.of(context).size.width < 380 ? 16 : 20,
+                      100,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Greeting
                         Text(
-                          'Hello, John!',
-                          style: Theme.of(context).textTheme.displayMedium,
-                        ),
+                              'Hello, John!',
+                              style: Theme.of(context).textTheme.displayMedium,
+                            )
+                            .animate()
+                            .fadeIn(duration: 500.ms)
+                            .slideX(begin: -0.2, end: 0),
                         const SizedBox(height: 8),
                         Text(
                           'Track, manage, and review all your shipments in one place.',
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: AppTheme.textGrey, height: 1.5),
-                        ),
+                        ).animate().fadeIn(delay: 100.ms, duration: 500.ms),
                         const SizedBox(height: 24),
 
                         // Customer Code Card
-                        _buildCustomerCodeCard(context),
+                        _buildCustomerCodeCard(context)
+                            .animate()
+                            .fadeIn(delay: 200.ms, duration: 500.ms)
+                            .scale(),
 
                         const SizedBox(height: 16),
 
@@ -112,7 +124,7 @@ class HomeScreen extends StatelessWidget {
                             icon: const Icon(Icons.add, size: 18),
                             label: const Text('CREATE NEW REQUEST'),
                           ),
-                        ),
+                        ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
 
                         const SizedBox(height: 32),
 
@@ -120,7 +132,7 @@ class HomeScreen extends StatelessWidget {
                         Text(
                           'Status Overview',
                           style: Theme.of(context).textTheme.titleLarge,
-                        ),
+                        ).animate().fadeIn(delay: 400.ms),
                         const SizedBox(height: 16),
                         _buildStatusGrid(context),
 
@@ -146,7 +158,7 @@ class HomeScreen extends StatelessWidget {
                               ),
                             ),
                           ],
-                        ),
+                        ).animate().fadeIn(delay: 600.ms),
                         const SizedBox(height: 8),
                         ListView.builder(
                           shrinkWrap: true,
@@ -154,14 +166,17 @@ class HomeScreen extends StatelessWidget {
                           itemCount: 2,
                           itemBuilder: (context, index) {
                             return ShipmentCard(
-                              shipmentId: '#RQ1982',
-                              boxId: 'BX-221',
-                              status: 'Transit',
-                              type: 'Air',
-                              date: '26 Dec 2025',
-                              onTrack: () {},
-                              onViewDetails: () {},
-                            );
+                                  shipmentId: '#RQ1982',
+                                  boxId: 'BX-221',
+                                  status: 'Transit',
+                                  type: 'Air',
+                                  date: '26 Dec 2025',
+                                  onTrack: () {},
+                                  onViewDetails: () {},
+                                )
+                                .animate()
+                                .fadeIn(delay: (700 + (index * 100)).ms)
+                                .slideY(begin: 0.2, end: 0);
                           },
                         ),
                       ],
@@ -198,9 +213,17 @@ class HomeScreen extends StatelessWidget {
         color: AppTheme.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
+          // Subtle light blue glow for depth
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
+            color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+            blurRadius: 12,
+            spreadRadius: 0,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: AppTheme.primaryBlue.withValues(alpha: 0.04),
+            blurRadius: 20,
+            spreadRadius: 2,
             offset: const Offset(0, 2),
           ),
         ],
@@ -239,63 +262,71 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildStatusGrid(BuildContext context) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 3,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 0.85,
-      children: [
-        _buildStatusCard(
-          context,
-          'Requests',
-          '12',
-          Icons.assignment_outlined,
-          AppTheme.primaryBlue.withValues(alpha: 0.1),
-          AppTheme.primaryBlue,
-        ),
-        _buildStatusCard(
-          context,
-          'Shipped',
-          '08',
-          Icons.directions_boat_outlined,
-          AppTheme.primaryCyan.withValues(alpha: 0.1),
-          AppTheme.primaryCyan,
-        ),
-        _buildStatusCard(
-          context,
-          'Delivered',
-          '06',
-          Icons.check_circle_outlined,
-          Colors.orange.withValues(alpha: 0.1),
-          Colors.orange,
-        ),
-        _buildStatusCard(
-          context,
-          'Cleared',
-          '02',
-          Icons.verified_user_outlined,
-          AppTheme.primaryGreen.withValues(alpha: 0.1),
-          AppTheme.primaryGreen,
-        ),
-        _buildStatusCard(
-          context,
-          'Dispatch',
-          '01',
-          Icons.local_shipping_outlined,
-          Colors.green.withValues(alpha: 0.1),
-          Colors.green,
-        ),
-        _buildStatusCard(
-          context,
-          'Waiting',
-          '00',
-          Icons.schedule_outlined,
-          Colors.purple.withValues(alpha: 0.1),
-          Colors.purple,
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Responsive grid: 2 columns on small screens, 3 on larger
+        final crossAxisCount = constraints.maxWidth < 350 ? 2 : 3;
+        final aspectRatio = constraints.maxWidth < 350 ? 1.0 : 0.85;
+
+        return GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: aspectRatio,
+          children: [
+            _buildStatusCard(
+              context,
+              'Requests',
+              '12',
+              Icons.assignment_outlined,
+              AppTheme.primaryBlue.withValues(alpha: 0.1),
+              AppTheme.primaryBlue,
+            ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.2, end: 0),
+            _buildStatusCard(
+              context,
+              'Shipped',
+              '08',
+              Icons.directions_boat_outlined,
+              AppTheme.primaryCyan.withValues(alpha: 0.1),
+              AppTheme.primaryCyan,
+            ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.2, end: 0),
+            _buildStatusCard(
+              context,
+              'Delivered',
+              '06',
+              Icons.check_circle_outlined,
+              Colors.orange.withValues(alpha: 0.1),
+              Colors.orange,
+            ).animate().fadeIn(delay: 550.ms).slideY(begin: 0.2, end: 0),
+            _buildStatusCard(
+              context,
+              'Cleared',
+              '02',
+              Icons.verified_user_outlined,
+              AppTheme.primaryGreen.withValues(alpha: 0.1),
+              AppTheme.primaryGreen,
+            ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2, end: 0),
+            _buildStatusCard(
+              context,
+              'Dispatch',
+              '01',
+              Icons.local_shipping_outlined,
+              Colors.green.withValues(alpha: 0.1),
+              Colors.green,
+            ).animate().fadeIn(delay: 650.ms).slideY(begin: 0.2, end: 0),
+            _buildStatusCard(
+              context,
+              'Waiting',
+              '00',
+              Icons.schedule_outlined,
+              Colors.purple.withValues(alpha: 0.1),
+              Colors.purple,
+            ).animate().fadeIn(delay: 700.ms).slideY(begin: 0.2, end: 0),
+          ],
+        );
+      },
     );
   }
 
@@ -311,6 +342,15 @@ class HomeScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          // Subtle light blue glow for depth
+          BoxShadow(
+            color: AppTheme.primaryBlue.withValues(alpha: 0.06),
+            blurRadius: 8,
+            spreadRadius: 0,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       padding: const EdgeInsets.all(12),
       child: Column(

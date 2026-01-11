@@ -210,122 +210,149 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
       decimalDigits: 2,
     );
 
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.primaryBlue,
-            AppTheme.primaryBlue.withValues(alpha: 0.85),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primaryBlue.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Quotation ID',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.7),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    quotation.id,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              _buildStatusBadge(quotation.status),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Container(height: 1, color: Colors.white.withValues(alpha: 0.2)),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Request ID',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.7),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    quotation.requestId,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: Colors.white),
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'Created Date',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.7),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    dateFormat.format(quotation.createdDate),
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: Colors.white),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Center(
-            child: Column(
-              children: [
-                Text(
-                  'Total Amount',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.8),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  currencyFormat.format(quotation.totalAmount),
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isSmallScreen = constraints.maxWidth < 350;
+        final padding = isSmallScreen ? 12.0 : 20.0;
+
+        return Container(
+          margin: EdgeInsets.all(isSmallScreen ? 12 : 16),
+          padding: EdgeInsets.all(padding),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.primaryBlue,
+                AppTheme.primaryBlue.withValues(alpha: 0.85),
               ],
             ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-        ],
-      ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Quotation ID',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.7),
+                          fontSize: isSmallScreen ? 10 : 12,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        quotation.id,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: isSmallScreen ? 14 : 16,
+                            ),
+                      ),
+                    ],
+                  ),
+                  _buildStatusBadge(quotation.status),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(height: 1, color: Colors.white.withValues(alpha: 0.2)),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 16,
+                runSpacing: 12,
+                alignment: WrapAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Request ID',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.7),
+                          fontSize: isSmallScreen ? 10 : 12,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        quotation.requestId,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.white,
+                          fontSize: isSmallScreen ? 12 : 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: isSmallScreen
+                        ? CrossAxisAlignment.start
+                        : CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Created Date',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.7),
+                          fontSize: isSmallScreen ? 10 : 12,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        dateFormat.format(quotation.createdDate),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.white,
+                          fontSize: isSmallScreen ? 12 : 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Center(
+                child: Column(
+                  children: [
+                    Text(
+                      'Total Amount',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontSize: isSmallScreen ? 12 : 14,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        currencyFormat.format(quotation.totalAmount),
+                        style: Theme.of(context).textTheme.displaySmall
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: isSmallScreen ? 20 : 24,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -387,6 +414,21 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppTheme.textGrey.withValues(alpha: 0.2)),
+          boxShadow: [
+            // Subtle light blue glow for depth
+            BoxShadow(
+              color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+              blurRadius: 12,
+              spreadRadius: 0,
+              offset: const Offset(0, 4),
+            ),
+            BoxShadow(
+              color: AppTheme.primaryBlue.withValues(alpha: 0.04),
+              blurRadius: 20,
+              spreadRadius: 2,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -604,49 +646,68 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
   }
 
   Widget _buildActionButtons(BuildContext context, Quotation quotation) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.textDark.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () {
-                _showRejectConfirmation(context);
-              },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.error,
-                side: const BorderSide(color: AppTheme.error),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isSmallScreen = constraints.maxWidth < 350;
+
+        return Container(
+          padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.textDark.withValues(alpha: 0.1),
+                blurRadius: 8,
+                offset: const Offset(0, -4),
               ),
-              child: const Text('Reject'),
-            ),
+            ],
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 2,
-            child: ElevatedButton(
-              onPressed: () {
-                _showApproveConfirmation(context, quotation);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.success,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    _showRejectConfirmation(context);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.error,
+                    side: const BorderSide(color: AppTheme.error),
+                    padding: EdgeInsets.symmetric(
+                      vertical: isSmallScreen ? 10 : 14,
+                    ),
+                  ),
+                  child: Text(
+                    'Reject',
+                    style: TextStyle(fontSize: isSmallScreen ? 13 : 14),
+                  ),
+                ),
               ),
-              child: const Text('Approve Quotation'),
-            ),
+              SizedBox(width: isSmallScreen ? 8 : 16),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton(
+                  onPressed: () {
+                    _showApproveConfirmation(context, quotation);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.success,
+                    padding: EdgeInsets.symmetric(
+                      vertical: isSmallScreen ? 10 : 14,
+                    ),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      isSmallScreen ? 'Approve' : 'Approve Quotation',
+                      style: TextStyle(fontSize: isSmallScreen ? 13 : 14),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
