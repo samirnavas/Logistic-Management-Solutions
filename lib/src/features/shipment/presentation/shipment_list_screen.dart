@@ -207,7 +207,13 @@ class ShipmentListScreen extends ConsumerWidget {
                                   );
                                 },
                                 onViewDetails: () {
-                                  // TODO: Navigate to details screen
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Shipment details coming soon',
+                                      ),
+                                    ),
+                                  );
                                 },
                               ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
                             ),

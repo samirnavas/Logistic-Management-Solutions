@@ -1,13 +1,16 @@
 import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
+import 'package:bb_logistics/src/features/auth/data/mock_auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return BlueBackgroundScaffold(
       body: Stack(
         children: [
@@ -139,6 +142,12 @@ class ProfileScreen extends StatelessWidget {
                                 style: Theme.of(context).textTheme.bodyLarge
                                     ?.copyWith(color: Colors.red),
                               ),
+                              onTap: () {
+                                ref
+                                    .read(mockAuthRepositoryProvider.notifier)
+                                    .signOut();
+                                context.go('/login');
+                              },
                             )
                             .animate()
                             .fadeIn(delay: 600.ms)

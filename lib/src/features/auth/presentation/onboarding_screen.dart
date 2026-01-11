@@ -1,28 +1,30 @@
 import 'package:bb_logistics/src/core/theme/theme.dart';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class OnboardingDTO {
   final String title;
   final String description;
-  final IconData icon;
+  final String imagePath;
 
   OnboardingDTO({
     required this.title,
     required this.description,
-    required this.icon,
+    required this.imagePath,
   });
 }
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
@@ -31,19 +33,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       title: 'Global Air Freight',
       description:
           'Fast and reliable air cargo services to anywhere in the world.',
-      icon: Icons.airplanemode_active,
+      imagePath: 'assets/onboard_1.png',
     ),
     OnboardingDTO(
       title: 'Ocean Shipping',
       description:
           'Cost-effective sea freight solutions for your large shipments.',
-      icon: Icons.directions_boat,
+      imagePath: 'assets/onboard_2.png',
     ),
     OnboardingDTO(
-      title: 'Real-time Tracking',
+      title: 'Track shipments easily',
       description:
-          'Track your shipments in real-time with our advanced tracking system.',
-      icon: Icons.map,
+          'Follow your shipment with clear, real-time updates from pickup to delivery.',
+      imagePath: 'assets/onboard_3.png',
     ),
   ];
 
@@ -54,11 +56,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         curve: Curves.easeInOut,
       );
     } else {
-      _onSkip();
+      _onFinish();
     }
   }
 
-  void _onSkip() {
+  void _onFinish() {
     context.go('/login');
   }
 
@@ -69,20 +71,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            Align(
-              alignment: Alignment.topRight,
-              child: TextButton(
-                onPressed: _onSkip,
-                child: Text(
-                  'Skip',
-                  style: GoogleFonts.poppins(
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
             Expanded(
+              flex: 5, // Image area takes more space
               child: PageView.builder(
                 controller: _pageController,
                 itemCount: _content.length,
@@ -93,78 +83,137 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 },
                 itemBuilder: (context, index) {
                   final item = _content[index];
-                  return Padding(
-                    padding: const EdgeInsets.all(32.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(40),
-                          decoration: const BoxDecoration(
-                            color: AppTheme.primaryCyan,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            item.icon,
-                            size: 80,
-                            color: AppTheme.primaryBlue,
-                          ),
-                        ),
-                        const SizedBox(height: 40),
-                        Text(
-                          item.title,
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryBlue,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          item.description,
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            color: Colors.grey[600],
-                            height: 1.5,
-                          ),
-                        ),
-                      ],
-                    ),
+                  // Design: Image, then Dots, then Text.
+                  // But PageView usually scrolls everything.
+                  // The screenshot shows the image scrolling?
+                  // Usually in these designs, the image scrolls, text changes.
+                  // The dots are usually static at the bottom or below the image.
+                  // Im implementing the PageView to contain the Image.
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    alignment: Alignment.center,
+                    child: Image.asset(item.imagePath, fit: BoxFit.contain),
                   );
                 },
               ),
             ),
+            // Dots Indicator
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
                 _content.length,
-                (index) => Container(
+                (index) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
                   margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: _currentPage == index ? 24 : 8,
+                  width: 8,
                   height: 8,
                   decoration: BoxDecoration(
                     color: _currentPage == index
                         ? AppTheme.primaryBlue
-                        : Colors.grey[300],
-                    borderRadius: BorderRadius.circular(4),
+                        : const Color(0xFFE0E0E0),
+                    shape: BoxShape.circle,
                   ),
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(32.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _onNext,
-                  child: Text(
-                    _currentPage == _content.length - 1
-                        ? 'Get Started'
-                        : 'Next',
-                  ),
+            const SizedBox(height: 32),
+            // Text Content (Title & Description)
+            // We need this to change with the page.
+            // Since PageView is above, we can just display the text for the current page.
+            Expanded(
+              flex: 3,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                child: Column(
+                  children: [
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      transitionBuilder:
+                          (Widget child, Animation<double> animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: child,
+                            );
+                          },
+                      child: Text(
+                        _content[_currentPage].title,
+                        key: ValueKey<String>(_content[_currentPage].title),
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1E1E1E),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      transitionBuilder:
+                          (Widget child, Animation<double> animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: child,
+                            );
+                          },
+                      child: Text(
+                        _content[_currentPage].description,
+                        key: ValueKey<String>(
+                          _content[_currentPage].description,
+                        ),
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+            ),
+            // Bottom Action Bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(32, 0, 32, 32),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton(
+                    onPressed: _onFinish,
+                    child: Text(
+                      'SKIP',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryBlue,
+                      ),
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: _onNext,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryBlue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      _currentPage == _content.length - 1 ? 'START' : 'NEXT',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

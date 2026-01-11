@@ -50,10 +50,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     await Future.delayed(const Duration(seconds: 3));
     if (!mounted) return;
 
-    final isLoggedIn = ref.read(mockAuthRepositoryProvider);
-    if (isLoggedIn) {
-      context.go('/home');
-    } else {
+    try {
+      final user = await ref.read(mockAuthRepositoryProvider.future);
+      if (user != null) {
+        context.go('/home');
+      } else {
+        context.go('/onboarding');
+      }
+    } catch (e) {
+      // In case of error, default to onboarding or login
       context.go('/onboarding');
     }
   }
