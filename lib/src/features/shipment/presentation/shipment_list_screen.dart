@@ -4,6 +4,7 @@ import 'package:bb_logistics/src/features/shipment/data/mock_shipment_repository
 import 'package:bb_logistics/src/features/shipment/presentation/widgets/shipment_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 class ShipmentListScreen extends ConsumerWidget {
   const ShipmentListScreen({super.key});
@@ -198,7 +199,9 @@ class ShipmentListScreen extends ConsumerWidget {
                                   shipment.estimatedDelivery,
                                 ),
                                 onTrack: () {
-                                  // TODO: Navigate to tracking screen
+                                  context.push(
+                                    '/tracking/${shipment.trackingNumber}',
+                                  );
                                 },
                                 onViewDetails: () {
                                   // TODO: Navigate to details screen

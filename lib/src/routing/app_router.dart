@@ -10,6 +10,7 @@ import 'package:bb_logistics/src/features/quotation/presentation/quotation_detai
 import 'package:bb_logistics/src/features/quotation/presentation/quotation_screen.dart';
 import 'package:bb_logistics/src/features/shipment/presentation/request_shipment_screen.dart';
 import 'package:bb_logistics/src/features/shipment/presentation/shipment_list_screen.dart';
+import 'package:bb_logistics/src/features/shipment/presentation/tracking_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -73,6 +74,15 @@ GoRouter goRouter(Ref ref) {
         builder: (context, state) {
           final quotationId = state.pathParameters['id']!;
           return QuotationDetailScreen(quotationId: quotationId);
+        },
+      ),
+      // Tracking Screen - Root level route for full-screen map view
+      GoRoute(
+        path: '/tracking/:shipmentId',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final shipmentId = state.pathParameters['shipmentId']!;
+          return TrackingScreen(shipmentId: shipmentId);
         },
       ),
       // Stateful Nested Shell Route for Bottom Nav
