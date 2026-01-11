@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,8 +11,10 @@ class RequestShipmentScreen extends StatefulWidget {
 }
 
 class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
+  final _formKey = GlobalKey<FormState>();
   String _shippingMode = 'By Air';
   String _deliveryType = 'Door to Door';
+  String _countryCode = '+1'; // Default USA
 
   // Controllers
   final _itemNameController = TextEditingController();
@@ -46,188 +49,288 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'New Shipment Request',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 18),
+    // Check if keyboard is visible
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final isKeyboardVisible = bottomInset > 0;
+
+    // Calculate bottom padding for content so it clears the floaty button
+    final contentBottomPadding = isKeyboardVisible ? bottomInset + 100 : 100.0;
+
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        resizeToAvoidBottomInset:
+            false, // We use manual padding for smoother animation
+        appBar: AppBar(
+          title: Text(
+            'New Shipment Request',
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
+              fontSize: 20,
+              color: Colors.white,
+            ),
+          ),
+          backgroundColor: AppTheme.primaryColor,
+          elevation: 0,
+          centerTitle: false,
+          leading: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios,
+              color: Colors.white,
+              size: 20,
+            ),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
         ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        body: Stack(
           children: [
-            // 1. Shipping Mode
-            _buildSectionTitle('Shipping Mode'),
-            Row(
-              children: [
-                _buildRadioOption('By Air', _shippingMode, (val) {
-                  setState(() => _shippingMode = val!);
-                }),
-                const SizedBox(width: 16),
-                _buildRadioOption('By Sea', _shippingMode, (val) {
-                  setState(() => _shippingMode = val!);
-                }),
-              ],
-            ),
-            const SizedBox(height: 24),
+            // Scrollable Content
+            Positioned.fill(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(24, 24, 24, contentBottomPadding),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 1. Shipping Mode
+                      _buildSectionTitle('Choose Shipping Mode'),
+                      const SizedBox(height: 12),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _buildRadioOption('By Air', _shippingMode, (val) {
+                              setState(() => _shippingMode = val!);
+                            }),
+                            const SizedBox(width: 24),
+                            _buildRadioOption('By Sea', _shippingMode, (val) {
+                              setState(() => _shippingMode = val!);
+                            }),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
 
-            // 2. Delivery Type
-            _buildSectionTitle('Delivery Type'),
-            Row(
-              children: [
-                _buildRadioOption('Door to Door', _deliveryType, (val) {
-                  setState(() => _deliveryType = val!);
-                }),
-                const SizedBox(width: 16),
-                _buildRadioOption('Warehouse Delivery', _deliveryType, (val) {
-                  setState(() => _deliveryType = val!);
-                }),
-              ],
-            ),
-            const SizedBox(height: 24),
+                      // 2. Delivery Type
+                      _buildSectionTitle('Choose Delivery Type'),
+                      const SizedBox(height: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildRadioOption(
+                            'Shipment door to door',
+                            _deliveryType,
+                            (val) {
+                              setState(() => _deliveryType = val!);
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          _buildRadioOption(
+                            'Warehouse Delivery',
+                            _deliveryType,
+                            (val) {
+                              setState(() => _deliveryType = val!);
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
 
-            // 3. Package Details
-            _buildSectionTitle('Package Details'),
-            const SizedBox(height: 12),
-            _buildTextField(
-              label: 'Item Name',
-              controller: _itemNameController,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    label: 'No. of Boxes',
-                    controller: _boxesController,
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildTextField(
-                    label: 'Total CBM',
-                    controller: _cbmController,
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildTextField(
-              label: 'HS Code (Optional)',
-              controller: _hsCodeController,
-            ),
-            const SizedBox(height: 24),
+                      // 3. Package Details
+                      _buildSectionTitle('Package Details'),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        hint: 'Item Name',
+                        controller: _itemNameController,
+                        validator: (value) => value == null || value.isEmpty
+                            ? 'Item name is required'
+                            : null,
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              hint: 'Number of Boxes',
+                              controller: _boxesController,
+                              keyboardType: TextInputType.number,
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                  ? 'Required'
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildTextField(
+                              hint: 'Total CBM',
+                              controller: _cbmController,
+                              keyboardType: TextInputType.number,
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                  ? 'Required'
+                                  : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        hint: 'HS Code',
+                        controller: _hsCodeController,
+                      ),
+                      const SizedBox(height: 24),
 
-            // 4. Product Photos
-            _buildSectionTitle('Product Photos'),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _buildPhotoPlaceholder(),
-                const SizedBox(width: 12),
-                _buildPhotoPlaceholder(),
-                const SizedBox(width: 12),
-                _buildPhotoPlaceholder(),
-              ],
-            ),
-            const SizedBox(height: 24),
+                      // 4. Product Photos
+                      _buildSectionTitle('Product Photos'),
+                      const SizedBox(height: 16),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _buildPhotoPlaceholder(),
+                            const SizedBox(width: 16),
+                            _buildPhotoPlaceholder(),
+                            const SizedBox(width: 16),
+                            _buildPhotoPlaceholder(),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
 
-            // 5. Pickup Address
-            _buildSectionTitle('Pickup Address'),
-            const SizedBox(height: 12),
-            _buildTextField(label: 'Full Name', controller: _nameController),
-            const SizedBox(height: 12),
-            _buildTextField(
-              label: 'Phone Number',
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 12),
-            _buildTextField(
-              label: 'Address Line',
-              controller: _addressController,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    label: 'City',
-                    controller: _cityController,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildTextField(
-                    label: 'State',
-                    controller: _stateController,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    label: 'Country',
-                    controller: _countryController,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildTextField(
-                    label: 'ZIP Code',
-                    controller: _zipController,
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
+                      // 5. Pickup Address
+                      _buildSectionTitle('Pickup Address'),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        hint: 'Full Name',
+                        controller: _nameController,
+                        validator: (value) => value == null || value.isEmpty
+                            ? 'Name is required'
+                            : null,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildPhoneField(),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        hint: 'Address Line 1',
+                        controller: _addressController,
+                        validator: (value) => value == null || value.isEmpty
+                            ? 'Address is required'
+                            : null,
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              hint: 'City',
+                              controller: _cityController,
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                  ? 'Required'
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildTextField(
+                              hint: 'State',
+                              controller: _stateController,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              hint: 'Country',
+                              controller: _countryController,
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                  ? 'Required'
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildTextField(
+                              hint: 'ZIP / Postal Code',
+                              controller: _zipController,
+                              keyboardType: TextInputType.number,
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                  ? 'Required'
+                                  : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
 
-            // 6. Notes
-            _buildSectionTitle('Notes'),
-            const SizedBox(height: 12),
-            _buildTextField(
-              label: 'Additional Instructions...',
-              controller: _notesController,
-              maxLines: 4,
-            ),
-            const SizedBox(height: 32),
-
-            // Submit Button
-            SizedBox(
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Submission logic to be implemented
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Request submitted!')),
-                  );
-                  Navigator.of(context).pop();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  'Request Pickup',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                      // 6. Notes
+                      _buildSectionTitle('Add Notes'),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        hint: 'Add special instructions...',
+                        controller: _notesController,
+                        maxLines: 4,
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+
+            // Floating Button
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 100),
+              curve: Curves.easeOut,
+              left: 24, // Add horizontal padding
+              right: 24, // Add horizontal padding
+              // Float 24px above bottom, or 24px above keyboard
+              bottom: isKeyboardVisible ? bottomInset + 12 : 32,
+              child: SizedBox(
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Request submitted!')),
+                      );
+                      Navigator.of(context).pop();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please fill in all required fields.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0056A2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    elevation: 5, // Add elevation for floating effect
+                    shadowColor: Colors.black.withValues(alpha: 0.3),
+                  ),
+                  child: Text(
+                    'REQUEST PICKUP',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -239,8 +342,8 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
       title,
       style: GoogleFonts.poppins(
         fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: Colors.black87,
+        fontWeight: FontWeight.w700,
+        color: const Color(0xFF333333),
       ),
     );
   }
@@ -250,72 +353,201 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
     String groupValue,
     ValueChanged<String?> onChanged,
   ) {
-    return Row(
-      children: [
-        // ignore: deprecated_member_use
-        Radio<String>(
-          value: value,
-          groupValue: groupValue,
-          onChanged: onChanged,
-          activeColor: AppTheme.primaryColor,
+    final isSelected = value == groupValue;
+    return InkWell(
+      onTap: () => onChanged(value),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 4,
+          vertical: 4,
+        ), // Larger touch area
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected ? Colors.grey[300] : Colors.grey[200],
+              ),
+              padding: const EdgeInsets.all(2),
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected ? Colors.grey[600] : Colors.transparent,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              value,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
         ),
-        Text(value, style: GoogleFonts.poppins(fontSize: 14)),
-      ],
+      ),
     );
   }
 
   Widget _buildTextField({
-    required String label,
+    required String hint,
     required TextEditingController controller,
     TextInputType? keyboardType,
     int maxLines = 1,
+    String? Function(String?)? validator,
   }) {
-    return TextField(
+    return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
-      style: GoogleFonts.poppins(fontSize: 14),
+      validator: validator,
+      style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
       decoration: InputDecoration(
-        labelText: label,
-        labelStyle: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 13),
-        alignLabelWithHint: maxLines > 1,
-        fillColor: Colors.grey[50],
+        hintText: hint,
+        hintStyle: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 13),
         filled: true,
+        fillColor: const Color(0xFFF5F5F5), // Very light grey
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppTheme.primaryColor),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.red, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.red, width: 1),
         ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
+          horizontal: 20,
+          vertical: 18,
         ),
+      ),
+    );
+  }
+
+  Widget _buildPhoneField() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          PopupMenuButton<String>(
+            onSelected: (value) => setState(() => _countryCode = value),
+            color: Colors.white,
+            surfaceTintColor: Colors.white,
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: '+1',
+                child: Row(
+                  children: [
+                    Text('🇺🇸', style: TextStyle(fontSize: 20)),
+                    SizedBox(width: 8),
+                    Text('+1'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: '+91',
+                child: Row(
+                  children: [
+                    Text('🇮🇳', style: TextStyle(fontSize: 20)),
+                    SizedBox(width: 8),
+                    Text('+91'),
+                  ],
+                ),
+              ),
+            ],
+            child: Row(
+              children: [
+                Text(
+                  _countryCode == '+1' ? '🇺🇸' : '🇮🇳',
+                  style: const TextStyle(fontSize: 20),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  _countryCode,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: Colors.grey,
+                  size: 18,
+                ),
+              ],
+            ),
+          ),
+          Container(
+            height: 24,
+            width: 1,
+            margin: const EdgeInsets.symmetric(horizontal: 12),
+            color: Colors.grey.shade300,
+          ),
+          Expanded(
+            child: TextFormField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              validator: (value) =>
+                  value == null || value.isEmpty ? 'Required' : null,
+              style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                filled: false,
+                fillColor: Colors.transparent,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                focusedErrorBorder: InputBorder.none,
+                hintText: 'Phone Number',
+                hintStyle: GoogleFonts.poppins(
+                  color: Colors.grey[400],
+                  fontSize: 13,
+                ),
+                contentPadding: EdgeInsets.zero,
+                isDense: true,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildPhotoPlaceholder() {
     return Container(
-      width: 80,
-      height: 80,
+      width: 90,
+      height: 90,
       decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.grey.shade300,
-          width: 1,
-          style: BorderStyle.solid,
-        ),
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Center(
-        child: Icon(Icons.add_a_photo_outlined, color: Colors.grey[400]),
+        child: Icon(
+          Icons.file_upload_outlined,
+          color: AppTheme.primaryColor,
+          size: 28,
+        ),
       ),
     );
   }
