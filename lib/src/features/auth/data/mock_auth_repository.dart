@@ -2,11 +2,11 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'mock_auth_repository.g.dart';
 
-@riverpod
+@Riverpod(keepAlive: true)
 class MockAuthRepository extends _$MockAuthRepository {
   @override
   bool build() {
-    return false; // Default to not logged in
+    return true; // Default to true (logged in) for development
   }
 
   Future<void> signIn(String email, String password) async {

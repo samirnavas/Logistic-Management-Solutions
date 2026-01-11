@@ -7,6 +7,7 @@ import 'package:bb_logistics/src/features/auth/presentation/splash_screen.dart';
 import 'package:bb_logistics/src/features/home/presentation/home_screen.dart';
 import 'package:bb_logistics/src/features/profile/presentation/profile_screen.dart';
 import 'package:bb_logistics/src/features/quotation/presentation/quotation_screen.dart';
+import 'package:bb_logistics/src/features/shipment/presentation/request_shipment_screen.dart';
 import 'package:bb_logistics/src/features/shipment/presentation/shipment_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -58,6 +59,11 @@ GoRouter goRouter(GoRouterRef ref) {
       GoRoute(
         path: '/signup',
         builder: (context, state) => const SignupScreen(),
+      ),
+      GoRoute(
+        path: '/create-request',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const RequestShipmentScreen(),
       ),
       // Stateful Nested Shell Route for Bottom Nav
       StatefulShellRoute.indexedStack(
