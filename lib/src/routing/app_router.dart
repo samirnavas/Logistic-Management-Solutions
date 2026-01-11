@@ -6,6 +6,7 @@ import 'package:bb_logistics/src/features/auth/presentation/signup_screen.dart';
 import 'package:bb_logistics/src/features/auth/presentation/splash_screen.dart';
 import 'package:bb_logistics/src/features/home/presentation/home_screen.dart';
 import 'package:bb_logistics/src/features/profile/presentation/profile_screen.dart';
+import 'package:bb_logistics/src/features/quotation/presentation/quotation_detail_screen.dart';
 import 'package:bb_logistics/src/features/quotation/presentation/quotation_screen.dart';
 import 'package:bb_logistics/src/features/shipment/presentation/request_shipment_screen.dart';
 import 'package:bb_logistics/src/features/shipment/presentation/shipment_list_screen.dart';
@@ -64,6 +65,15 @@ GoRouter goRouter(Ref ref) {
         path: '/create-request',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const RequestShipmentScreen(),
+      ),
+      // Quotation Detail - Root level route for full-screen PDF viewing
+      GoRoute(
+        path: '/quotations/:id',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final quotationId = state.pathParameters['id']!;
+          return QuotationDetailScreen(quotationId: quotationId);
+        },
       ),
       // Stateful Nested Shell Route for Bottom Nav
       StatefulShellRoute.indexedStack(

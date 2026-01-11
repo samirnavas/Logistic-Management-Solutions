@@ -62,225 +62,295 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
         backgroundColor: Colors.white,
         resizeToAvoidBottomInset:
             false, // We use manual padding for smoother animation
-        appBar: AppBar(
-          title: Text(
-            'New Shipment Request',
-            style: GoogleFonts.poppins(
-              fontWeight: FontWeight.w600,
-              fontSize: 20,
-              color: Colors.white,
-            ),
-          ),
-          backgroundColor: AppTheme.primaryColor,
-          elevation: 0,
-          centerTitle: false,
-          leading: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_ios,
-              color: Colors.white,
-              size: 20,
-            ),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ),
         body: Stack(
           children: [
-            // Scrollable Content
-            Positioned.fill(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(24, 24, 24, contentBottomPadding),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            // 1. Blue Header Background (Fixed)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 280,
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0xFF4FC3F7), // Light Blue
+                      Color(0xFF0288D1), // Darker Blue
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // 2. Custom App Bar Content (Back Button & Title)
+            // Situated below the scrollable content in stack order to match Home Screen behavior
+            // (or place it above if we want it clickable over the white card, but Home screen puts scrollable on top)
+            // However, for a form screen, staying accessible is better.
+            // Matching Home Screen structure: Scrollable is LAST, covering the header.
+            // We will stick to the Home Screen pattern primarily, but careful with usability.
+            // Home Screen: Lines 37-75 (AppBar) is BEFORE Lines 78-319 (Scrollable).
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Row(
                     children: [
-                      // 1. Shipping Mode
-                      _buildSectionTitle('Choose Shipping Mode'),
-                      const SizedBox(height: 12),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _buildRadioOption('By Air', _shippingMode, (val) {
-                              setState(() => _shippingMode = val!);
-                            }),
-                            const SizedBox(width: 24),
-                            _buildRadioOption('By Sea', _shippingMode, (val) {
-                              setState(() => _shippingMode = val!);
-                            }),
-                          ],
+                      IconButton(
+                        icon: const Icon(
+                          Icons.arrow_back_ios,
+                          color: Colors.white,
+                          size: 20,
                         ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // 2. Delivery Type
-                      _buildSectionTitle('Choose Delivery Type'),
-                      const SizedBox(height: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildRadioOption(
-                            'Shipment door to door',
-                            _deliveryType,
-                            (val) {
-                              setState(() => _deliveryType = val!);
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          _buildRadioOption(
-                            'Warehouse Delivery',
-                            _deliveryType,
-                            (val) {
-                              setState(() => _deliveryType = val!);
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-
-                      // 3. Package Details
-                      _buildSectionTitle('Package Details'),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        hint: 'Item Name',
-                        controller: _itemNameController,
-                        validator: (value) => value == null || value.isEmpty
-                            ? 'Item name is required'
-                            : null,
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildTextField(
-                              hint: 'Number of Boxes',
-                              controller: _boxesController,
-                              keyboardType: TextInputType.number,
-                              validator: (value) =>
-                                  value == null || value.isEmpty
-                                  ? 'Required'
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildTextField(
-                              hint: 'Total CBM',
-                              controller: _cbmController,
-                              keyboardType: TextInputType.number,
-                              validator: (value) =>
-                                  value == null || value.isEmpty
-                                  ? 'Required'
-                                  : null,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        hint: 'HS Code',
-                        controller: _hsCodeController,
-                      ),
-                      const SizedBox(height: 24),
-
-                      // 4. Product Photos
-                      _buildSectionTitle('Product Photos'),
-                      const SizedBox(height: 16),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _buildPhotoPlaceholder(),
-                            const SizedBox(width: 16),
-                            _buildPhotoPlaceholder(),
-                            const SizedBox(width: 16),
-                            _buildPhotoPlaceholder(),
-                          ],
+                        onPressed: () => Navigator.of(context).pop(),
+                      ), // Back Button
+                      const SizedBox(width: 8),
+                      Text(
+                        'New Shipment Request',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 20,
+                          color: Colors.white,
                         ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // 5. Pickup Address
-                      _buildSectionTitle('Pickup Address'),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        hint: 'Full Name',
-                        controller: _nameController,
-                        validator: (value) => value == null || value.isEmpty
-                            ? 'Name is required'
-                            : null,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildPhoneField(),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        hint: 'Address Line 1',
-                        controller: _addressController,
-                        validator: (value) => value == null || value.isEmpty
-                            ? 'Address is required'
-                            : null,
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildTextField(
-                              hint: 'City',
-                              controller: _cityController,
-                              validator: (value) =>
-                                  value == null || value.isEmpty
-                                  ? 'Required'
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildTextField(
-                              hint: 'State',
-                              controller: _stateController,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildTextField(
-                              hint: 'Country',
-                              controller: _countryController,
-                              validator: (value) =>
-                                  value == null || value.isEmpty
-                                  ? 'Required'
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildTextField(
-                              hint: 'ZIP / Postal Code',
-                              controller: _zipController,
-                              keyboardType: TextInputType.number,
-                              validator: (value) =>
-                                  value == null || value.isEmpty
-                                  ? 'Required'
-                                  : null,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-
-                      // 6. Notes
-                      _buildSectionTitle('Add Notes'),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        hint: 'Add special instructions...',
-                        controller: _notesController,
-                        maxLines: 4,
                       ),
                     ],
                   ),
+                ),
+              ),
+            ),
+
+            // 3. Scrollable Content (White Card scrolls UP over the blue header)
+            Positioned.fill(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: MediaQuery.of(context).padding.top + 70,
+                    ), // Dynamic margin to show header initially
+                    Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(30),
+                          topRight: Radius.circular(30),
+                        ),
+                      ),
+                      padding: EdgeInsets.fromLTRB(
+                        24,
+                        30,
+                        24,
+                        contentBottomPadding,
+                      ),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // 1. Shipping Mode
+                            _buildSectionTitle('Choose Shipping Mode'),
+                            const SizedBox(height: 12),
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  _buildRadioOption('By Air', _shippingMode, (
+                                    val,
+                                  ) {
+                                    setState(() => _shippingMode = val!);
+                                  }),
+                                  const SizedBox(width: 24),
+                                  _buildRadioOption('By Sea', _shippingMode, (
+                                    val,
+                                  ) {
+                                    setState(() => _shippingMode = val!);
+                                  }),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // 2. Delivery Type
+                            _buildSectionTitle('Choose Delivery Type'),
+                            const SizedBox(height: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildRadioOption(
+                                  'Shipment door to door',
+                                  _deliveryType,
+                                  (val) {
+                                    setState(() => _deliveryType = val!);
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                                _buildRadioOption(
+                                  'Warehouse Delivery',
+                                  _deliveryType,
+                                  (val) {
+                                    setState(() => _deliveryType = val!);
+                                  },
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+
+                            // 3. Package Details
+                            _buildSectionTitle('Package Details'),
+                            const SizedBox(height: 16),
+                            _buildTextField(
+                              hint: 'Item Name',
+                              controller: _itemNameController,
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                  ? 'Item name is required'
+                                  : null,
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                    hint: 'Number of Boxes',
+                                    controller: _boxesController,
+                                    keyboardType: TextInputType.number,
+                                    validator: (value) =>
+                                        value == null || value.isEmpty
+                                        ? 'Required'
+                                        : null,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildTextField(
+                                    hint: 'Total CBM',
+                                    controller: _cbmController,
+                                    keyboardType: TextInputType.number,
+                                    validator: (value) =>
+                                        value == null || value.isEmpty
+                                        ? 'Required'
+                                        : null,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            _buildTextField(
+                              hint: 'HS Code',
+                              controller: _hsCodeController,
+                            ),
+                            const SizedBox(height: 24),
+
+                            // 4. Product Photos
+                            _buildSectionTitle('Product Photos'),
+                            const SizedBox(height: 16),
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  _buildPhotoPlaceholder(),
+                                  const SizedBox(width: 16),
+                                  _buildPhotoPlaceholder(),
+                                  const SizedBox(width: 16),
+                                  _buildPhotoPlaceholder(),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // 5. Pickup Address
+                            _buildSectionTitle('Pickup Address'),
+                            const SizedBox(height: 16),
+                            _buildTextField(
+                              hint: 'Full Name',
+                              controller: _nameController,
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                  ? 'Name is required'
+                                  : null,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildPhoneField(),
+                            const SizedBox(height: 16),
+                            _buildTextField(
+                              hint: 'Address Line 1',
+                              controller: _addressController,
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                  ? 'Address is required'
+                                  : null,
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                    hint: 'City',
+                                    controller: _cityController,
+                                    validator: (value) =>
+                                        value == null || value.isEmpty
+                                        ? 'Required'
+                                        : null,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildTextField(
+                                    hint: 'State',
+                                    controller: _stateController,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                    hint: 'Country',
+                                    controller: _countryController,
+                                    validator: (value) =>
+                                        value == null || value.isEmpty
+                                        ? 'Required'
+                                        : null,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildTextField(
+                                    hint: 'ZIP / Postal Code',
+                                    controller: _zipController,
+                                    keyboardType: TextInputType.number,
+                                    validator: (value) =>
+                                        value == null || value.isEmpty
+                                        ? 'Required'
+                                        : null,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+
+                            // 6. Notes
+                            _buildSectionTitle('Add Notes'),
+                            const SizedBox(height: 16),
+                            _buildTextField(
+                              hint: 'Add special instructions...',
+                              controller: _notesController,
+                              maxLines: 4,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

@@ -80,7 +80,7 @@ class HomeScreen extends StatelessWidget {
               child: Column(
                 children: [
                   SizedBox(
-                    height: MediaQuery.of(context).padding.top + 80,
+                    height: MediaQuery.of(context).padding.top + 70,
                   ), // Dynamic top margin
                   Container(
                     width: double.infinity,
