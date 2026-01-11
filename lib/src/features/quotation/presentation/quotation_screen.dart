@@ -69,7 +69,7 @@ class QuotationScreen extends ConsumerWidget {
                         color: Colors.white,
                       ),
                       child: IconButton(
-                        icon: Icon(
+                        icon: const Icon(
                           Icons.notifications_none_outlined,
                           color: AppTheme.primaryColor,
                         ),
@@ -171,9 +171,9 @@ class QuotationScreen extends ConsumerWidget {
                               child: CircularProgressIndicator(),
                             ),
                           ),
-                          error: (error, stack) => Center(
+                          error: (error, stack) => const Center(
                             child: Padding(
-                              padding: const EdgeInsets.all(20.0),
+                              padding: EdgeInsets.all(20.0),
                               child: Text('Error loading quotations'),
                             ),
                           ),
@@ -330,7 +330,7 @@ class _QuotationCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      Icon(
+                      const Icon(
                         Icons.chevron_right,
                         size: 18,
                         color: AppTheme.primaryBlue,

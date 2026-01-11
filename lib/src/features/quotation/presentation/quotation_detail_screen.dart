@@ -525,7 +525,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                   color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.picture_as_pdf,
                   size: 40,
                   color: AppTheme.primaryBlue,
@@ -604,7 +604,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
               },
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppTheme.errorRed,
-                side: BorderSide(color: AppTheme.errorRed),
+                side: const BorderSide(color: AppTheme.errorRed),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               child: const Text('Reject'),

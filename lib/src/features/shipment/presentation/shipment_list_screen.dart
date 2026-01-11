@@ -69,7 +69,7 @@ class ShipmentListScreen extends StatelessWidget {
                         color: Colors.white,
                       ),
                       child: IconButton(
-                        icon: Icon(
+                        icon: const Icon(
                           Icons.notifications_none_outlined,
                           color: AppTheme.primaryColor,
                         ),

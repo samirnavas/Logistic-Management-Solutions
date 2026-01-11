@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -419,7 +418,7 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
             children: [
               const SizedBox(height: 10),
               Image.asset(
-                'assets/request pop up png.png',
+                'assets/request_success_popup_image.png',
                 height: 120,
                 width: 120,
               ),
@@ -686,7 +685,7 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
         color: const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Center(
+      child: const Center(
         child: Icon(
           Icons.file_upload_outlined,
           color: AppTheme.primaryColor,
