@@ -1,4 +1,3 @@
-import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:bb_logistics/src/features/auth/data/mock_auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,15 +10,44 @@ class SplashScreen extends ConsumerStatefulWidget {
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ConsumerState<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
   @override
   void initState() {
     super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+
+    _controller.forward();
+
     _navigateToNext();
   }
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   Future<void> _navigateToNext() async {
-    await Future.delayed(const Duration(seconds: 2));
+    // Wait for animation + a little extra time
+    await Future.delayed(const Duration(seconds: 3));
     if (!mounted) return;
 
     final isLoggedIn = ref.read(mockAuthRepositoryProvider);
@@ -32,42 +60,72 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // calculate screen height/width to ensure images fit well
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
-      backgroundColor: AppTheme.primaryColor,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Placeholder for Logo
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.local_shipping,
-                size: 64,
-                color: AppTheme.primaryColor,
+      backgroundColor: Colors.white,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Top Left Smoke
+          Positioned(
+            top: 0,
+            left: 0,
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: Image.asset(
+                'assets/Splash smoke left.png',
+                width: size.width * 0.6,
+                fit: BoxFit.contain,
               ),
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'B&B International',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Poppins',
+          ),
+
+          // Top Right Smoke
+          Positioned(
+            top: 0,
+            right: 0,
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: Image.asset(
+                'assets/Splash smoke right.png',
+                width: size.width * 0.6,
+                fit: BoxFit.contain,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Global Logistics Solutions',
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+          ),
+
+          // Bottom Illustration
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: SlideTransition(
+              position: _slideAnimation,
+              child: Image.asset(
+                'assets/splash screen bottom.png',
+                fit: BoxFit.cover,
+              ),
             ),
-          ],
-        ),
+          ),
+
+          // Center Logo
+          Center(
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: Padding(
+                padding: const EdgeInsets.only(
+                  bottom: 100.0,
+                ), // Adjust to allow space for bottom image
+                child: Image.asset(
+                  'assets/B&B Logo.png',
+                  width: size.width * 0.6,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

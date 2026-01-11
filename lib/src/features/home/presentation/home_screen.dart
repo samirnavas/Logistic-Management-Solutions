@@ -176,7 +176,7 @@ class HomeScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 return ShipmentCard(
                   shipmentId: 'SHP-2023-00${index + 1}',
-                  boxId: 'B-10${index}',
+                  boxId: 'B-10$index',
                   status: index == 0
                       ? 'Pending'
                       : (index == 1 ? 'Shipped' : 'Delivered'),
