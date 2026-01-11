@@ -1,12 +1,11 @@
+import 'package:bb_logistics/src/core/theme/theme.dart';
+import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
+import 'package:bb_logistics/src/features/quotation/data/mock_quotation_repository.dart';
+import 'package:bb_logistics/src/features/quotation/domain/quotation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-
-import '../../../core/theme/theme.dart';
-import '../data/mock_quotation_repository.dart';
-import '../domain/quotation.dart';
 
 class QuotationScreen extends ConsumerWidget {
   const QuotationScreen({super.key});
@@ -15,31 +14,10 @@ class QuotationScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final quotationsAsync = ref.watch(quotationsProvider);
 
-    return Scaffold(
-      backgroundColor: Colors.white,
+    return BlueBackgroundScaffold(
       body: Stack(
         children: [
-          // 1. Blue Header Background (Fixed)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 280,
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF4FC3F7), // Light Blue matched from Home
-                    Color(0xFF0288D1), // Darker Blue matched from Home
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // 2. Custom App Bar Content (Menu, Bell)
+          // 1. Custom App Bar Content (Menu, Bell)
           Positioned(
             top: 0,
             left: 0,
@@ -60,7 +38,7 @@ class QuotationScreen extends ConsumerWidget {
                         size: 28,
                       ),
                       onPressed: () {
-                        Scaffold.of(context).openDrawer();
+                        // Scaffold.of(context).openDrawer();
                       },
                     ),
                     Container(
@@ -71,7 +49,7 @@ class QuotationScreen extends ConsumerWidget {
                       child: IconButton(
                         icon: const Icon(
                           Icons.notifications_none_outlined,
-                          color: AppTheme.primaryColor,
+                          color: AppTheme.primaryBlue,
                         ),
                         onPressed: () {},
                       ),
@@ -82,7 +60,7 @@ class QuotationScreen extends ConsumerWidget {
             ),
           ),
 
-          // 3. Scrollable Content
+          // 2. Scrollable Content
           Positioned.fill(
             child: SingleChildScrollView(
               child: Column(
@@ -109,11 +87,7 @@ class QuotationScreen extends ConsumerWidget {
                           children: [
                             Text(
                               'Quotation',
-                              style: GoogleFonts.poppins(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
+                              style: Theme.of(context).textTheme.displaySmall,
                             ),
                             _buildSortDropdown(context),
                           ],
@@ -135,16 +109,18 @@ class QuotationScreen extends ConsumerWidget {
                                       Icon(
                                         Icons.description_outlined,
                                         size: 80,
-                                        color: AppTheme.neutralGray.withValues(
+                                        color: AppTheme.textGrey.withValues(
                                           alpha: 0.5,
                                         ),
                                       ),
                                       const SizedBox(height: 16),
                                       Text(
                                         'No quotations yet',
-                                        style: AppTheme.textStyle16Medium
-                                            .copyWith(
-                                              color: AppTheme.neutralGray,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyLarge
+                                            ?.copyWith(
+                                              color: AppTheme.textGrey,
                                             ),
                                       ),
                                     ],
@@ -197,7 +173,7 @@ class QuotationScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
+        color: AppTheme.background,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -211,7 +187,9 @@ class QuotationScreen extends ConsumerWidget {
           const SizedBox(width: 8),
           Text(
             'Date',
-            style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[800]),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.grey[800]),
           ),
           const SizedBox(width: 4),
           Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.grey[600]),
@@ -238,12 +216,10 @@ class _QuotationCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.neutralLightGray.withValues(alpha: 0.5),
-        ),
+        border: Border.all(color: AppTheme.background.withValues(alpha: 0.5)),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.neutralDark.withValues(alpha: 0.04),
+            color: AppTheme.textDark.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -278,35 +254,38 @@ class _QuotationCard extends StatelessWidget {
                         children: [
                           Text(
                             'Quotation ID: ',
-                            style: AppTheme.textStyle14.copyWith(
-                              color: AppTheme.neutralGray,
-                            ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: AppTheme.textGrey),
                           ),
                           Text(
                             quotation.id,
-                            style: AppTheme.textStyle14SemiBold.copyWith(
-                              color: AppTheme.primaryBlue,
-                            ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: AppTheme.primaryBlue,
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Created on: ${dateFormat.format(quotation.createdDate)}',
-                        style: AppTheme.textStyle12.copyWith(
-                          color: AppTheme.neutralGray,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.textGrey,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          _buildStatusChip(),
+                          _buildStatusChip(context),
                           const SizedBox(width: 12),
                           Text(
                             currencyFormat.format(quotation.totalAmount),
-                            style: AppTheme.textStyle16SemiBold.copyWith(
-                              color: AppTheme.primaryBlue,
-                            ),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  color: AppTheme.primaryBlue,
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
                         ],
                       ),
@@ -325,8 +304,9 @@ class _QuotationCard extends StatelessWidget {
                     children: [
                       Text(
                         'View Quotation',
-                        style: AppTheme.textStyle12SemiBold.copyWith(
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: AppTheme.primaryBlue,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(width: 4),
@@ -349,15 +329,15 @@ class _QuotationCard extends StatelessWidget {
   Color _getStatusColor() {
     switch (quotation.status) {
       case QuotationStatus.approved:
-        return AppTheme.successGreen;
+        return AppTheme.success;
       case QuotationStatus.pending:
-        return AppTheme.warningYellow;
+        return AppTheme.warning;
       case QuotationStatus.rejected:
-        return AppTheme.errorRed;
+        return AppTheme.error;
     }
   }
 
-  Widget _buildStatusChip() {
+  Widget _buildStatusChip(BuildContext context) {
     final color = _getStatusColor();
 
     return Container(
@@ -368,7 +348,10 @@ class _QuotationCard extends StatelessWidget {
       ),
       child: Text(
         quotation.status.displayName,
-        style: AppTheme.textStyle12SemiBold.copyWith(color: color),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: color,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }

@@ -101,13 +101,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         Container(
                           padding: const EdgeInsets.all(40),
                           decoration: const BoxDecoration(
-                            color: AppTheme.secondaryColor,
+                            color: AppTheme.primaryCyan,
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             item.icon,
                             size: 80,
-                            color: AppTheme.primaryColor,
+                            color: AppTheme.primaryBlue,
                           ),
                         ),
                         const SizedBox(height: 40),
@@ -117,7 +117,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           style: GoogleFonts.poppins(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryColor,
+                            color: AppTheme.primaryBlue,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -146,7 +146,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   height: 8,
                   decoration: BoxDecoration(
                     color: _currentPage == index
-                        ? AppTheme.primaryColor
+                        ? AppTheme.primaryBlue
                         : Colors.grey[300],
                     borderRadius: BorderRadius.circular(4),
                   ),

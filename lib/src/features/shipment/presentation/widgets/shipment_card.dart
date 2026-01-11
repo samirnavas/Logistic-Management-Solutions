@@ -1,3 +1,4 @@
+import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:flutter/material.dart';
 
 class ShipmentCard extends StatelessWidget {
@@ -26,9 +27,6 @@ class ShipmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Primary Color for links/buttons
-    const primaryBlue = Color(0xFF0056A2);
-
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -74,11 +72,11 @@ class ShipmentCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           '$shipmentId - On the way',
-                          style: const TextStyle(
-                            color: primaryBlue,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(
+                                color: AppTheme.primaryBlue,
+                                fontWeight: FontWeight.bold,
+                              ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -93,22 +91,22 @@ class ShipmentCard extends StatelessWidget {
                         ),
                         child: Text(
                           status,
-                          style: const TextStyle(
-                            color: primaryBlue,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: AppTheme.primaryBlue,
+                                fontWeight: FontWeight.w500,
+                              ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   // Details Grid
-                  _buildDetailRow('Box No:', boxId),
-                  _buildDetailRow('Updated:', updated),
-                  _buildDetailRow('Product:', product),
-                  _buildDetailRow('Shipment Mode:', '$type Freight'),
-                  _buildDetailRow('Expected Delivery:', date),
+                  _buildDetailRow(context, 'Box No:', boxId),
+                  _buildDetailRow(context, 'Updated:', updated),
+                  _buildDetailRow(context, 'Product:', product),
+                  _buildDetailRow(context, 'Shipment Mode:', '$type Freight'),
+                  _buildDetailRow(context, 'Expected Delivery:', date),
                   const SizedBox(height: 12),
                   // Buttons
                   Row(
@@ -117,7 +115,7 @@ class ShipmentCard extends StatelessWidget {
                         child: ElevatedButton(
                           onPressed: onTrack,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryBlue,
+                            backgroundColor: AppTheme.primaryBlue,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 0),
                             minimumSize: const Size(0, 32),
@@ -125,9 +123,10 @@ class ShipmentCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
-                          child: const Text(
+                          child: Text(
                             'Track Shipment',
-                            style: TextStyle(fontSize: 12),
+                            style: Theme.of(context).textTheme.labelMedium
+                                ?.copyWith(color: Colors.white),
                           ),
                         ),
                       ),
@@ -136,17 +135,18 @@ class ShipmentCard extends StatelessWidget {
                         child: OutlinedButton(
                           onPressed: onViewDetails,
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: primaryBlue,
-                            side: const BorderSide(color: primaryBlue),
+                            foregroundColor: AppTheme.primaryBlue,
+                            side: const BorderSide(color: AppTheme.primaryBlue),
                             padding: const EdgeInsets.symmetric(vertical: 0),
                             minimumSize: const Size(0, 32),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
-                          child: const Text(
+                          child: Text(
                             'View Details',
-                            style: TextStyle(fontSize: 12),
+                            style: Theme.of(context).textTheme.labelMedium
+                                ?.copyWith(color: AppTheme.primaryBlue),
                           ),
                         ),
                       ),
@@ -161,16 +161,22 @@ class ShipmentCard extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildDetailRow(BuildContext context, String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.grey[500],
+              fontSize: 11,
+            ),
+          ),
           Text(
             value,
-            style: const TextStyle(
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Colors.black87,
               fontSize: 11,
               fontWeight: FontWeight.w500,

@@ -65,13 +65,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(20),
                     decoration: const BoxDecoration(
-                      color: AppTheme.secondaryColor,
+                      color: AppTheme.primaryBlue,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       Icons.local_shipping,
                       size: 48,
-                      color: AppTheme.primaryColor,
+                      color: AppTheme.primaryBlue,
                     ),
                   ),
                 ),

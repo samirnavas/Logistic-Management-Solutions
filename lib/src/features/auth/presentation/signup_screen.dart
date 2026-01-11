@@ -155,7 +155,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   children: [
                     Checkbox(
                       value: _acceptTerms,
-                      activeColor: AppTheme.primaryColor,
+                      activeColor: AppTheme.primaryBlue,
                       onChanged: (val) {
                         setState(() {
                           _acceptTerms = val ?? false;

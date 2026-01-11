@@ -1,35 +1,16 @@
+import 'package:bb_logistics/src/core/theme/theme.dart';
+import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-
-import '../../../core/theme/theme.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
+    return BlueBackgroundScaffold(
       body: Stack(
         children: [
-          // 1. Blue Header Background
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 280,
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFF4FC3F7), Color(0xFF0288D1)],
-                ),
-              ),
-            ),
-          ),
-
-          // 2. Custom App Bar
+          // 1. Custom App Bar
           Positioned(
             top: 0,
             left: 0,
@@ -46,10 +27,9 @@ class ProfileScreen extends StatelessWidget {
                     const SizedBox(), // Spacer for alignment if no left icon
                     Text(
                       'Profile',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 20,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         color: Colors.white,
+                        fontSize: 20,
                       ),
                     ),
                     Container(
@@ -60,7 +40,7 @@ class ProfileScreen extends StatelessWidget {
                       child: IconButton(
                         icon: const Icon(
                           Icons.notifications_none_outlined,
-                          color: AppTheme.primaryColor,
+                          color: AppTheme.primaryBlue,
                         ),
                         onPressed: () {},
                       ),
@@ -71,7 +51,7 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
 
-          // 3. Scrollable Content
+          // 2. Scrollable Content
           Positioned.fill(
             child: SingleChildScrollView(
               child: Column(
@@ -108,17 +88,14 @@ class ProfileScreen extends StatelessWidget {
                               const SizedBox(height: 16),
                               Text(
                                 'Your Name',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.displayMedium,
                               ),
                               Text(
                                 'user@example.com',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  color: Colors.grey,
-                                ),
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(color: Colors.grey),
                               ),
                             ],
                           ),
@@ -127,14 +104,17 @@ class ProfileScreen extends StatelessWidget {
                         // Placeholder for profile options
                         ListTile(
                           leading: const Icon(Icons.settings_outlined),
-                          title: Text('Settings', style: GoogleFonts.poppins()),
+                          title: Text(
+                            'Settings',
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
                           trailing: const Icon(Icons.chevron_right),
                         ),
                         ListTile(
                           leading: const Icon(Icons.help_outline),
                           title: Text(
                             'Help & Support',
-                            style: GoogleFonts.poppins(),
+                            style: Theme.of(context).textTheme.bodyLarge,
                           ),
                           trailing: const Icon(Icons.chevron_right),
                         ),
@@ -142,7 +122,9 @@ class ProfileScreen extends StatelessWidget {
                           leading: const Icon(Icons.logout, color: Colors.red),
                           title: Text(
                             'Logout',
-                            style: GoogleFonts.poppins(color: Colors.red),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodyLarge?.copyWith(color: Colors.red),
                           ),
                         ),
                         const SizedBox(height: 100),

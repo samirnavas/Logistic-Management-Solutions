@@ -1,7 +1,7 @@
+import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class RequestShipmentScreen extends StatefulWidget {
   const RequestShipmentScreen({super.key});
@@ -58,39 +58,11 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        resizeToAvoidBottomInset:
-            false, // We use manual padding for smoother animation
+      child: BlueBackgroundScaffold(
         body: Stack(
           children: [
-            // 1. Blue Header Background (Fixed)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 280,
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0xFF4FC3F7), // Light Blue
-                      Color(0xFF0288D1), // Darker Blue
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // 2. Custom App Bar Content (Back Button & Title)
+            // 1. Custom App Bar Content (Back Button & Title)
             // Situated below the scrollable content in stack order to match Home Screen behavior
-            // (or place it above if we want it clickable over the white card, but Home screen puts scrollable on top)
-            // However, for a form screen, staying accessible is better.
-            // Matching Home Screen structure: Scrollable is LAST, covering the header.
-            // We will stick to the Home Screen pattern primarily, but careful with usability.
-            // Home Screen: Lines 37-75 (AppBar) is BEFORE Lines 78-319 (Scrollable).
             Positioned(
               top: 0,
               left: 0,
@@ -114,10 +86,9 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
                       const SizedBox(width: 8),
                       Text(
                         'New Shipment Request',
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 20,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: Colors.white,
+                          fontSize: 20,
                         ),
                       ),
                     ],
@@ -126,7 +97,7 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
               ),
             ),
 
-            // 3. Scrollable Content (White Card scrolls UP over the blue header)
+            // 2. Scrollable Content (White Card scrolls UP over the blue header)
             Positioned.fill(
               child: SingleChildScrollView(
                 child: Column(
@@ -137,7 +108,7 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
                     Container(
                       width: double.infinity,
                       decoration: const BoxDecoration(
-                        color: Colors.white,
+                        color: AppTheme.surface,
                         borderRadius: BorderRadius.only(
                           topLeft: Radius.circular(30),
                           topRight: Radius.circular(30),
@@ -379,7 +350,7 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0056A2),
+                    backgroundColor: AppTheme.primaryBlue,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),
@@ -388,7 +359,7 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
                   ),
                   child: Text(
                     'REQUEST PICKUP',
-                    style: GoogleFonts.poppins(
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -426,8 +397,7 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
               RichText(
                 textAlign: TextAlign.center,
                 text: TextSpan(
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.black87,
                     height: 1.5,
                   ),
@@ -435,9 +405,9 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
                     const TextSpan(text: 'Your request '),
                     TextSpan(
                       text: '#RQ1982',
-                      style: GoogleFonts.poppins(
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF333333),
+                        color: AppTheme.textDark,
                       ),
                     ),
                     const TextSpan(
@@ -456,7 +426,7 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
                     context.go('/home');
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0056A2),
+                    backgroundColor: AppTheme.primaryBlue,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
@@ -464,7 +434,7 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
                   ),
                   child: Text(
                     'GO TO DASHBOARD',
-                    style: GoogleFonts.poppins(
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -483,10 +453,9 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: GoogleFonts.poppins(
-        fontSize: 16,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
         fontWeight: FontWeight.w700,
-        color: const Color(0xFF333333),
+        color: AppTheme.textDark,
       ),
     );
   }
@@ -526,8 +495,7 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
             const SizedBox(width: 8),
             Text(
               value,
-              style: GoogleFonts.poppins(
-                fontSize: 14,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Colors.grey[600],
                 fontWeight: FontWeight.w400,
               ),
@@ -550,12 +518,16 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
       keyboardType: keyboardType,
       maxLines: maxLines,
       validator: validator,
-      style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
+      style: Theme.of(
+        context,
+      ).textTheme.bodyMedium?.copyWith(color: Colors.black87),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 13),
+        hintStyle: Theme.of(
+          context,
+        ).textTheme.bodyMedium?.copyWith(color: Colors.grey[400], fontSize: 13),
         filled: true,
-        fillColor: const Color(0xFFF5F5F5), // Very light grey
+        fillColor: AppTheme.background,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
@@ -587,7 +559,7 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
   Widget _buildPhoneField() {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
+        color: AppTheme.background,
         borderRadius: BorderRadius.circular(16),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -628,10 +600,9 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
                 const SizedBox(width: 4),
                 Text(
                   _countryCode,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const Icon(
                   Icons.keyboard_arrow_down,
@@ -653,7 +624,9 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
               keyboardType: TextInputType.phone,
               validator: (value) =>
                   value == null || value.isEmpty ? 'Required' : null,
-              style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.black87),
               decoration: InputDecoration(
                 border: InputBorder.none,
                 filled: false,
@@ -663,7 +636,7 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
                 errorBorder: InputBorder.none,
                 focusedErrorBorder: InputBorder.none,
                 hintText: 'Phone Number',
-                hintStyle: GoogleFonts.poppins(
+                hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.grey[400],
                   fontSize: 13,
                 ),
@@ -682,13 +655,13 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
       width: 90,
       height: 90,
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
+        color: AppTheme.background,
         borderRadius: BorderRadius.circular(20),
       ),
       child: const Center(
         child: Icon(
           Icons.file_upload_outlined,
-          color: AppTheme.primaryColor,
+          color: AppTheme.primaryBlue,
           size: 28,
         ),
       ),

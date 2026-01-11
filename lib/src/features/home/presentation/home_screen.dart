@@ -1,39 +1,18 @@
 import 'package:bb_logistics/src/core/theme/theme.dart';
+import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:bb_logistics/src/features/shipment/presentation/widgets/shipment_card.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
+    return BlueBackgroundScaffold(
       body: Stack(
         children: [
-          // 1. Blue Header Background (Fixed)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 280,
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF4FC3F7), // Light Blue
-                    Color(0xFF0288D1), // Darker Blue
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // 2. Custom App Bar Content (Menu, Bell) - Fixed on top (but under scrollable content)
+          // 1. Custom App Bar Content (Menu, Bell)
           Positioned(
             top: 0,
             left: 0,
@@ -58,12 +37,12 @@ class HomeScreen extends StatelessWidget {
                     Container(
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white,
+                        color: AppTheme.surface,
                       ),
                       child: IconButton(
                         icon: const Icon(
                           Icons.notifications_none_outlined,
-                          color: AppTheme.primaryColor,
+                          color: AppTheme.primaryBlue,
                         ),
                         onPressed: () {},
                       ),
@@ -74,7 +53,7 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
 
-          // 3. Scrollable Layer (White Card scrolls UP over the blue header and app bar icons)
+          // 2. Scrollable Layer
           Positioned.fill(
             child: SingleChildScrollView(
               child: Column(
@@ -85,7 +64,7 @@ class HomeScreen extends StatelessWidget {
                   Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
-                      color: Colors.white,
+                      color: AppTheme.surface,
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(30),
                         topRight: Radius.circular(30),
@@ -98,79 +77,18 @@ class HomeScreen extends StatelessWidget {
                         // Greeting
                         Text(
                           'Hello, John!',
-                          style: GoogleFonts.poppins(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
+                          style: Theme.of(context).textTheme.displayMedium,
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Track, manage, and review all your shipments in one place.',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            color: Colors.grey[500],
-                            height: 1.5,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppTheme.textGrey, height: 1.5),
                         ),
                         const SizedBox(height: 24),
 
                         // Customer Code Card
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Text(
-                                'Customer Code: ',
-                                style: GoogleFonts.poppins(
-                                  color: Colors.black87,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              Text(
-                                'ABC12345',
-                                style: GoogleFonts.poppins(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const Spacer(),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE1F5FE),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  'Copy',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12,
-                                    color: AppTheme.primaryColor,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        _buildCustomerCodeCard(context),
 
                         const SizedBox(height: 16),
 
@@ -180,7 +98,7 @@ class HomeScreen extends StatelessWidget {
                           child: ElevatedButton.icon(
                             onPressed: () => context.push('/create-request'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0056A2),
+                              backgroundColor: AppTheme.primaryBlue,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 20,
@@ -192,14 +110,7 @@ class HomeScreen extends StatelessWidget {
                               elevation: 0,
                             ),
                             icon: const Icon(Icons.add, size: 18),
-                            label: Text(
-                              'CREATE NEW REQUEST',
-                              style: GoogleFonts.poppins(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
+                            label: const Text('CREATE NEW REQUEST'),
                           ),
                         ),
 
@@ -208,65 +119,10 @@ class HomeScreen extends StatelessWidget {
                         // Status Overview
                         Text(
                           'Status Overview',
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
+                          style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const SizedBox(height: 16),
-                        GridView.count(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.85,
-                          children: [
-                            _buildStatusCard(
-                              'Requests',
-                              '12',
-                              Icons.assignment_outlined,
-                              const Color(0xFFE3F2FD),
-                              Colors.blue,
-                            ),
-                            _buildStatusCard(
-                              'Shipped',
-                              '08',
-                              Icons.directions_boat_outlined,
-                              const Color(0xFFE0F2F1),
-                              Colors.teal,
-                            ),
-                            _buildStatusCard(
-                              'Delivered',
-                              '06',
-                              Icons.check_circle_outlined,
-                              const Color(0xFFFFF3E0),
-                              Colors.orange,
-                            ),
-                            _buildStatusCard(
-                              'Cleared',
-                              '02',
-                              Icons.verified_user_outlined,
-                              const Color(0xFFF9FBE7),
-                              Colors.lightGreen,
-                            ),
-                            _buildStatusCard(
-                              'Dispatch',
-                              '01',
-                              Icons.local_shipping_outlined,
-                              const Color(0xFFE8F5E9),
-                              Colors.green,
-                            ),
-                            _buildStatusCard(
-                              'waiting',
-                              '00',
-                              Icons.schedule_outlined,
-                              const Color(0xFFF3E5F5),
-                              Colors.purple,
-                            ),
-                          ],
-                        ),
+                        _buildStatusGrid(context),
 
                         const SizedBox(height: 32),
 
@@ -276,20 +132,17 @@ class HomeScreen extends StatelessWidget {
                           children: [
                             Text(
                               'Recent Shipments',
-                              style: GoogleFonts.poppins(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
+                              style: Theme.of(context).textTheme.titleLarge,
                             ),
                             TextButton(
                               onPressed: () {},
                               child: Text(
                                 'View All >',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12,
-                                  color: AppTheme.primaryColor,
-                                ),
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: AppTheme.primaryBlue,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                               ),
                             ),
                           ],
@@ -324,22 +177,130 @@ class HomeScreen extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 20),
         child: FloatingActionButton.extended(
           onPressed: () {},
-          backgroundColor: Colors.white,
+          backgroundColor: AppTheme.surface,
           elevation: 4,
-          icon: const Icon(Icons.chat_bubble, color: Colors.green),
+          icon: const Icon(Icons.chat_bubble, color: AppTheme.primaryGreen),
           label: Text(
             'Open Chat',
-            style: GoogleFonts.poppins(
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(color: AppTheme.textDark),
           ),
         ),
       ),
     );
   }
 
+  Widget _buildCustomerCodeCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Text(
+            'Customer Code: ',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          Text(
+            'ABC12345',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              'Copy',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppTheme.primaryBlue,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusGrid(BuildContext context) {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 3,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 0.85,
+      children: [
+        _buildStatusCard(
+          context,
+          'Requests',
+          '12',
+          Icons.assignment_outlined,
+          AppTheme.primaryBlue.withValues(alpha: 0.1),
+          AppTheme.primaryBlue,
+        ),
+        _buildStatusCard(
+          context,
+          'Shipped',
+          '08',
+          Icons.directions_boat_outlined,
+          AppTheme.primaryCyan.withValues(alpha: 0.1),
+          AppTheme.primaryCyan,
+        ),
+        _buildStatusCard(
+          context,
+          'Delivered',
+          '06',
+          Icons.check_circle_outlined,
+          Colors.orange.withValues(alpha: 0.1),
+          Colors.orange,
+        ),
+        _buildStatusCard(
+          context,
+          'Cleared',
+          '02',
+          Icons.verified_user_outlined,
+          AppTheme.primaryGreen.withValues(alpha: 0.1),
+          AppTheme.primaryGreen,
+        ),
+        _buildStatusCard(
+          context,
+          'Dispatch',
+          '01',
+          Icons.local_shipping_outlined,
+          Colors.green.withValues(alpha: 0.1),
+          Colors.green,
+        ),
+        _buildStatusCard(
+          context,
+          'Waiting',
+          '00',
+          Icons.schedule_outlined,
+          Colors.purple.withValues(alpha: 0.1),
+          Colors.purple,
+        ),
+      ],
+    );
+  }
+
   Widget _buildStatusCard(
+    BuildContext context,
     String label,
     String count,
     IconData icon,
@@ -359,7 +320,7 @@ class HomeScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: const BoxDecoration(
-              color: Colors.white,
+              color: AppTheme.surface,
               shape: BoxShape.circle,
             ),
             child: Icon(icon, size: 16, color: iconColor),
@@ -370,19 +331,11 @@ class HomeScreen extends StatelessWidget {
             children: [
               Text(
                 count,
-                style: GoogleFonts.poppins(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
-              Text(
-                label,
-                style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  color: Colors.grey[600],
-                ),
-              ),
+              Text(label, style: Theme.of(context).textTheme.bodySmall),
             ],
           ),
         ],

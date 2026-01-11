@@ -1,5 +1,8 @@
 import 'dart:io';
 
+import 'package:bb_logistics/src/core/theme/theme.dart';
+import 'package:bb_logistics/src/features/quotation/data/mock_quotation_repository.dart';
+import 'package:bb_logistics/src/features/quotation/domain/quotation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
@@ -7,10 +10,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
-
-import '../../../core/theme/theme.dart';
-import '../data/mock_quotation_repository.dart';
-import '../domain/quotation.dart';
 
 class QuotationDetailScreen extends ConsumerStatefulWidget {
   final String quotationId;
@@ -66,7 +65,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     final quotationAsync = ref.watch(quotationByIdProvider(widget.quotationId));
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: AppTheme.background,
       appBar: _buildAppBar(context),
       body: quotationAsync.when(
         data: (quotation) {
@@ -120,14 +119,14 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
           Icon(
             Icons.search_off,
             size: 80,
-            color: AppTheme.neutralGray.withValues(alpha: 0.5),
+            color: AppTheme.textGrey.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           Text(
             'Quotation not found',
-            style: AppTheme.textStyle16Medium.copyWith(
-              color: AppTheme.neutralGray,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: AppTheme.textGrey),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -147,14 +146,14 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
           Icon(
             Icons.error_outline,
             size: 64,
-            color: AppTheme.errorRed.withValues(alpha: 0.5),
+            color: AppTheme.error.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           Text(
             'Failed to load quotation',
-            style: AppTheme.textStyle16Medium.copyWith(
-              color: AppTheme.neutralGray,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: AppTheme.textGrey),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -179,7 +178,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
           child: TabBar(
             controller: _tabController,
             labelColor: AppTheme.primaryBlue,
-            unselectedLabelColor: AppTheme.neutralGray,
+            unselectedLabelColor: AppTheme.textGrey,
             indicatorColor: AppTheme.primaryBlue,
             indicatorWeight: 3,
             tabs: const [
@@ -243,15 +242,16 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                 children: [
                   Text(
                     'Quotation ID',
-                    style: AppTheme.textStyle12.copyWith(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Colors.white.withValues(alpha: 0.7),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     quotation.id,
-                    style: AppTheme.textStyle16SemiBold.copyWith(
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
@@ -270,16 +270,16 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                 children: [
                   Text(
                     'Request ID',
-                    style: AppTheme.textStyle12.copyWith(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Colors.white.withValues(alpha: 0.7),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     quotation.requestId,
-                    style: AppTheme.textStyle14Medium.copyWith(
-                      color: Colors.white,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: Colors.white),
                   ),
                 ],
               ),
@@ -288,16 +288,16 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                 children: [
                   Text(
                     'Created Date',
-                    style: AppTheme.textStyle12.copyWith(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Colors.white.withValues(alpha: 0.7),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     dateFormat.format(quotation.createdDate),
-                    style: AppTheme.textStyle14Medium.copyWith(
-                      color: Colors.white,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: Colors.white),
                   ),
                 ],
               ),
@@ -309,15 +309,16 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
               children: [
                 Text(
                   'Total Amount',
-                  style: AppTheme.textStyle14.copyWith(
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   currencyFormat.format(quotation.totalAmount),
-                  style: AppTheme.textStyle34SemiBold.copyWith(
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
                     color: Colors.white,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
@@ -332,13 +333,13 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     Color badgeColor;
     switch (status) {
       case QuotationStatus.approved:
-        badgeColor = AppTheme.successGreen;
+        badgeColor = AppTheme.success;
         break;
       case QuotationStatus.pending:
-        badgeColor = AppTheme.warningYellow;
+        badgeColor = AppTheme.warning;
         break;
       case QuotationStatus.rejected:
-        badgeColor = AppTheme.errorRed;
+        badgeColor = AppTheme.error;
         break;
     }
 
@@ -362,7 +363,10 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
           const SizedBox(width: 6),
           Text(
             status.displayName,
-            style: AppTheme.textStyle12SemiBold.copyWith(color: badgeColor),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: badgeColor,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -382,19 +386,24 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.neutralLightGray),
+          border: Border.all(color: AppTheme.textGrey.withValues(alpha: 0.2)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Itemized Breakdown', style: AppTheme.textStyle16SemiBold),
+            Text(
+              'Itemized Breakdown',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 16),
 
             // Header Row
             Container(
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: AppTheme.backgroundLight,
+                color: AppTheme.background,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Padding(
@@ -405,16 +414,18 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                       flex: 3,
                       child: Text(
                         'Description',
-                        style: AppTheme.textStyle12SemiBold.copyWith(
-                          color: AppTheme.neutralGray,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppTheme.textGrey,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                     Expanded(
                       child: Text(
                         'Cost',
-                        style: AppTheme.textStyle12SemiBold.copyWith(
-                          color: AppTheme.neutralGray,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppTheme.textGrey,
+                          fontWeight: FontWeight.bold,
                         ),
                         textAlign: TextAlign.right,
                       ),
@@ -434,7 +445,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
             Container(
               height: 2,
               decoration: BoxDecoration(
-                color: AppTheme.neutralLightGray,
+                color: AppTheme.textGrey.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(1),
               ),
             ),
@@ -444,11 +455,17 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Total Amount', style: AppTheme.textStyle16SemiBold),
+                Text(
+                  'Total Amount',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 Text(
                   currencyFormat.format(quotation.totalAmount),
-                  style: AppTheme.textStyle20SemiBold.copyWith(
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: AppTheme.primaryBlue,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
@@ -464,21 +481,22 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(
-            color: AppTheme.neutralLightGray.withValues(alpha: 0.5),
-          ),
+          bottom: BorderSide(color: AppTheme.textGrey.withValues(alpha: 0.1)),
         ),
       ),
       child: Row(
         children: [
           Expanded(
             flex: 3,
-            child: Text(item.description, style: AppTheme.textStyle14),
+            child: Text(
+              item.description,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
           ),
           Expanded(
             child: Text(
               currencyFormat.format(item.cost),
-              style: AppTheme.textStyle14Medium,
+              style: Theme.of(context).textTheme.bodyMedium,
               textAlign: TextAlign.right,
             ),
           ),
@@ -510,7 +528,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppTheme.neutralLightGray,
+              color: AppTheme.textGrey.withValues(alpha: 0.2),
               width: 2,
               style: BorderStyle.solid,
             ),
@@ -532,13 +550,16 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                 ),
               ),
               const SizedBox(height: 24),
-              Text('PDF Document', style: AppTheme.textStyle20SemiBold),
+              Text(
+                'PDF Document',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(height: 8),
               Text(
                 'The PDF document preview will be\navailable when connected to backend.',
-                style: AppTheme.textStyle14.copyWith(
-                  color: AppTheme.neutralGray,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppTheme.textGrey),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -589,7 +610,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: AppTheme.neutralDark.withValues(alpha: 0.1),
+            color: AppTheme.textDark.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, -4),
           ),
@@ -603,8 +624,8 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                 _showRejectConfirmation(context);
               },
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.errorRed,
-                side: const BorderSide(color: AppTheme.errorRed),
+                foregroundColor: AppTheme.error,
+                side: const BorderSide(color: AppTheme.error),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               child: const Text('Reject'),
@@ -618,7 +639,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                 _showApproveConfirmation(context, quotation);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.successGreen,
+                backgroundColor: AppTheme.success,
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               child: const Text('Approve Quotation'),
@@ -646,23 +667,29 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
           children: [
             Text(
               'You are about to approve this quotation for:',
-              style: AppTheme.textStyle14,
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppTheme.backgroundLight,
+                color: AppTheme.background,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Total Amount', style: AppTheme.textStyle14Medium),
+                  Text(
+                    'Total Amount',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   Text(
                     currencyFormat.format(quotation.totalAmount),
-                    style: AppTheme.textStyle16SemiBold.copyWith(
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: AppTheme.primaryBlue,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
@@ -681,13 +708,11 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Quotation approved successfully!'),
-                  backgroundColor: AppTheme.successGreen,
+                  backgroundColor: AppTheme.success,
                 ),
               );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.successGreen,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
             child: const Text('Approve'),
           ),
         ],
@@ -715,11 +740,11 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Quotation rejected'),
-                  backgroundColor: AppTheme.errorRed,
+                  backgroundColor: AppTheme.error,
                 ),
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
             child: const Text('Reject'),
           ),
         ],

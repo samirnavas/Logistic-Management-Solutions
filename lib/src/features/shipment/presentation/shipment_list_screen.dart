@@ -1,35 +1,16 @@
+import 'package:bb_logistics/src/core/theme/theme.dart';
+import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-
-import '../../../core/theme/theme.dart';
 
 class ShipmentListScreen extends StatelessWidget {
   const ShipmentListScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
+    return BlueBackgroundScaffold(
       body: Stack(
         children: [
-          // 1. Blue Header Background
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 280,
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFF4FC3F7), Color(0xFF0288D1)],
-                ),
-              ),
-            ),
-          ),
-
-          // 2. Custom App Bar
+          // 1. Custom App Bar
           Positioned(
             top: 0,
             left: 0,
@@ -51,15 +32,14 @@ class ShipmentListScreen extends StatelessWidget {
                         size: 28,
                       ),
                       onPressed: () {
-                        Scaffold.of(context).openDrawer();
+                        // Scaffold.of(context).openDrawer(); // If drawer exists
                       },
                     ),
                     Text(
                       'Shipments',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 20,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         color: Colors.white,
+                        fontSize: 20,
                       ),
                     ),
                     // Notification Icon
@@ -71,7 +51,7 @@ class ShipmentListScreen extends StatelessWidget {
                       child: IconButton(
                         icon: const Icon(
                           Icons.notifications_none_outlined,
-                          color: AppTheme.primaryColor,
+                          color: AppTheme.primaryBlue,
                         ),
                         onPressed: () {},
                       ),
@@ -82,7 +62,7 @@ class ShipmentListScreen extends StatelessWidget {
             ),
           ),
 
-          // 3. Scrollable Content
+          // 2. Scrollable Content
           Positioned.fill(
             child: SingleChildScrollView(
               child: Column(
@@ -115,10 +95,8 @@ class ShipmentListScreen extends StatelessWidget {
                                 const SizedBox(height: 16),
                                 Text(
                                   'No shipments found',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 16,
-                                    color: Colors.grey[500],
-                                  ),
+                                  style: Theme.of(context).textTheme.bodyLarge
+                                      ?.copyWith(color: Colors.grey[500]),
                                 ),
                               ],
                             ),
