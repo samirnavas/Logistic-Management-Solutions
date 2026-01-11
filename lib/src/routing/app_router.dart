@@ -10,16 +10,16 @@ import 'package:bb_logistics/src/features/quotation/presentation/quotation_scree
 import 'package:bb_logistics/src/features/shipment/presentation/request_shipment_screen.dart';
 import 'package:bb_logistics/src/features/shipment/presentation/shipment_list_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'app_router.g.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
-final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 @riverpod
-GoRouter goRouter(GoRouterRef ref) {
+GoRouter goRouter(Ref ref) {
   // We do NOT watch the auth state here to avoid rebuilding the entire Router
   // which causes the app to restart at initialLocation.
 

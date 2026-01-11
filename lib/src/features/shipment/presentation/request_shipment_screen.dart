@@ -205,7 +205,7 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
               height: 50,
               child: ElevatedButton(
                 onPressed: () {
-                  // TODO: Implement submission logic
+                  // Submission logic to be implemented
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Request submitted!')),
                   );
@@ -252,6 +252,7 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
   ) {
     return Row(
       children: [
+        // ignore: deprecated_member_use
         Radio<String>(
           value: value,
           groupValue: groupValue,

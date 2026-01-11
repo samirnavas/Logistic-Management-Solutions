@@ -79,7 +79,9 @@ class HomeScreen extends StatelessWidget {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  const SizedBox(height: 80), // Reduced top margin
+                  SizedBox(
+                    height: MediaQuery.of(context).padding.top + 80,
+                  ), // Dynamic top margin
                   Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
@@ -124,7 +126,7 @@ class HomeScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
+                                color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 10,
                                 offset: const Offset(0, 2),
                               ),
