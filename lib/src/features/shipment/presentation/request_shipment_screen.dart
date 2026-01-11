@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class RequestShipmentScreen extends StatefulWidget {
@@ -368,10 +369,7 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
                 child: ElevatedButton(
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Request submitted!')),
-                      );
-                      Navigator.of(context).pop();
+                      _showSuccessDialog();
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -402,6 +400,82 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(30.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Image.asset(
+                'assets/request pop up png.png',
+                height: 120,
+                width: 120,
+              ),
+              const SizedBox(height: 24),
+              RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.black87,
+                    height: 1.5,
+                  ),
+                  children: [
+                    const TextSpan(text: 'Your request '),
+                    TextSpan(
+                      text: '#RQ1982',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF333333),
+                      ),
+                    ),
+                    const TextSpan(
+                      text:
+                          ' has been submitted.\nYou will receive a quotation shortly.',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () {
+                    context.go('/home');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0056A2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'GO TO DASHBOARD',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
         ),
       ),
     );
