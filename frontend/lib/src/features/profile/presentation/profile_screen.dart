@@ -1,6 +1,6 @@
 import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
-import 'package:bb_logistics/src/features/auth/data/mock_auth_repository.dart';
+import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -144,7 +144,7 @@ class ProfileScreen extends ConsumerWidget {
                               ),
                               onTap: () {
                                 ref
-                                    .read(mockAuthRepositoryProvider.notifier)
+                                    .read(authRepositoryProvider.notifier)
                                     .signOut();
                                 context.go('/login');
                               },

@@ -15,6 +15,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
@@ -37,6 +38,10 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+}
+
+tasks.withType(JavaCompile::class.java).configureEach {
+    options.compilerArgs.add("-Xlint:-options")
 }
 
 flutter {

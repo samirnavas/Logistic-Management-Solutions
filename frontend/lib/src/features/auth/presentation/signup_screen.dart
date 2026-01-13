@@ -40,7 +40,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
       try {
         await ref
-            .read(authRepositoryProvider)
+            .read(authRepositoryProvider.notifier)
             .register(
               fullName: _nameController.text,
               email: _emailController.text,

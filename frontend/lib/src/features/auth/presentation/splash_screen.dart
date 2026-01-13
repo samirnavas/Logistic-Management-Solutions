@@ -1,4 +1,4 @@
-import 'package:bb_logistics/src/features/auth/data/mock_auth_repository.dart';
+import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -52,7 +52,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     if (!mounted) return;
 
     try {
-      final user = await ref.read(mockAuthRepositoryProvider.future);
+      final user = await ref.read(authRepositoryProvider.future);
       if (!mounted) return;
       if (user != null) {
         context.go('/home');

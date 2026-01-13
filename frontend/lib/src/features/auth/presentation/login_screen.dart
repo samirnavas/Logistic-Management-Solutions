@@ -26,7 +26,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
       try {
         final user = await ref
-            .read(authRepositoryProvider)
+            .read(authRepositoryProvider.notifier)
             .login(_emailController.text, _passwordController.text);
 
         // Print user for debugging

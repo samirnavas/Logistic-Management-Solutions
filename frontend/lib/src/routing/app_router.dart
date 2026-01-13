@@ -1,5 +1,5 @@
 import 'package:bb_logistics/src/core/widgets/scaffold_with_nav_bar.dart';
-import 'package:bb_logistics/src/features/auth/data/mock_auth_repository.dart';
+import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
 import 'package:bb_logistics/src/features/auth/presentation/login_screen.dart';
 import 'package:bb_logistics/src/features/auth/presentation/onboarding_screen.dart';
 import 'package:bb_logistics/src/features/auth/presentation/signup_screen.dart';
@@ -32,7 +32,7 @@ GoRouter goRouter(Ref ref) {
     redirect: (context, state) {
       final path = state.uri.path;
       // After build_runner, this will be AsyncValue<User?>
-      final authState = ref.read(mockAuthRepositoryProvider);
+      final authState = ref.read(authRepositoryProvider);
       // We can't use valueOrNull until the type is updated.
       // But we can check if it is User (old) or AsyncValue (new) if we wanted to be safe, but let's just write for the new version.
       // The error suggests authState is User? (from old generation) which can be null.
