@@ -173,9 +173,8 @@ const userSchema = new mongoose.Schema({
 // ============================================
 // Indexes for Performance
 // ============================================
-userSchema.index({ email: 1 }, { unique: true });
-userSchema.index({ customerCode: 1 }, { unique: true, sparse: true });
-userSchema.index({ role: 1 });
+// Note: email and customerCode indexes are defined in field definitions
+// Only add compound indexes here
 userSchema.index({ createdAt: -1 });
 
 // ============================================

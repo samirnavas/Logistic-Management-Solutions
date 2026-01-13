@@ -6,33 +6,29 @@ const Notification = require('../models/Notification');
 // ============================================
 exports.getShipments = async (req, res) => {
     try {
-        const { status, page = 1, limit = 20 } = req.query;
-        const skip = (page - 1) * limit;
+        const { status, page, limit = 50 } = req.query;
 
         const query = {};
         if (status) {
             query.status = status;
         }
 
-        const [shipments, total] = await Promise.all([
-            Shipment.find(query)
-                .populate('clientId', 'fullName email customerCode phone')
-                .sort({ createdAt: -1 })
-                .skip(skip)
-                .limit(parseInt(limit)),
-            Shipment.countDocuments(query)
-        ]);
+        let shipmentsQuery = Shipment.find(query)
+            .populate('clientId', 'fullName email customerCode phone')
+            .sort({ createdAt: -1 });
 
-        res.json({
-            shipments,
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                total,
-                totalPages: Math.ceil(total / limit),
-                hasMore: skip + shipments.length < total,
-            }
-        });
+        // Apply pagination if page is specified
+        if (page) {
+            const skip = (parseInt(page) - 1) * parseInt(limit);
+            shipmentsQuery = shipmentsQuery.skip(skip).limit(parseInt(limit));
+        } else {
+            shipmentsQuery = shipmentsQuery.limit(parseInt(limit));
+        }
+
+        const shipments = await shipmentsQuery;
+
+        // Return plain array for backward compatibility
+        res.json(shipments);
     } catch (error) {
         console.error('Get Shipments Error:', error);
         res.status(500).json({ message: 'Failed to fetch shipments', error: error.message });
@@ -142,7 +138,8 @@ exports.getShipmentsByStatus = async (req, res) => {
             .populate('clientId', 'fullName email customerCode')
             .sort({ createdAt: -1 });
 
-        res.json({ shipments });
+        // Return plain array for backward compatibility
+        res.json(shipments);
     } catch (error) {
         console.error('Get By Status Error:', error);
         res.status(500).json({ message: 'Failed to fetch shipments', error: error.message });

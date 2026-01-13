@@ -215,10 +215,11 @@ const quotationSchema = new mongoose.Schema({
 // ============================================
 // Indexes for Performance
 // ============================================
+// Note: Single-field indexes are defined in field definitions
+// Only compound indexes defined here
 quotationSchema.index({ requestId: 1, status: 1 });
 quotationSchema.index({ clientId: 1, status: 1 });
 quotationSchema.index({ managerId: 1, createdAt: -1 });
-quotationSchema.index({ quotationNumber: 1 }, { unique: true });
 quotationSchema.index({ validUntil: 1 });
 quotationSchema.index({ isApprovedByManager: 1, status: 1 });
 

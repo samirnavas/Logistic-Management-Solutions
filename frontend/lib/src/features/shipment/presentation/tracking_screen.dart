@@ -375,14 +375,28 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     // Determine progress step based on status
     int currentStep;
     switch (shipment.statusEnum) {
-      case ShipmentStatus.pending:
+      case ShipmentStatus.processing:
         currentStep = 0;
         break;
+      case ShipmentStatus.pickedUp:
+        currentStep = 1;
+        break;
       case ShipmentStatus.inTransit:
+      case ShipmentStatus.customs:
+      case ShipmentStatus.customsCleared:
+      case ShipmentStatus.arrivedAtHub:
         currentStep = 2;
+        break;
+      case ShipmentStatus.outForDelivery:
+        currentStep = 3;
         break;
       case ShipmentStatus.delivered:
         currentStep = 4;
+        break;
+      case ShipmentStatus.exception:
+      case ShipmentStatus.returned:
+      case ShipmentStatus.cancelled:
+        currentStep = 2; // Show mid-progress for exceptions
         break;
     }
 
