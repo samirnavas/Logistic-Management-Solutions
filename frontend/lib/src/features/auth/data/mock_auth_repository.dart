@@ -26,7 +26,7 @@ class MockAuthRepository extends _$MockAuthRepository {
 
       // Check specific credentials
       if (email == 'test@gmail.com' && password == 'qwerty') {
-        final user = const User(
+        const user = User(
           id: 'user_123',
           email: 'test@gmail.com',
           fullName: 'Test User',

@@ -53,12 +53,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     try {
       final user = await ref.read(mockAuthRepositoryProvider.future);
+      if (!mounted) return;
       if (user != null) {
         context.go('/home');
       } else {
         context.go('/onboarding');
       }
     } catch (e) {
+      if (!mounted) return;
       // In case of error, default to onboarding or login
       context.go('/onboarding');
     }
