@@ -5,6 +5,7 @@ class BlueBackgroundScaffold extends StatelessWidget {
   final Widget body;
   final Widget? bottomNavigationBar;
   final Widget? floatingActionButton;
+  final FloatingActionButtonLocation? floatingActionButtonLocation;
   final PreferredSizeWidget? appBar;
   final bool extendBodyBehindAppBar;
 
@@ -13,6 +14,7 @@ class BlueBackgroundScaffold extends StatelessWidget {
     required this.body,
     this.bottomNavigationBar,
     this.floatingActionButton,
+    this.floatingActionButtonLocation,
     this.appBar,
     this.extendBodyBehindAppBar = false,
   });
@@ -23,6 +25,7 @@ class BlueBackgroundScaffold extends StatelessWidget {
       backgroundColor: Colors.white,
       bottomNavigationBar: bottomNavigationBar,
       floatingActionButton: floatingActionButton,
+      floatingActionButtonLocation: floatingActionButtonLocation,
       extendBodyBehindAppBar: extendBodyBehindAppBar,
       appBar: appBar,
       body: Stack(

@@ -1,6 +1,6 @@
-import 'dart:convert';
 import 'package:bb_logistics/src/core/api/api_service.dart';
 import 'package:bb_logistics/src/features/auth/domain/user.dart';
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -30,7 +30,7 @@ class AuthRepository extends _$AuthRepository {
       await _saveUser(user);
       return user;
     } catch (e) {
-      print('Failed to fetch test user: $e');
+      debugPrint('Failed to fetch test user: $e');
     }
 
     return null;

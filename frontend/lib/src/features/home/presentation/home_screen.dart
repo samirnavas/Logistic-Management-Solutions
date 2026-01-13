@@ -121,29 +121,7 @@ class HomeScreen extends ConsumerWidget {
 
                         const SizedBox(height: 16),
 
-                        // "Create New Request" Button (Right Aligned)
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: ElevatedButton.icon(
-                            onPressed: () => context.push('/create-request'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primaryBlue,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 12,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              elevation: 0,
-                            ),
-                            icon: const Icon(Icons.add, size: 18),
-                            label: const Text('CREATE NEW REQUEST'),
-                          ),
-                        ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
-
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 16),
 
                         // Status Overview
                         Text(
@@ -230,20 +208,34 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 20),
-        child: FloatingActionButton.extended(
-          onPressed: () {},
-          backgroundColor: AppTheme.surface,
-          elevation: 4,
-          icon: const Icon(Icons.chat_bubble, color: AppTheme.primaryGreen),
-          label: Text(
-            'Open Chat',
-            style: Theme.of(
-              context,
-            ).textTheme.labelLarge?.copyWith(color: AppTheme.textDark),
+        padding: const EdgeInsets.only(bottom: 2),
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width * 0.7,
+          height: 48,
+          child: FloatingActionButton.extended(
+            onPressed: () => context.push('/create-request'),
+            backgroundColor: AppTheme.primaryBlue,
+            elevation: 6,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+            icon: const Icon(
+              Icons.add_circle_outline,
+              color: Colors.white,
+              size: 24,
+            ),
+            label: Text(
+              'CREATE NEW REQUEST',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ),
           ),
         ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 

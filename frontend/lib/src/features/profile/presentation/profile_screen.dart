@@ -145,7 +145,9 @@ class ProfileScreen extends ConsumerWidget {
                                       .read(settingsProvider)
                                       .toggleNotifications(val);
                                 },
-                                activeColor: AppTheme.primaryBlue,
+                                activeTrackColor: AppTheme.primaryBlue
+                                    .withValues(alpha: 0.5),
+                                activeThumbColor: AppTheme.primaryBlue,
                               ),
                             ),
                             ListTile(
@@ -164,7 +166,9 @@ class ProfileScreen extends ConsumerWidget {
                                       .read(settingsProvider)
                                       .toggleDarkMode(val);
                                 },
-                                activeColor: AppTheme.primaryBlue,
+                                activeTrackColor: AppTheme.primaryBlue
+                                    .withValues(alpha: 0.5),
+                                activeThumbColor: AppTheme.primaryBlue,
                               ),
                             ),
                           ],
