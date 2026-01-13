@@ -1,3 +1,4 @@
+import 'package:bb_logistics/src/core/api/api_service.dart';
 import 'package:bb_logistics/src/features/auth/domain/user.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,26 +19,29 @@ class MockAuthRepository extends _$MockAuthRepository {
     return null;
   }
 
+  final _apiService = ApiService();
+
   Future<void> signIn(String email, String password) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      // Simulate network delay
-      await Future.delayed(const Duration(seconds: 1));
+      final response = await _apiService.postRequest('/api/auth/login', {
+        'email': email,
+        'password': password,
+      });
 
-      // Check specific credentials
-      if (email == 'test@gmail.com' && password == 'qwerty') {
-        const user = User(
-          id: 'user_123',
-          email: 'test@gmail.com',
-          fullName: 'Test User',
-          phone: '+1 234 567 8900',
-          country: 'United States',
-        );
-        await _saveUser(user);
-        return user;
-      } else {
-        throw Exception('Invalid email or password');
+      final userData =
+          response is Map<String, dynamic> && response.containsKey('user')
+          ? response['user']
+          : response;
+
+      // Handle Mongoose _id to id mapping if necessary
+      if (userData is Map<String, dynamic> && userData.containsKey('_id')) {
+        userData['id'] = userData['_id'];
       }
+
+      final user = User.fromMap(userData);
+      await _saveUser(user);
+      return user;
     });
   }
 
@@ -49,14 +53,23 @@ class MockAuthRepository extends _$MockAuthRepository {
   }) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      await Future.delayed(const Duration(seconds: 1));
-      final user = User(
-        id: 'user_${DateTime.now().millisecondsSinceEpoch}',
-        email: email,
-        fullName: fullName,
-        phone: phone,
-        country: country,
-      );
+      final response = await _apiService.postRequest('/api/auth/register', {
+        'fullName': fullName,
+        'email': email,
+        'phone': phone,
+        'country': country,
+      });
+
+      final userData =
+          response is Map<String, dynamic> && response.containsKey('user')
+          ? response['user']
+          : response;
+
+      if (userData is Map<String, dynamic> && userData.containsKey('_id')) {
+        userData['id'] = userData['_id'];
+      }
+
+      final user = User.fromMap(userData);
       await _saveUser(user);
       return user;
     });
