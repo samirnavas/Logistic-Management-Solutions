@@ -23,6 +23,11 @@ const userSchema = new mongoose.Schema({
         required: true,
         trim: true,
     },
+    location: {
+        type: String,
+        required: false, // Optional as it wasn't there before, or make it true if mandatory
+        trim: true,
+    },
     password: {
         type: String,
         required: true,

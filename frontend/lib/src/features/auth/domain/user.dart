@@ -6,6 +6,7 @@ class User {
   final String fullName;
   final String phone;
   final String country;
+  final String location;
 
   const User({
     required this.id,
@@ -13,6 +14,7 @@ class User {
     required this.fullName,
     required this.phone,
     required this.country,
+    this.location = '',
   });
 
   Map<String, dynamic> toMap() {
@@ -22,6 +24,7 @@ class User {
       'fullName': fullName,
       'phone': phone,
       'country': country,
+      'location': location,
     };
   }
 
@@ -32,6 +35,7 @@ class User {
       fullName: map['fullName'] ?? '',
       phone: map['phone'] ?? '',
       country: map['country'] ?? '',
+      location: map['location'] ?? '',
     );
   }
 
@@ -57,6 +61,7 @@ class User {
         email.hashCode ^
         fullName.hashCode ^
         phone.hashCode ^
-        country.hashCode;
+        country.hashCode ^
+        location.hashCode;
   }
 }

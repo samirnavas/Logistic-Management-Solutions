@@ -46,6 +46,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
               email: _emailController.text,
               phone: _phoneController.text,
               country: _countryController.text,
+              location: _locationController.text,
               password: _passwordController.text,
             );
         if (mounted) {
@@ -56,9 +57,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         }
       } catch (e) {
         if (mounted) {
+          // Extract message if it's an exception with a message prefix
+          String message = e.toString();
+          if (message.startsWith('Exception: ')) {
+            message = message.substring(11);
+          }
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text('Signup failed')));
+          ).showSnackBar(SnackBar(content: Text('Signup failed: $message')));
         }
       } finally {
         if (mounted) {

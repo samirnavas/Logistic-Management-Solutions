@@ -8,7 +8,7 @@ const generateCustomerCode = () => {
 
 exports.register = async (req, res) => {
     try {
-        const { fullName, email, phone, country, password } = req.body;
+        const { fullName, email, phone, country, location, password } = req.body;
 
         // Check availability
         const existingUser = await User.findOne({
@@ -37,6 +37,7 @@ exports.register = async (req, res) => {
             email,
             phone,
             country,
+            location,
             password: hashedPassword,
             customerCode
         });

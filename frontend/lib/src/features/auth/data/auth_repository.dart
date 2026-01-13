@@ -30,12 +30,14 @@ class AuthRepository {
     required String password,
     required String phone,
     required String country,
+    required String location,
   }) async {
     final response = await _apiService.postRequest('/api/auth/register', {
       'fullName': fullName,
       'email': email,
       'phone': phone,
       'country': country,
+      'location': location,
       'password': password,
     });
     return _parseUser(response);
