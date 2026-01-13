@@ -7,7 +7,7 @@ part of 'mock_auth_repository.dart';
 // **************************************************************************
 
 String _$mockAuthRepositoryHash() =>
-    r'876523262fe579c68f06df972c5260e2d9bfaee6';
+    r'87ef940fcdad8d84c61fb5934269f8d4410bfe93';
 
 /// See also [MockAuthRepository].
 @ProviderFor(MockAuthRepository)

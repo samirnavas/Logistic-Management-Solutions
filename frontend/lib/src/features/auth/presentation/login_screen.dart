@@ -1,5 +1,5 @@
 import 'package:bb_logistics/src/core/theme/theme.dart';
-import 'package:bb_logistics/src/features/auth/data/mock_auth_repository.dart';
+import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -25,9 +25,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       });
 
       try {
-        await ref
-            .read(mockAuthRepositoryProvider.notifier)
-            .signIn(_emailController.text, _passwordController.text);
+        final user = await ref
+            .read(authRepositoryProvider)
+            .login(_emailController.text, _passwordController.text);
+
+        // Print user for debugging
+        debugPrint('Logged in user: ${user.email}');
+
         if (mounted) {
           context.go('/home');
         }

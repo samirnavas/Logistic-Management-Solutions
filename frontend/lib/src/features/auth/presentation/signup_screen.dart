@@ -1,5 +1,5 @@
 import 'package:bb_logistics/src/core/theme/theme.dart';
-import 'package:bb_logistics/src/features/auth/data/mock_auth_repository.dart';
+import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -40,8 +40,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
       try {
         await ref
-            .read(mockAuthRepositoryProvider.notifier)
-            .signUp(
+            .read(authRepositoryProvider)
+            .register(
               fullName: _nameController.text,
               email: _emailController.text,
               phone: _phoneController.text,
@@ -49,10 +49,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
               password: _passwordController.text,
             );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Account created! Please log in.')),
-          );
-          context.pop(); // Go back to login
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Account created!')));
+          context.go('/home');
         }
       } catch (e) {
         if (mounted) {
