@@ -25,60 +25,69 @@ class AppTheme {
   static const Color textDark = Color(0xFF333333);
   static const Color textGrey = Color(0xFF9E9E9E);
 
+  // Dark Mode Colors
+  static const Color darkBackground = Color(0xFF121212);
+  static const Color darkSurface = Color(0xFF1E1E1E);
+  static const Color darkCard = Color(0xFF2C2C2C);
+  static const Color textLight = Color(0xFFE0E0E0);
+
   // ============================================================================
   // TEXT THEME (Poppins Default)
   // ============================================================================
-  static TextTheme get _poppinsTextTheme {
+  static TextTheme _poppinsTextTheme({bool isDark = false}) {
+    final Color textColor = isDark ? textLight : textDark;
+    final Color greyColor = isDark ? Colors.grey[400]! : textGrey;
+
     return GoogleFonts.poppinsTextTheme().copyWith(
       // Headings
       displayLarge: GoogleFonts.poppins(
         fontSize: 34,
         fontWeight: FontWeight.w600,
-        color: textDark,
+        color: textColor,
       ),
       displayMedium: GoogleFonts.poppins(
         fontSize: 24,
         fontWeight: FontWeight.w600,
-        color: textDark,
+        color: textColor,
       ),
       displaySmall: GoogleFonts.poppins(
         fontSize: 20,
         fontWeight: FontWeight.w600,
-        color: textDark,
+        color: textColor,
       ),
 
       // Titles
       titleLarge: GoogleFonts.poppins(
         fontSize: 20,
         fontWeight: FontWeight.w600,
-        color: textDark,
+        color: textColor,
       ),
       titleMedium: GoogleFonts.poppins(
         fontSize: 16,
         fontWeight: FontWeight.w600,
-        color: textDark,
+        color: textColor,
       ),
       titleSmall: GoogleFonts.poppins(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: textDark,
+        color: textColor,
       ),
 
       // Body
       bodyLarge: GoogleFonts.poppins(
         fontSize: 16,
         fontWeight: FontWeight.w400,
-        color: textDark,
+        color: textColor,
       ),
       bodyMedium: GoogleFonts.poppins(
         fontSize: 14,
         fontWeight: FontWeight.w400,
-        color: textDark,
+        color: textColor,
       ),
       bodySmall: GoogleFonts.poppins(
         fontSize: 12,
         fontWeight: FontWeight.w400,
-        color: textGrey,
+        color: greyColor,
       ),
 
       // Buttons & Labels
@@ -96,8 +105,10 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
+      brightness: Brightness.light,
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryBlue,
+        brightness: Brightness.light,
         primary: primaryBlue,
         secondary: primaryCyan,
         tertiary: primaryGreen,
@@ -105,16 +116,16 @@ class AppTheme {
         error: error,
       ),
       scaffoldBackgroundColor: background,
-      textTheme: _poppinsTextTheme,
+      textTheme: _poppinsTextTheme(isDark: false),
 
       appBarTheme: AppBarTheme(
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: _poppinsTextTheme.titleLarge?.copyWith(
-          color: Colors.white,
-        ),
+        titleTextStyle: _poppinsTextTheme(
+          isDark: false,
+        ).titleLarge?.copyWith(color: Colors.white),
       ),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -123,7 +134,7 @@ class AppTheme {
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: _poppinsTextTheme.labelLarge,
+          textStyle: _poppinsTextTheme(isDark: false).labelLarge,
           elevation: 0,
         ),
       ),
@@ -131,7 +142,9 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surface,
-        hintStyle: _poppinsTextTheme.bodyMedium?.copyWith(color: textGrey),
+        hintStyle: _poppinsTextTheme(
+          isDark: false,
+        ).bodyMedium?.copyWith(color: textGrey),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 16,
@@ -157,6 +170,88 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
+
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: <TargetPlatform, PageTransitionsBuilder>{
+          TargetPlatform.android: ZoomPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        },
+      ),
+    );
+  }
+
+  // ============================================================================
+  // DARK THEME DATA
+  // ============================================================================
+  static ThemeData get darkTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: primaryBlue,
+        brightness: Brightness.dark,
+        primary: primaryCyan,
+        secondary: primaryBlue,
+        tertiary: primaryGreen,
+        surface: darkSurface,
+        error: error,
+      ),
+      scaffoldBackgroundColor: darkBackground,
+      textTheme: _poppinsTextTheme(isDark: true),
+
+      appBarTheme: AppBarTheme(
+        backgroundColor: darkSurface,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        titleTextStyle: _poppinsTextTheme(
+          isDark: true,
+        ).titleLarge?.copyWith(color: Colors.white),
+      ),
+
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryCyan,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          textStyle: _poppinsTextTheme(isDark: true).labelLarge,
+          elevation: 0,
+        ),
+      ),
+
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: darkCard,
+        hintStyle: _poppinsTextTheme(
+          isDark: true,
+        ).bodyMedium?.copyWith(color: Colors.grey[400]),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey[700]!),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey[700]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: primaryCyan, width: 2),
+        ),
+      ),
+
+      cardTheme: CardThemeData(
+        color: darkCard,
+        elevation: 4,
+        shadowColor: Colors.black.withValues(alpha: 0.3),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      ),
+
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: <TargetPlatform, PageTransitionsBuilder>{
           TargetPlatform.android: ZoomPageTransitionsBuilder(),
