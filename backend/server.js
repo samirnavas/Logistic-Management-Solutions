@@ -9,6 +9,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 const authRoutes = require('./routes/authRoutes');
+const shipmentRoutes = require('./routes/shipmentRoutes');
 
 // Connect to Database
 connectDB();
@@ -17,8 +18,16 @@ connectDB();
 app.use(cors());
 app.use(express.json());
 
+// Request logging middleware
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    console.log('Body:', req.body);
+    next();
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/shipments', shipmentRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {
@@ -26,6 +35,6 @@ app.get('/', (req, res) => {
 });
 
 // Start Server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
 });

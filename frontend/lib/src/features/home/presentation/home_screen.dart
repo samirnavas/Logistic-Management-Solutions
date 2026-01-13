@@ -1,15 +1,26 @@
 import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
+import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
+import 'package:bb_logistics/src/features/shipment/data/mock_shipment_repository.dart';
+import 'package:bb_logistics/src/features/shipment/domain/shipment.dart';
 import 'package:bb_logistics/src/features/shipment/presentation/widgets/shipment_card.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch User Data
+    final authState = ref.watch(authRepositoryProvider);
+    final user = authState.valueOrNull;
+
+    // Watch Shipment Data
+    final shipmentsAsync = ref.watch(shipmentListProvider);
+
     return BlueBackgroundScaffold(
       body: Stack(
         children: [
@@ -82,7 +93,7 @@ class HomeScreen extends StatelessWidget {
                       children: [
                         // Greeting
                         Text(
-                              'Hello, John!',
+                              'Hello, ${user?.fullName ?? 'Guest'}!',
                               style: Theme.of(context).textTheme.displayMedium,
                             )
                             .animate()
@@ -97,10 +108,16 @@ class HomeScreen extends StatelessWidget {
                         const SizedBox(height: 24),
 
                         // Customer Code Card
-                        _buildCustomerCodeCard(context)
-                            .animate()
-                            .fadeIn(delay: 200.ms, duration: 500.ms)
-                            .scale(),
+                        if (user != null)
+                          _buildCustomerCodeCard(
+                                context,
+                                user.customerCode.isNotEmpty
+                                    ? user.customerCode
+                                    : 'N/A',
+                              )
+                              .animate()
+                              .fadeIn(delay: 200.ms, duration: 500.ms)
+                              .scale(),
 
                         const SizedBox(height: 16),
 
@@ -134,7 +151,13 @@ class HomeScreen extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleLarge,
                         ).animate().fadeIn(delay: 400.ms),
                         const SizedBox(height: 16),
-                        _buildStatusGrid(context),
+                        shipmentsAsync.when(
+                          data: (shipments) =>
+                              _buildStatusGrid(context, shipments),
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                          error: (e, s) => Text('Error loading status: $e'),
+                        ),
 
                         const SizedBox(height: 32),
 
@@ -160,24 +183,42 @@ class HomeScreen extends StatelessWidget {
                           ],
                         ).animate().fadeIn(delay: 600.ms),
                         const SizedBox(height: 8),
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: 2,
-                          itemBuilder: (context, index) {
-                            return ShipmentCard(
-                                  shipmentId: '#RQ1982',
-                                  boxId: 'BX-221',
-                                  status: 'Transit',
-                                  type: 'Air',
-                                  date: '26 Dec 2025',
-                                  onTrack: () {},
-                                  onViewDetails: () {},
-                                )
-                                .animate()
-                                .fadeIn(delay: (700 + (index * 100)).ms)
-                                .slideY(begin: 0.2, end: 0);
+
+                        shipmentsAsync.when(
+                          data: (shipments) {
+                            if (shipments.isEmpty) {
+                              return const Text("No recent shipments");
+                            }
+                            final recent = shipments.take(2).toList();
+                            return ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: recent.length,
+                              itemBuilder: (context, index) {
+                                final s = recent[index];
+                                return ShipmentCard(
+                                      shipmentId: s.trackingNumber,
+                                      boxId: s.packageIds.isNotEmpty
+                                          ? s.packageIds.first
+                                          : 'N/A',
+                                      status: s.status,
+                                      type: _getShipmentType(s),
+                                      date:
+                                          '${s.estimatedDelivery.day} ${_getMonthName(s.estimatedDelivery.month)} ${s.estimatedDelivery.year}',
+                                      onTrack: () => context.push(
+                                        '/tracking/${s.trackingNumber}',
+                                      ),
+                                      onViewDetails: () {},
+                                    )
+                                    .animate()
+                                    .fadeIn(delay: (700 + (index * 100)).ms)
+                                    .slideY(begin: 0.2, end: 0);
+                              },
+                            );
                           },
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                          error: (e, s) => Text('Error loading shipments: $e'),
                         ),
                       ],
                     ),
@@ -206,7 +247,34 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCustomerCodeCard(BuildContext context) {
+  String _getShipmentType(Shipment s) {
+    if (s.origin.contains('China') ||
+        s.origin.contains('Japan') ||
+        s.origin.contains('Singapore')) {
+      return 'Sea';
+    }
+    return 'Air';
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return months[month - 1];
+  }
+
+  Widget _buildCustomerCodeCard(BuildContext context, String code) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -235,7 +303,7 @@ class HomeScreen extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           Text(
-            'ABC12345',
+            code,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: Colors.black,
@@ -261,12 +329,36 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusGrid(BuildContext context) {
+  Widget _buildStatusGrid(BuildContext context, List<Shipment> shipments) {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Responsive grid: 2 columns on small screens, 3 on larger
         final crossAxisCount = constraints.maxWidth < 350 ? 2 : 3;
         final aspectRatio = constraints.maxWidth < 350 ? 1.0 : 0.85;
+
+        // Calculate counts
+        // Status strings might need normalization if they come from DB freely.
+        // Assuming: Pending, In Transit, Delivered, Cleared, Dispatch, Waiting
+        final requests = shipments.length;
+        final shipped = shipments
+            .where((s) => s.status.toLowerCase().contains('transit'))
+            .length;
+        final delivered = shipments
+            .where((s) => s.status.toLowerCase() == 'delivered')
+            .length;
+        final cleared = shipments
+            .where((s) => s.status.toLowerCase() == 'cleared')
+            .length;
+        final dispatch = shipments
+            .where((s) => s.status.toLowerCase() == 'dispatch')
+            .length;
+        final waiting = shipments
+            .where(
+              (s) =>
+                  s.status.toLowerCase() == 'waiting' ||
+                  s.status.toLowerCase() == 'pending',
+            )
+            .length;
 
         return GridView.count(
           shrinkWrap: true,
@@ -279,7 +371,7 @@ class HomeScreen extends StatelessWidget {
             _buildStatusCard(
               context,
               'Requests',
-              '12',
+              '$requests',
               Icons.assignment_outlined,
               AppTheme.primaryBlue.withValues(alpha: 0.1),
               AppTheme.primaryBlue,
@@ -287,7 +379,7 @@ class HomeScreen extends StatelessWidget {
             _buildStatusCard(
               context,
               'Shipped',
-              '08',
+              '$shipped',
               Icons.directions_boat_outlined,
               AppTheme.primaryCyan.withValues(alpha: 0.1),
               AppTheme.primaryCyan,
@@ -295,7 +387,7 @@ class HomeScreen extends StatelessWidget {
             _buildStatusCard(
               context,
               'Delivered',
-              '06',
+              '$delivered',
               Icons.check_circle_outlined,
               Colors.orange.withValues(alpha: 0.1),
               Colors.orange,
@@ -303,7 +395,7 @@ class HomeScreen extends StatelessWidget {
             _buildStatusCard(
               context,
               'Cleared',
-              '02',
+              '$cleared',
               Icons.verified_user_outlined,
               AppTheme.primaryGreen.withValues(alpha: 0.1),
               AppTheme.primaryGreen,
@@ -311,7 +403,7 @@ class HomeScreen extends StatelessWidget {
             _buildStatusCard(
               context,
               'Dispatch',
-              '01',
+              '$dispatch',
               Icons.local_shipping_outlined,
               Colors.green.withValues(alpha: 0.1),
               Colors.green,
@@ -319,7 +411,7 @@ class HomeScreen extends StatelessWidget {
             _buildStatusCard(
               context,
               'Waiting',
-              '00',
+              '$waiting',
               Icons.schedule_outlined,
               Colors.purple.withValues(alpha: 0.1),
               Colors.purple,

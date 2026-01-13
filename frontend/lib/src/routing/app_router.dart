@@ -1,5 +1,5 @@
 import 'package:bb_logistics/src/core/widgets/scaffold_with_nav_bar.dart';
-import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
+
 import 'package:bb_logistics/src/features/auth/presentation/login_screen.dart';
 import 'package:bb_logistics/src/features/auth/presentation/onboarding_screen.dart';
 import 'package:bb_logistics/src/features/auth/presentation/signup_screen.dart';
@@ -27,37 +27,26 @@ GoRouter goRouter(Ref ref) {
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/splash',
+    initialLocation: '/home',
     debugLogDiagnostics: true,
     redirect: (context, state) {
-      final path = state.uri.path;
-      // After build_runner, this will be AsyncValue<User?>
-      final authState = ref.read(authRepositoryProvider);
-      // We can't use valueOrNull until the type is updated.
-      // But we can check if it is User (old) or AsyncValue (new) if we wanted to be safe, but let's just write for the new version.
-      // The error suggests authState is User? (from old generation) which can be null.
-      // User? has no valueOrNull.
-      // So I will assume the code will be valid after generation.
-      // But to avoid compilation error NOW, I'll leave it as is and trust the build?
-      // No because flutter run checks sources.
-      // I need to use `as` or `dynamic` to bypass static analysis until regeneration?
-      // Or just wait until I run build_runner.
-      // I'll update it to what it SHOULD be:
-      final user = authState.valueOrNull;
-      final isLoggedIn = user != null;
+      // final path = state.uri.path;
+      // final authState = ref.read(authRepositoryProvider);
+      // final user = authState.valueOrNull;
+      // final isLoggedIn = user != null;
 
       // Public pages
-      if (path == '/splash' ||
-          path == '/onboarding' ||
-          path == '/login' ||
-          path == '/signup') {
-        return null;
-      }
+      // if (path == '/splash' ||
+      //     path == '/onboarding' ||
+      //     path == '/login' ||
+      //     path == '/signup') {
+      //   return null;
+      // }
 
       // Protected pages
-      if (!isLoggedIn) {
-        return '/login';
-      }
+      // if (!isLoggedIn) {
+      //   return '/login';
+      // }
 
       return null;
     },

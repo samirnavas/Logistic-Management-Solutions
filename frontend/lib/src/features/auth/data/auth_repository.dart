@@ -19,11 +19,20 @@ class AuthRepository extends _$AuthRepository {
       try {
         return User.fromJson(userJson);
       } catch (e) {
-        // If JSON is invalid, clear it
         await prefs.remove(_userKey);
-        return null;
       }
     }
+
+    // DEV MODE: If no user found, fetch test user automatically
+    try {
+      final response = await _apiService.getRequest('/api/auth/test-user');
+      final user = _parseUser(response);
+      await _saveUser(user);
+      return user;
+    } catch (e) {
+      print('Failed to fetch test user: $e');
+    }
+
     return null;
   }
 

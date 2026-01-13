@@ -6,6 +6,7 @@ class User {
   final String fullName;
   final String phone;
   final String country;
+  final String customerCode;
   final String location;
 
   const User({
@@ -15,6 +16,7 @@ class User {
     required this.phone,
     required this.country,
     this.location = '',
+    this.customerCode = '',
   });
 
   Map<String, dynamic> toMap() {
@@ -25,17 +27,19 @@ class User {
       'phone': phone,
       'country': country,
       'location': location,
+      'customerCode': customerCode,
     };
   }
 
   factory User.fromMap(Map<String, dynamic> map) {
     return User(
-      id: map['id'] ?? '',
+      id: map['_id'] ?? map['id'] ?? '',
       email: map['email'] ?? '',
       fullName: map['fullName'] ?? '',
       phone: map['phone'] ?? '',
       country: map['country'] ?? '',
       location: map['location'] ?? '',
+      customerCode: map['customerCode'] ?? '',
     );
   }
 

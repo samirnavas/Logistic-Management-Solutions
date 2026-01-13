@@ -9,7 +9,8 @@ class ApiService {
   // Smart URL selection
   static String get baseUrl {
     if (Platform.isAndroid) {
-      return 'http://10.0.2.2:5000'; // Android Emulator specific IP
+      // Using adb reverse tcp:5000 tcp:5000 allows localhost on Android too
+      return 'http://127.0.0.1:5000';
     }
     return 'http://localhost:5000'; // iOS Simulator & Web
   }
@@ -54,6 +55,44 @@ class ApiService {
       }
     } catch (e) {
       if (e is Exception) rethrow; // Pass up our custom exceptions
+      throw Exception('Connection Failed: $e');
+    }
+  }
+
+  Future<dynamic> getRequest(String endpoint) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+    String? token = await _storage.read(key: 'jwt_token');
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        try {
+          final errorBody = jsonDecode(response.body);
+          throw Exception(
+            errorBody['message'] ??
+                errorBody['msg'] ??
+                'Server Error: ${response.statusCode}',
+          );
+        } catch (e) {
+          if (e is Exception && e.toString().contains('Server Error')) {
+            rethrow;
+          }
+          throw Exception(
+            'Failed to get data: ${response.statusCode} - ${response.body}',
+          );
+        }
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
       throw Exception('Connection Failed: $e');
     }
   }

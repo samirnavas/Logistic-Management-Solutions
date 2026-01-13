@@ -11,6 +11,10 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Watch User Data
+    final authState = ref.watch(authRepositoryProvider);
+    final user = authState.valueOrNull;
+
     return BlueBackgroundScaffold(
       body: Stack(
         children: [
@@ -95,16 +99,27 @@ class ProfileScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'Your Name',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.displayMedium,
+                                user?.fullName ?? 'Guest User',
+                                style: Theme.of(context).textTheme.headlineSmall
+                                    ?.copyWith(fontWeight: FontWeight.bold),
                               ).animate().fadeIn(delay: 200.ms),
                               Text(
-                                'user@example.com',
+                                user?.email ?? 'Sign in to see profile',
                                 style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(color: Colors.grey),
                               ).animate().fadeIn(delay: 300.ms),
+                              if (user != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8.0),
+                                  child: Text(
+                                    'Code: ${user!.customerCode}',
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          color: AppTheme.primaryBlue,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                  ),
+                                ),
                             ],
                           ),
                         ),

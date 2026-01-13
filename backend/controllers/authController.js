@@ -8,6 +8,7 @@ const generateCustomerCode = () => {
 
 exports.register = async (req, res) => {
     try {
+        console.log('Register request received with body:', req.body);
         const { fullName, email, phone, country, location, password } = req.body;
 
         // Check availability
@@ -88,5 +89,21 @@ exports.login = async (req, res) => {
     } catch (error) {
         console.error('Login Error:', error);
         res.status(500).json({ message: 'Server error during login', error: error.message });
+    }
+};
+
+exports.getFirstUser = async (req, res) => {
+    try {
+        const user = await User.findOne();
+        if (!user) {
+            return res.status(404).json({ message: 'No users found' });
+        }
+
+        const userResponse = user.toObject();
+        delete userResponse.password;
+
+        res.json(userResponse);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
     }
 };
