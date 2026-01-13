@@ -1,4 +1,5 @@
 import 'package:bb_logistics/src/core/theme/theme.dart';
+import 'package:bb_logistics/src/core/widgets/app_drawer.dart';
 import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
 import 'package:bb_logistics/src/features/shipment/data/mock_shipment_repository.dart';
@@ -9,11 +10,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  Widget build(BuildContext context) {
     // Watch User Data
     final authState = ref.watch(authRepositoryProvider);
     final user = authState.valueOrNull;
@@ -22,50 +30,16 @@ class HomeScreen extends ConsumerWidget {
     final shipmentsAsync = ref.watch(shipmentListProvider);
 
     return BlueBackgroundScaffold(
+      scaffoldKey: _scaffoldKey,
+      drawer: const AppDrawer(),
       body: Stack(
         children: [
-          // 1. Custom App Bar Content (Menu, Bell)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.menu,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                      onPressed: () {},
-                    ),
-                    Container(
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppTheme.surface,
-                      ),
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.notifications_none_outlined,
-                          color: AppTheme.primaryBlue,
-                        ),
-                        onPressed: () {},
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // 2. Scrollable Layer
+          // 1. Scrollable Layer (Moved to bottom of stack, displays behind app bar initially, but we want it to scroll over?)
+          // Wait, if we want it to scroll OVER the header, it must be VISUALLY on top.
+          // But if it's on top, it blocks the buttons.
+          // The USER complained 'not opening'.
+          // I will put the AppBar ON TOP (Last child) to ensure clickability.
+          // This risks "White on White" if scrolled up, but functionality comes first.
           Positioned.fill(
             child: SingleChildScrollView(
               child: Column(
@@ -205,6 +179,49 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           ),
+
+          // 2. Custom App Bar Content (Menu, Bell) - MOVED TO TOP to capture clicks
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.menu,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                      onPressed: () {
+                        _scaffoldKey.currentState?.openDrawer();
+                      },
+                    ),
+                    Container(
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppTheme.surface,
+                      ),
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.notifications_none_outlined,
+                          color: AppTheme.primaryBlue,
+                        ),
+                        onPressed: () {},
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
       floatingActionButton: Padding(
@@ -213,7 +230,7 @@ class HomeScreen extends ConsumerWidget {
           width: MediaQuery.of(context).size.width * 0.7,
           height: 48,
           child: FloatingActionButton.extended(
-            onPressed: () => context.push('/create-request'),
+            onPressed: () => context.push('/request-shipment'),
             backgroundColor: AppTheme.primaryBlue,
             elevation: 6,
             shape: RoundedRectangleBorder(
@@ -360,7 +377,7 @@ class HomeScreen extends ConsumerWidget {
           mainAxisSpacing: 12,
           childAspectRatio: aspectRatio,
           children: [
-            _buildStatusCard(
+            _buildStatusItem(
               context,
               'Requests',
               '$requests',
@@ -368,7 +385,7 @@ class HomeScreen extends ConsumerWidget {
               AppTheme.primaryBlue.withValues(alpha: 0.1),
               AppTheme.primaryBlue,
             ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.2, end: 0),
-            _buildStatusCard(
+            _buildStatusItem(
               context,
               'Shipped',
               '$shipped',
@@ -376,7 +393,7 @@ class HomeScreen extends ConsumerWidget {
               AppTheme.primaryCyan.withValues(alpha: 0.1),
               AppTheme.primaryCyan,
             ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.2, end: 0),
-            _buildStatusCard(
+            _buildStatusItem(
               context,
               'Delivered',
               '$delivered',
@@ -384,7 +401,7 @@ class HomeScreen extends ConsumerWidget {
               Colors.orange.withValues(alpha: 0.1),
               Colors.orange,
             ).animate().fadeIn(delay: 550.ms).slideY(begin: 0.2, end: 0),
-            _buildStatusCard(
+            _buildStatusItem(
               context,
               'Cleared',
               '$cleared',
@@ -392,7 +409,7 @@ class HomeScreen extends ConsumerWidget {
               AppTheme.primaryGreen.withValues(alpha: 0.1),
               AppTheme.primaryGreen,
             ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2, end: 0),
-            _buildStatusCard(
+            _buildStatusItem(
               context,
               'Dispatch',
               '$dispatch',
@@ -400,7 +417,7 @@ class HomeScreen extends ConsumerWidget {
               Colors.green.withValues(alpha: 0.1),
               Colors.green,
             ).animate().fadeIn(delay: 650.ms).slideY(begin: 0.2, end: 0),
-            _buildStatusCard(
+            _buildStatusItem(
               context,
               'Waiting',
               '$waiting',
@@ -414,7 +431,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatusCard(
+  Widget _buildStatusItem(
     BuildContext context,
     String label,
     String count,

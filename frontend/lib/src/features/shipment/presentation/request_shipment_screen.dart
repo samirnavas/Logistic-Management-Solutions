@@ -1,3 +1,4 @@
+import 'package:bb_logistics/src/core/widgets/app_drawer.dart';
 import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:flutter/material.dart';
@@ -60,45 +61,10 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: BlueBackgroundScaffold(
+        drawer: const AppDrawer(),
         body: Stack(
           children: [
-            // 1. Custom App Bar Content (Back Button & Title)
-            // Situated below the scrollable content in stack order to match Home Screen behavior
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.arrow_back_ios,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ), // Back Button
-                      const SizedBox(width: 8),
-                      Text(
-                        'New Shipment Request',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontSize: 20,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // 2. Scrollable Content (White Card scrolls UP over the blue header)
+            // 1. Scrollable Content (Moved First)
             Positioned.fill(
               child: SingleChildScrollView(
                 child: Column(
@@ -333,6 +299,47 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
               ),
             ),
 
+            // 2. Custom App Bar Content (Back Button & Title) (Moved Second)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.arrow_back_ios,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.go('/home');
+                          }
+                        },
+                      ), // Back Button
+                      const SizedBox(width: 8),
+                      Text(
+                        'New Shipment Request',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
             // Floating Button
             AnimatedPositioned(
               duration: const Duration(milliseconds: 100),
@@ -419,7 +426,7 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
                     ),
                     const TextSpan(
                       text:
-                          ' has been submitted.\nYou will receive a quotation shortly.',
+                          ' has been submitted to the Manager.\nYou will be notified once the quotation is approved and pricing is available.',
                     ),
                   ],
                 ),
@@ -568,6 +575,21 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
       decoration: BoxDecoration(
         color: AppTheme.background,
         borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          // Subtle light blue glow for depth
+          BoxShadow(
+            color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+            blurRadius: 12,
+            spreadRadius: 0,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: AppTheme.primaryBlue.withValues(alpha: 0.04),
+            blurRadius: 20,
+            spreadRadius: 2,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(

@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:bb_logistics/src/features/quotation/data/mock_quotation_repository.dart';
 import 'package:bb_logistics/src/features/quotation/domain/quotation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -25,23 +25,41 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String? _pdfPath;
-  bool _pdfLoading = true;
+  bool _pdfLoading = false;
   String? _pdfError;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _loadPdf();
   }
 
-  Future<void> _loadPdf() async {
+  Future<void> _loadPdfFromUrl(String? pdfUrl) async {
+    if (pdfUrl == null || pdfUrl.isEmpty) {
+      setState(() {
+        _pdfLoading = false;
+        _pdfError = 'No PDF available';
+      });
+      return;
+    }
+
     try {
-      // Try to load sample PDF from assets
-      final bytes = await rootBundle.load('assets/sample_invoice.pdf');
+      setState(() {
+        _pdfLoading = true;
+        _pdfError = null;
+      });
+
+      // Download PDF from URL
+      final response = await HttpClient()
+          .getUrl(Uri.parse(pdfUrl))
+          .then((req) => req.close());
+      final bytes = await consolidateHttpClientResponseBytes(response);
+
       final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/sample_invoice.pdf');
-      await file.writeAsBytes(bytes.buffer.asUint8List());
+      final fileName = 'quotation_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final file = File('${dir.path}/$fileName');
+      await file.writeAsBytes(bytes);
+
       setState(() {
         _pdfPath = file.path;
         _pdfLoading = false;
@@ -49,7 +67,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     } catch (e) {
       setState(() {
         _pdfLoading = false;
-        _pdfError = 'PDF not available';
+        _pdfError = 'Failed to load PDF';
       });
     }
   }
@@ -192,13 +210,9 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
         Expanded(
           child: TabBarView(
             controller: _tabController,
-            children: [_buildBreakdownTab(quotation), _buildPdfTab()],
+            children: [_buildBreakdownTab(quotation), _buildPdfTab(quotation)],
           ),
         ),
-
-        // Bottom Action Buttons (only for pending quotations)
-        if (quotation.status == QuotationStatus.pending)
-          _buildActionButtons(context, quotation),
       ],
     );
   }
@@ -336,15 +350,25 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                     const SizedBox(height: 4),
                     FittedBox(
                       fit: BoxFit.scaleDown,
-                      child: Text(
-                        currencyFormat.format(quotation.totalAmount),
-                        style: Theme.of(context).textTheme.displaySmall
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: isSmallScreen ? 20 : 24,
+                      child: quotation.status == QuotationStatus.pending
+                          ? Text(
+                              'Pending Review',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                    fontStyle: FontStyle.italic,
+                                    fontSize: isSmallScreen ? 16 : 18,
+                                  ),
+                            )
+                          : Text(
+                              currencyFormat.format(quotation.totalAmount),
+                              style: Theme.of(context).textTheme.displaySmall
+                                  ?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isSmallScreen ? 20 : 24,
+                                  ),
                             ),
-                      ),
                     ),
                   ],
                 ),
@@ -405,6 +429,57 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
       symbol: '\$',
       decimalDigits: 2,
     );
+
+    // Show placeholder for pending quotations
+    if (quotation.status == QuotationStatus.pending) {
+      return Center(
+        child: Container(
+          margin: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppTheme.textGrey.withValues(alpha: 0.2),
+              width: 2,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppTheme.warning.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.hourglass_empty,
+                  size: 40,
+                  color: AppTheme.warning,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Pending Review',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Pricing details will be available\nonce the Manager approves this request.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppTheme.textGrey),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -547,7 +622,65 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     );
   }
 
-  Widget _buildPdfTab() {
+  Widget _buildPdfTab(Quotation quotation) {
+    // Show pending state for pending quotations
+    if (quotation.status == QuotationStatus.pending) {
+      return Center(
+        child: Container(
+          margin: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppTheme.textGrey.withValues(alpha: 0.2),
+              width: 2,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppTheme.warning.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.hourglass_empty,
+                  size: 40,
+                  color: AppTheme.warning,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Pending Review',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'The PDF invoice will be available\nonce the Manager approves this request.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppTheme.textGrey),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Load PDF from URL if not already loaded
+    if (_pdfPath == null && !_pdfLoading && _pdfError == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadPdfFromUrl(quotation.pdfUrl);
+      });
+    }
+
     if (_pdfLoading) {
       return const Center(
         child: Column(
@@ -593,12 +726,12 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
               ),
               const SizedBox(height: 24),
               Text(
-                'PDF Document',
+                'PDF Not Available',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
               Text(
-                'The PDF document preview will be\navailable when connected to backend.',
+                'The PDF document is not available yet.\nPlease check back later.',
                 style: Theme.of(
                   context,
                 ).textTheme.bodyMedium?.copyWith(color: AppTheme.textGrey),
@@ -607,16 +740,10 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
               const SizedBox(height: 24),
               OutlinedButton.icon(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Add a sample_invoice.pdf to assets folder',
-                      ),
-                    ),
-                  );
+                  _loadPdfFromUrl(quotation.pdfUrl);
                 },
-                icon: const Icon(Icons.visibility),
-                label: const Text('Preview Placeholder'),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
               ),
             ],
           ),
@@ -642,174 +769,6 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
       onPageError: (page, error) {
         debugPrint('PDF Page $page Error: $error');
       },
-    );
-  }
-
-  Widget _buildActionButtons(BuildContext context, Quotation quotation) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isSmallScreen = constraints.maxWidth < 350;
-
-        return Container(
-          padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.textDark.withValues(alpha: 0.1),
-                blurRadius: 8,
-                offset: const Offset(0, -4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {
-                    _showRejectConfirmation(context);
-                  },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.error,
-                    side: const BorderSide(color: AppTheme.error),
-                    padding: EdgeInsets.symmetric(
-                      vertical: isSmallScreen ? 10 : 14,
-                    ),
-                  ),
-                  child: Text(
-                    'Reject',
-                    style: TextStyle(fontSize: isSmallScreen ? 13 : 14),
-                  ),
-                ),
-              ),
-              SizedBox(width: isSmallScreen ? 8 : 16),
-              Expanded(
-                flex: 2,
-                child: ElevatedButton(
-                  onPressed: () {
-                    _showApproveConfirmation(context, quotation);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.success,
-                    padding: EdgeInsets.symmetric(
-                      vertical: isSmallScreen ? 10 : 14,
-                    ),
-                  ),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      isSmallScreen ? 'Approve' : 'Approve Quotation',
-                      style: TextStyle(fontSize: isSmallScreen ? 13 : 14),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showApproveConfirmation(BuildContext context, Quotation quotation) {
-    final currencyFormat = NumberFormat.currency(
-      symbol: '\$',
-      decimalDigits: 2,
-    );
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Approve Quotation?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'You are about to approve this quotation for:',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.background,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Total Amount',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    currencyFormat.format(quotation.totalAmount),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppTheme.primaryBlue,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Quotation approved successfully!'),
-                  backgroundColor: AppTheme.success,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
-            child: const Text('Approve'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showRejectConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Reject Quotation?'),
-        content: const Text(
-          'Are you sure you want to reject this quotation? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Quotation rejected'),
-                  backgroundColor: AppTheme.error,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
-            child: const Text('Reject'),
-          ),
-        ],
-      ),
     );
   }
 }

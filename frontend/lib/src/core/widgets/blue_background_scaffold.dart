@@ -7,6 +7,8 @@ class BlueBackgroundScaffold extends StatelessWidget {
   final Widget? floatingActionButton;
   final FloatingActionButtonLocation? floatingActionButtonLocation;
   final PreferredSizeWidget? appBar;
+  final Widget? drawer;
+  final GlobalKey<ScaffoldState>? scaffoldKey;
   final bool extendBodyBehindAppBar;
 
   const BlueBackgroundScaffold({
@@ -16,13 +18,17 @@ class BlueBackgroundScaffold extends StatelessWidget {
     this.floatingActionButton,
     this.floatingActionButtonLocation,
     this.appBar,
+    this.drawer,
+    this.scaffoldKey,
     this.extendBodyBehindAppBar = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: scaffoldKey,
       backgroundColor: Colors.white,
+      drawer: drawer,
       bottomNavigationBar: bottomNavigationBar,
       floatingActionButton: floatingActionButton,
       floatingActionButtonLocation: floatingActionButtonLocation,

@@ -1,4 +1,5 @@
 import 'package:bb_logistics/src/core/theme/theme.dart';
+import 'package:bb_logistics/src/core/widgets/app_drawer.dart';
 import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:bb_logistics/src/features/quotation/data/mock_quotation_repository.dart';
 import 'package:bb_logistics/src/features/quotation/domain/quotation.dart';
@@ -8,60 +9,26 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-class QuotationScreen extends ConsumerWidget {
+class QuotationScreen extends ConsumerStatefulWidget {
   const QuotationScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<QuotationScreen> createState() => _QuotationScreenState();
+}
+
+class _QuotationScreenState extends ConsumerState<QuotationScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  Widget build(BuildContext context) {
     final quotationsAsync = ref.watch(quotationsProvider);
 
     return BlueBackgroundScaffold(
+      scaffoldKey: _scaffoldKey,
+      drawer: const AppDrawer(),
       body: Stack(
         children: [
-          // 1. Custom App Bar Content (Menu, Bell)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.menu,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                      onPressed: () {
-                        // Scaffold.of(context).openDrawer();
-                      },
-                    ),
-                    Container(
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                      ),
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.notifications_none_outlined,
-                          color: AppTheme.primaryBlue,
-                        ),
-                        onPressed: () {},
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // 2. Scrollable Content
+          // 1. Scrollable Content (MOVED FIRST to be at bottom of stack)
           Positioned.fill(
             child: SingleChildScrollView(
               child: Column(
@@ -169,6 +136,49 @@ class QuotationScreen extends ConsumerWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+          ),
+
+          // 2. Custom App Bar Content (Menu, Bell) - MOVED LAST to be receiving touches
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.menu,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                      onPressed: () {
+                        _scaffoldKey.currentState?.openDrawer();
+                      },
+                    ),
+                    Container(
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white,
+                      ),
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.notifications_none_outlined,
+                          color: AppTheme.primaryBlue,
+                        ),
+                        onPressed: () {},
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -306,14 +316,29 @@ class _QuotationCard extends StatelessWidget {
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               _buildStatusChip(context),
-                              Text(
-                                currencyFormat.format(quotation.totalAmount),
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(
-                                      color: AppTheme.primaryBlue,
-                                      fontWeight: FontWeight.bold,
+                              quotation.status == QuotationStatus.pending
+                                  ? Text(
+                                      'Calculated upon approval',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: AppTheme.textGrey,
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                    )
+                                  : Text(
+                                      currencyFormat.format(
+                                        quotation.totalAmount,
+                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(
+                                            color: AppTheme.primaryBlue,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                     ),
-                              ),
                             ],
                           ),
                         ],
