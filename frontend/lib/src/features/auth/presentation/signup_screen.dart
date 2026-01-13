@@ -19,6 +19,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _phoneController = TextEditingController();
   final _locationController = TextEditingController();
   final _countryController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _acceptTerms = false;
 
@@ -45,6 +46,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
               email: _emailController.text,
               phone: _phoneController.text,
               country: _countryController.text,
+              password: _passwordController.text,
             );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -139,6 +141,18 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   ),
                   validator: (value) =>
                       value == null || value.isEmpty ? 'Required' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: Icon(Icons.lock_outline),
+                  ),
+                  validator: (value) => value == null || value.length < 6
+                      ? 'Min 6 characters'
+                      : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(

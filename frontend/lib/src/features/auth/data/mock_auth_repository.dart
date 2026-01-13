@@ -50,6 +50,7 @@ class MockAuthRepository extends _$MockAuthRepository {
     required String email,
     required String phone,
     required String country,
+    required String password,
   }) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
@@ -58,6 +59,7 @@ class MockAuthRepository extends _$MockAuthRepository {
         'email': email,
         'phone': phone,
         'country': country,
+        'password': password,
       });
 
       final userData =
