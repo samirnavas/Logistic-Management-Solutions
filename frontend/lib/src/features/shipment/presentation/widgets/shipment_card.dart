@@ -86,9 +86,9 @@ class ShipmentCard extends StatelessWidget {
                       _buildHeader(context, isSmallScreen),
                       const SizedBox(height: 8),
                       // Details Grid
-                      _buildDetailRow(context, 'Box No:', boxId),
+                      _buildDetailRow(context, 'Quantity:', boxId),
                       _buildDetailRow(context, 'Updated:', updated),
-                      _buildDetailRow(context, 'Product:', product),
+                      _buildDetailRow(context, 'Route:', product),
                       _buildDetailRow(
                         context,
                         'Shipment Mode:',

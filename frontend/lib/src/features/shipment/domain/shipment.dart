@@ -75,14 +75,6 @@ enum ShipmentStatus {
 }
 
 /// Represents a shipment entity matching the MongoDB schema
-///
-/// This model is designed to map directly to MongoDB documents:
-/// - [id] maps to MongoDB `_id`
-/// - [trackingNumber] is a unique identifier for tracking
-/// - [origin] and [destination] represent shipping locations
-/// - [status] represents the current shipment state
-/// - [estimatedDelivery] is the expected delivery date
-/// - [packageIds] contains references to associated package documents
 class Shipment {
   /// Unique identifier (maps to MongoDB _id)
   final String id;
@@ -102,8 +94,38 @@ class Shipment {
   /// Estimated delivery date and time
   final DateTime estimatedDelivery;
 
+  /// Created date and time
+  final DateTime createdAt;
+
   /// List of associated package IDs
   final List<String> packageIds;
+
+  /// Customer Name (from clientId)
+  final String customerName;
+
+  /// Shipping Cost
+  final double cost;
+
+  /// Package Count
+  final int packageCount;
+
+  /// Total Weight
+  final double totalWeight;
+
+  /// Current Latitude
+  final double? currentLat;
+
+  /// Current Longitude
+  final double? currentLng;
+
+  /// Destination Latitude
+  final double? destLat;
+
+  /// Destination Longitude
+  final double? destLng;
+
+  /// Shipment Mode (Air, Sea, etc.)
+  final String mode;
 
   const Shipment({
     required this.id,
@@ -113,6 +135,16 @@ class Shipment {
     required this.status,
     required this.estimatedDelivery,
     required this.packageIds,
+    this.customerName = 'Unknown',
+    this.cost = 0.0,
+    this.packageCount = 1,
+    this.totalWeight = 0.0,
+    required this.createdAt,
+    this.currentLat,
+    this.currentLng,
+    this.destLat,
+    this.destLng,
+    this.mode = 'Air',
   });
 
   /// Creates a copy of this [Shipment] with the given fields replaced
@@ -124,6 +156,16 @@ class Shipment {
     String? status,
     DateTime? estimatedDelivery,
     List<String>? packageIds,
+    String? customerName,
+    double? cost,
+    int? packageCount,
+    double? totalWeight,
+    DateTime? createdAt,
+    double? currentLat,
+    double? currentLng,
+    double? destLat,
+    double? destLng,
+    String? mode,
   }) {
     return Shipment(
       id: id ?? this.id,
@@ -133,26 +175,22 @@ class Shipment {
       status: status ?? this.status,
       estimatedDelivery: estimatedDelivery ?? this.estimatedDelivery,
       packageIds: packageIds ?? this.packageIds,
+      customerName: customerName ?? this.customerName,
+      cost: cost ?? this.cost,
+      packageCount: packageCount ?? this.packageCount,
+      totalWeight: totalWeight ?? this.totalWeight,
+      createdAt: createdAt ?? this.createdAt,
+      currentLat: currentLat ?? this.currentLat,
+      currentLng: currentLng ?? this.currentLng,
+      destLat: destLat ?? this.destLat,
+      destLng: destLng ?? this.destLng,
+      mode: mode ?? this.mode,
     );
   }
 
   /// Creates a [Shipment] from a JSON map (MongoDB document)
-  ///
-  /// Expected JSON structure from MongoDB (new format):
-  /// ```json
-  /// {
-  ///   "_id": "...",
-  ///   "trackingNumber": "TRK-...",
-  ///   "origin": {"city": "Shanghai", "country": "China", "code": "PVG"},
-  ///   "destination": {"city": "New York", "country": "USA", "code": "JFK"},
-  ///   "status": "In Transit",
-  ///   "estimatedDelivery": "2026-01-15T00:00:00.000Z",
-  ///   "packageCount": 3
-  /// }
-  /// ```
-  /// Also supports legacy format with origin/destination as strings
   factory Shipment.fromJson(Map<String, dynamic> json) {
-    // Handle origin - can be String or Object
+    // Handle origin
     String originStr;
     if (json['origin'] is String) {
       originStr = json['origin'] as String;
@@ -163,18 +201,26 @@ class Shipment {
       originStr = 'Unknown';
     }
 
-    // Handle destination - can be String or Object
+    // Handle destination
     String destinationStr;
+    double? dLat;
+    double? dLng;
     if (json['destination'] is String) {
       destinationStr = json['destination'] as String;
     } else if (json['destination'] is Map) {
       final destMap = json['destination'] as Map<String, dynamic>;
       destinationStr = '${destMap['city'] ?? ''}, ${destMap['country'] ?? ''}';
+
+      // Parse coordinates if available
+      if (destMap['coordinates'] is Map) {
+        dLat = (destMap['coordinates']['latitude'] as num?)?.toDouble();
+        dLng = (destMap['coordinates']['longitude'] as num?)?.toDouble();
+      }
     } else {
       destinationStr = 'Unknown';
     }
 
-    // Handle estimatedDelivery - can be null
+    // Handle estimatedDelivery
     DateTime estimatedDelivery;
     if (json['estimatedDelivery'] != null) {
       estimatedDelivery = DateTime.parse(json['estimatedDelivery'] as String);
@@ -182,8 +228,32 @@ class Shipment {
       estimatedDelivery = DateTime.now().add(const Duration(days: 7));
     }
 
+    // Handle createdAt
+    DateTime createdAt;
+    if (json['createdAt'] != null) {
+      createdAt = DateTime.parse(json['createdAt'] as String);
+    } else {
+      createdAt = DateTime.now();
+    }
+
+    // Handle customerName
+    String customerName = 'Unknown';
+    if (json['clientId'] is Map) {
+      customerName = json['clientId']['fullName'] ?? 'Unknown';
+    }
+
+    // Handle current location
+    double? lat;
+    double? lng;
+    if (json['currentLocation'] is Map) {
+      final loc = json['currentLocation'] as Map<String, dynamic>;
+      if (loc['coordinates'] is Map) {
+        lat = (loc['coordinates']['latitude'] as num?)?.toDouble();
+        lng = (loc['coordinates']['longitude'] as num?)?.toDouble();
+      }
+    }
+
     return Shipment(
-      // MongoDB uses _id, but API might normalize to id
       id: (json['_id'] ?? json['id'] ?? '') as String,
       trackingNumber: (json['trackingNumber'] ?? '') as String,
       origin: originStr,
@@ -195,13 +265,20 @@ class Shipment {
               ?.map((e) => e as String)
               .toList() ??
           [],
+      customerName: customerName,
+      cost: (json['shippingCost'] as num?)?.toDouble() ?? 0.0,
+      packageCount: (json['packageCount'] as num?)?.toInt() ?? 1,
+      totalWeight: (json['totalWeight'] as num?)?.toDouble() ?? 0.0,
+      createdAt: createdAt,
+      currentLat: lat,
+      currentLng: lng,
+      destLat: dLat,
+      destLng: dLng,
+      mode: (json['mode'] ?? 'Air') as String,
     );
   }
 
   /// Converts this [Shipment] to a JSON map for API requests
-  ///
-  /// Note: Uses `id` key for consistency with REST APIs.
-  /// The backend should handle mapping to MongoDB's `_id`.
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -211,6 +288,12 @@ class Shipment {
       'status': status,
       'estimatedDelivery': estimatedDelivery.toIso8601String(),
       'packageIds': packageIds,
+      'customerName': customerName,
+      'shippingCost': cost,
+      'packageCount': packageCount,
+      'totalWeight': totalWeight,
+      'createdAt': createdAt.toIso8601String(),
+      'mode': mode,
     };
   }
 
@@ -219,9 +302,7 @@ class Shipment {
 
   @override
   String toString() {
-    return 'Shipment(id: $id, trackingNumber: $trackingNumber, origin: $origin, '
-        'destination: $destination, status: $status, '
-        'estimatedDelivery: $estimatedDelivery, packageIds: $packageIds)';
+    return 'Shipment(id: $id, trackingNumber: $trackingNumber, status: $status)';
   }
 
   @override

@@ -21,10 +21,6 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
 
-  // Mock coordinates for demonstration (Diriyah, Riyadh area)
-  final LatLng _currentLocation = const LatLng(24.7136, 46.6753);
-  final LatLng _vehicleLocation = const LatLng(24.7090, 46.6680);
-
   @override
   void dispose() {
     _sheetController.dispose();
@@ -72,7 +68,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
           return Stack(
             children: [
               // Background: Map Layer
-              _buildMap(),
+              _buildMap(shipment),
 
               // App Bar (above map)
               _buildAppBar(context),
@@ -87,10 +83,22 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   }
 
   /// Builds the OpenStreetMap layer with markers
-  Widget _buildMap() {
+  Widget _buildMap(Shipment shipment) {
+    // Determine Destination (User) Location
+    // Default to Riyadh/Diriyah if missing
+    final destLat = shipment.destLat ?? 24.7136;
+    final destLng = shipment.destLng ?? 46.6753;
+    final destinationLocation = LatLng(destLat, destLng);
+
+    // Determine Vehicle (Shipment) Location
+    // Default to nearby or origin if missing
+    final currentLat = shipment.currentLat ?? 24.7090;
+    final currentLng = shipment.currentLng ?? 46.6680;
+    final vehicleLocation = LatLng(currentLat, currentLng);
+
     return FlutterMap(
       options: MapOptions(
-        initialCenter: _currentLocation,
+        initialCenter: destinationLocation,
         initialZoom: 14,
         interactionOptions: const InteractionOptions(
           flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
@@ -110,7 +118,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
           markers: [
             // Destination Marker (Blue Dot with pulse effect)
             Marker(
-              point: _currentLocation,
+              point: destinationLocation,
               width: 24,
               height: 24,
               child: Container(
@@ -131,7 +139,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
 
             // Vehicle Marker (Black Circle with Navigation Arrow)
             Marker(
-              point: _vehicleLocation,
+              point: vehicleLocation,
               width: 48,
               height: 48,
               child: Container(
@@ -275,12 +283,12 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                     const SizedBox(height: 20),
 
                     // Customer & Order Cost Row
-                    _buildCustomerOrderRow(),
+                    _buildCustomerOrderRow(shipment),
 
                     const SizedBox(height: 20),
 
                     // Quantity & Weight Row
-                    _buildQuantityWeightRow(),
+                    _buildQuantityWeightRow(shipment),
 
                     // Extra padding at bottom for safe area
                     SizedBox(
@@ -449,7 +457,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
 
   /// Row showing created and estimated dates with locations
   Widget _buildDateLocationRow(Shipment shipment) {
-    final createdDate = DateTime.now().subtract(const Duration(days: 2));
+    final createdDate = shipment.createdAt;
     final estimatedDate = shipment.estimatedDelivery;
 
     return Row(
@@ -559,7 +567,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   }
 
   /// Row showing customer name and order cost
-  Widget _buildCustomerOrderRow() {
+  Widget _buildCustomerOrderRow(Shipment shipment) {
     return Row(
       children: [
         // Customer
@@ -575,7 +583,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                'John Mathew',
+                shipment.customerName,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -598,7 +606,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                '\$120.00',
+                '\$${shipment.cost.toStringAsFixed(2)}',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -612,7 +620,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   }
 
   /// Row showing quantity and weight
-  Widget _buildQuantityWeightRow() {
+  Widget _buildQuantityWeightRow(Shipment shipment) {
     return Row(
       children: [
         // Quantity
@@ -628,7 +636,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                '1 Box',
+                '${shipment.packageCount} Box${shipment.packageCount != 1 ? 'es' : ''}',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -651,7 +659,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                '10 Kg',
+                '${shipment.totalWeight} Kg',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,

@@ -8,7 +8,29 @@ class ApiShipmentRepository implements ShipmentRepository {
   @override
   Future<List<Shipment>> getShipments() async {
     final response = await _apiService.getRequest('/api/shipments');
-    return (response as List).map((e) => Shipment.fromJson(e)).toList();
+    // Handle both array (legacy) and object with shipments key
+    if (response is List) {
+      return response.map((e) => Shipment.fromJson(e)).toList();
+    } else if (response is Map && response.containsKey('shipments')) {
+      return (response['shipments'] as List)
+          .map((e) => Shipment.fromJson(e))
+          .toList();
+    }
+    return [];
+  }
+
+  @override
+  Future<List<Shipment>> getShipmentsByClient(String clientId) async {
+    final response = await _apiService.getRequest(
+      '/api/shipments/client/$clientId',
+    );
+    // The backend endpoint returns { shipments: [...], pagination: {...} }
+    if (response is Map && response.containsKey('shipments')) {
+      return (response['shipments'] as List)
+          .map((e) => Shipment.fromJson(e))
+          .toList();
+    }
+    return [];
   }
 
   @override

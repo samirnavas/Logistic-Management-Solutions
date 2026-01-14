@@ -184,16 +184,10 @@ class ShipmentListScreen extends ConsumerWidget {
                             ...shipments.map(
                               (shipment) => ShipmentCard(
                                 shipmentId: shipment.trackingNumber,
-                                boxId: shipment.packageIds.isNotEmpty
-                                    ? shipment.packageIds.first
-                                    : 'N/A',
+                                boxId:
+                                    '${shipment.packageCount} Box${shipment.packageCount != 1 ? 'es' : ''}',
                                 status: shipment.status,
-                                type:
-                                    shipment.origin.contains('China') ||
-                                        shipment.origin.contains('Japan') ||
-                                        shipment.origin.contains('Singapore')
-                                    ? 'Sea'
-                                    : 'Air',
+                                type: shipment.mode,
                                 date:
                                     '${shipment.estimatedDelivery.day}/${shipment.estimatedDelivery.month}/${shipment.estimatedDelivery.year}',
                                 product:

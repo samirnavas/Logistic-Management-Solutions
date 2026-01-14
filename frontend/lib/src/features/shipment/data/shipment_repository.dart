@@ -19,6 +19,9 @@ abstract class ShipmentRepository {
   /// Throws an exception if the data cannot be retrieved.
   Future<List<Shipment>> getShipments();
 
+  /// Retrieves all shipments for a specific client.
+  Future<List<Shipment>> getShipmentsByClient(String clientId);
+
   /// Retrieves a single shipment by its unique identifier.
   ///
   /// [id] - The unique shipment ID (maps to MongoDB `_id`)

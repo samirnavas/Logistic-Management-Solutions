@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../auth/data/auth_repository.dart';
 import '../domain/shipment.dart';
 import 'shipment_repository.dart';
 
@@ -29,7 +30,15 @@ ShipmentRepository shipmentRepository(Ref ref) {
 @riverpod
 Future<List<Shipment>> shipmentList(Ref ref) async {
   final repository = ref.watch(shipmentRepositoryProvider);
-  return repository.getShipments();
+  final authState = ref.watch(authRepositoryProvider);
+  final user = authState.valueOrNull;
+
+  if (user != null) {
+    return repository.getShipmentsByClient(user.id);
+  } else {
+    // Return empty list if no user is logged in
+    return [];
+  }
 }
 
 /// Fetches a single shipment by ID.

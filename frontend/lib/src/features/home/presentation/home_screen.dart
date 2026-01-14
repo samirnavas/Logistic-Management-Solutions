@@ -5,7 +5,7 @@ import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
 import 'package:bb_logistics/src/features/home/data/dashboard_repository.dart';
 import 'package:bb_logistics/src/features/home/domain/dashboard_stats.dart';
 import 'package:bb_logistics/src/features/shipment/data/mock_shipment_repository.dart';
-import 'package:bb_logistics/src/features/shipment/domain/shipment.dart';
+
 import 'package:bb_logistics/src/features/shipment/presentation/widgets/shipment_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -151,11 +151,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 final s = recent[index];
                                 return ShipmentCard(
                                       shipmentId: s.trackingNumber,
-                                      boxId: s.packageIds.isNotEmpty
-                                          ? s.packageIds.first
-                                          : 'N/A',
+                                      boxId:
+                                          '${s.packageCount} Box${s.packageCount != 1 ? 'es' : ''}',
                                       status: s.status,
-                                      type: _getShipmentType(s),
+                                      type: s.mode,
+                                      product: '${s.origin} → ${s.destination}',
                                       date:
                                           '${s.estimatedDelivery.day} ${_getMonthName(s.estimatedDelivery.month)} ${s.estimatedDelivery.year}',
                                       onTrack: () => context.push(
@@ -255,15 +255,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
-  }
-
-  String _getShipmentType(Shipment s) {
-    if (s.origin.contains('China') ||
-        s.origin.contains('Japan') ||
-        s.origin.contains('Singapore')) {
-      return 'Sea';
-    }
-    return 'Air';
   }
 
   String _getMonthName(int month) {
