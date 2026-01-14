@@ -6,14 +6,12 @@
  */
 
 const User = require('./User');
-const ShipmentRequest = require('./ShipmentRequest');
 const Quotation = require('./Quotation');
 const Shipment = require('./Shipment');
 const Notification = require('./Notification');
 
 module.exports = {
     User,
-    ShipmentRequest,
     Quotation,
     Shipment,
     Notification,

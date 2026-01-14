@@ -67,11 +67,6 @@ const timelineEventSchema = new mongoose.Schema({
 // ============================================
 const shipmentSchema = new mongoose.Schema({
     // --- Relations ---
-    requestId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'ShipmentRequest',
-        index: true,
-    },
     quotationId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Quotation',
@@ -506,7 +501,7 @@ shipmentSchema.methods.isOnTime = function () {
 shipmentSchema.statics.findByTracking = function (trackingNumber) {
     return this.findOne({ trackingNumber: trackingNumber.toUpperCase() })
         .populate('clientId', 'fullName email phone')
-        .populate('requestId', 'requestNumber itemName');
+        .populate('quotationId', 'quotationNumber');
 };
 
 /**

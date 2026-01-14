@@ -41,150 +41,178 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         children: [
           // 1. Scrollable Layer
           Positioned.fill(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: MediaQuery.of(context).padding.top + 70,
-                  ), // Dynamic top margin
-                  Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: AppTheme.surface,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(30),
-                        topRight: Radius.circular(30),
+            child: RefreshIndicator(
+              onRefresh: () async {
+                HapticFeedback.lightImpact();
+                ref.invalidate(dashboardStatsProvider);
+                ref.invalidate(shipmentListProvider);
+                // Wait a bit to simulate refresh if needed, but invalidating triggers reload
+                await Future.delayed(const Duration(milliseconds: 500));
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: MediaQuery.of(context).padding.top + 70,
+                    ), // Dynamic top margin
+                    Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        color: AppTheme.surface,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(30),
+                          topRight: Radius.circular(30),
+                        ),
                       ),
-                    ),
-                    padding: EdgeInsets.fromLTRB(
-                      MediaQuery.of(context).size.width < 380 ? 16 : 20,
-                      30,
-                      MediaQuery.of(context).size.width < 380 ? 16 : 20,
-                      100,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Greeting
-                        Text(
-                              'Hello, ${user?.fullName ?? 'Guest'}!',
-                              style: Theme.of(context).textTheme.displayMedium,
-                            )
-                            .animate()
-                            .fadeIn(duration: 500.ms)
-                            .slideX(begin: -0.2, end: 0),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Track, manage, and review all your shipments in one place.',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppTheme.textGrey, height: 1.5),
-                        ).animate().fadeIn(delay: 100.ms, duration: 500.ms),
-                        const SizedBox(height: 24),
-
-                        // Customer Code Card
-                        if (user != null)
-                          _buildCustomerCodeCard(
-                                context,
-                                user.customerCode.isNotEmpty
-                                    ? user.customerCode
-                                    : 'N/A',
+                      padding: EdgeInsets.fromLTRB(
+                        MediaQuery.of(context).size.width < 380 ? 16 : 20,
+                        30,
+                        MediaQuery.of(context).size.width < 380 ? 16 : 20,
+                        100,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Greeting
+                          Text(
+                                'Hello, ${user?.fullName ?? 'Guest'}!',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.displayMedium,
                               )
                               .animate()
-                              .fadeIn(delay: 200.ms, duration: 500.ms)
-                              .scale(),
+                              .fadeIn(duration: 500.ms)
+                              .slideX(begin: -0.2, end: 0),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Track, manage, and review all your shipments in one place.',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: AppTheme.textGrey,
+                                  height: 1.5,
+                                ),
+                          ).animate().fadeIn(delay: 100.ms, duration: 500.ms),
+                          const SizedBox(height: 24),
 
-                        const SizedBox(height: 16),
+                          // Customer Code Card
+                          if (user != null)
+                            _buildCustomerCodeCard(
+                                  context,
+                                  user.customerCode.isNotEmpty
+                                      ? user.customerCode
+                                      : 'N/A',
+                                )
+                                .animate()
+                                .fadeIn(delay: 200.ms, duration: 500.ms)
+                                .scale(),
 
-                        const SizedBox(height: 16),
+                          const SizedBox(height: 16),
 
-                        // Status Overview
-                        Text(
-                          'Status Overview',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ).animate().fadeIn(delay: 400.ms),
-                        const SizedBox(height: 16),
+                          const SizedBox(height: 16),
 
-                        // Pass statsAsync instead of shipmentsAsync to _buildStatusGrid
-                        // But we also need to keep shipmentsAsync for the list below.
-                        statsAsync.when(
-                          data: (stats) => _buildStatusGrid(context, stats),
-                          loading: () =>
-                              const Center(child: CircularProgressIndicator()),
-                          error: (e, s) => Text('Error loading status: $e'),
-                        ),
+                          // Status Overview
+                          Text(
+                            'Status Overview',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ).animate().fadeIn(delay: 400.ms),
+                          const SizedBox(height: 16),
 
-                        const SizedBox(height: 32),
-
-                        // Recent Shipments
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Recent Shipments',
-                              style: Theme.of(context).textTheme.titleLarge,
+                          statsAsync.when(
+                            data: (stats) => _buildStatusGrid(context, stats),
+                            loading: () => const Center(
+                              child: CircularProgressIndicator(),
                             ),
-                            TextButton(
-                              onPressed: () {
-                                HapticFeedback.lightImpact();
+                            error: (e, s) => _buildErrorState(
+                              context,
+                              'Failed to load status',
+                              () {
+                                ref.invalidate(dashboardStatsProvider);
                               },
-                              child: Text(
-                                'View All >',
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      color: AppTheme.primaryBlue,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 32),
+
+                          // Recent Shipments
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Recent Shipments',
+                                style: Theme.of(context).textTheme.titleLarge,
                               ),
-                            ),
-                          ],
-                        ).animate().fadeIn(delay: 600.ms),
-                        const SizedBox(height: 8),
+                              TextButton(
+                                onPressed: () {
+                                  HapticFeedback.lightImpact();
+                                },
+                                child: Text(
+                                  'View All >',
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(
+                                        color: AppTheme.primaryBlue,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ).animate().fadeIn(delay: 600.ms),
+                          const SizedBox(height: 8),
 
-                        shipmentsAsync.when(
-                          data: (shipments) {
-                            if (shipments.isEmpty) {
-                              return const Text("No recent shipments");
-                            }
-                            final recent = shipments.take(2).toList();
-                            return ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: recent.length,
-                              itemBuilder: (context, index) {
-                                final s = recent[index];
-                                return ShipmentCard(
-                                      shipmentId: s.trackingNumber,
-                                      boxId:
-                                          '${s.packageCount} Box${s.packageCount != 1 ? 'es' : ''}',
-                                      status: s.status,
-                                      type: s.mode,
-                                      product: '${s.origin} → ${s.destination}',
-                                      date:
-                                          '${s.estimatedDelivery.day} ${_getMonthName(s.estimatedDelivery.month)} ${s.estimatedDelivery.year}',
-                                      onTrack: () {
-                                        HapticFeedback.lightImpact();
-                                        context.push(
-                                          '/tracking/${s.trackingNumber}',
-                                        );
-                                      },
-                                      onViewDetails: () {
-                                        HapticFeedback.lightImpact();
-                                      },
-                                    )
-                                    .animate()
-                                    .fadeIn(delay: (700 + (index * 100)).ms)
-                                    .slideY(begin: 0.2, end: 0);
+                          shipmentsAsync.when(
+                            data: (shipments) {
+                              if (shipments.isEmpty) {
+                                return const Text("No recent shipments");
+                              }
+                              final recent = shipments.take(2).toList();
+                              return ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: recent.length,
+                                itemBuilder: (context, index) {
+                                  final s = recent[index];
+                                  return ShipmentCard(
+                                        shipmentId: s.trackingNumber,
+                                        boxId:
+                                            '${s.packageCount} Box${s.packageCount != 1 ? 'es' : ''}',
+                                        status: s.status,
+                                        type: s.mode,
+                                        product:
+                                            '${s.origin} → ${s.destination}',
+                                        date:
+                                            '${s.estimatedDelivery.day} ${_getMonthName(s.estimatedDelivery.month)} ${s.estimatedDelivery.year}',
+                                        onTrack: () {
+                                          HapticFeedback.lightImpact();
+                                          context.push(
+                                            '/tracking/${s.trackingNumber}',
+                                          );
+                                        },
+                                        onViewDetails: () {
+                                          HapticFeedback.lightImpact();
+                                        },
+                                      )
+                                      .animate()
+                                      .fadeIn(delay: (700 + (index * 100)).ms)
+                                      .slideY(begin: 0.2, end: 0);
+                                },
+                              );
+                            },
+                            loading: () => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                            error: (e, s) => _buildErrorState(
+                              context,
+                              'Failed to load shipments',
+                              () {
+                                ref.invalidate(shipmentListProvider);
                               },
-                            );
-                          },
-                          loading: () =>
-                              const Center(child: CircularProgressIndicator()),
-                          error: (e, s) => Text('Error loading shipments: $e'),
-                        ),
-                      ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -508,6 +536,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 Text(label, style: Theme.of(context).textTheme.bodySmall),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(
+    BuildContext context,
+    String message,
+    VoidCallback onRetry,
+  ) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, color: Colors.grey[400], size: 40),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppTheme.textGrey),
+            ),
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                onRetry();
+              },
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Retry'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.primaryBlue,
+              ),
             ),
           ],
         ),

@@ -14,7 +14,6 @@ const PORT = process.env.PORT || 5000;
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const shipmentRoutes = require('./routes/shipmentRoutes');
-const shipmentRequestRoutes = require('./routes/shipmentRequestRoutes');
 const quotationRoutes = require('./routes/quotationRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 
@@ -42,7 +41,6 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/shipments', shipmentRoutes);
-app.use('/api/requests', shipmentRequestRoutes);
 app.use('/api/quotations', quotationRoutes);
 app.use('/api/notifications', notificationRoutes);
 
@@ -57,7 +55,6 @@ app.get('/', (req, res) => {
             auth: '/api/auth',
             users: '/api/users',
             shipments: '/api/shipments',
-            requests: '/api/requests',
             quotations: '/api/quotations',
             notifications: '/api/notifications',
         }

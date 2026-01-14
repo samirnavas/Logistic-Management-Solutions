@@ -320,26 +320,6 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                 alignment: WrapAlignment.spaceBetween,
                 children: [
                   Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Request ID',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.7),
-                          fontSize: isSmallScreen ? 10 : 12,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        quotation.requestId,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white,
-                          fontSize: isSmallScreen ? 12 : 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Column(
                     crossAxisAlignment: isSmallScreen
                         ? CrossAxisAlignment.start
                         : CrossAxisAlignment.end,

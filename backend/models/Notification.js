@@ -51,7 +51,7 @@ const notificationSchema = new mongoose.Schema({
     },
     relatedModel: {
         type: String,
-        enum: ['Shipment', 'Quotation', 'ShipmentRequest', 'User'],
+        enum: ['Shipment', 'Quotation', 'User'],
     },
 
     // --- Action URL (for deep linking in the app) ---

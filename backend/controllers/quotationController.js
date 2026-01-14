@@ -1,5 +1,4 @@
 const Quotation = require('../models/Quotation');
-const ShipmentRequest = require('../models/ShipmentRequest');
 const Notification = require('../models/Notification');
 
 // ============================================
@@ -19,7 +18,6 @@ exports.getAllQuotations = async (req, res) => {
             Quotation.find(query)
                 .populate('clientId', 'fullName email customerCode')
                 .populate('managerId', 'fullName email')
-                .populate('requestId', 'requestNumber itemName mode')
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(parseInt(limit)),
@@ -51,65 +49,25 @@ exports.getClientQuotations = async (req, res) => {
         const { page = 1, limit = 20 } = req.query;
         const skip = (page - 1) * limit;
 
-        // 1. Fetch Approved/Sent Quotations
-        const quotationQuery = {
-            clientId,
-            status: { $in: ['Approved', 'Sent', 'Accepted', 'Rejected', 'Ready for Pickup'] }
-        };
+        const query = { clientId };
 
-        // 2. Fetch Pending Shipment Requests (to show as "Request Sent")
-        // We only fetch these on the first page to ensure they appear at the top
-        // or we can try to merge properly. For simplicity, we'll fetch them and prepend.
-        // But pagination logic gets complex.
-        // Let's just fetch pending requests if page=1, or simply ignore pagination for requests for now (assuming low volume)
-
-        const requestsPromise = ShipmentRequest.find({
-            clientId,
-            status: 'Pending'
-        }).sort({ createdAt: -1 });
-
-        const quotationsPromise = Quotation.find(quotationQuery)
-            .populate('requestId', 'requestNumber itemName mode')
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(parseInt(limit));
-
-        const countPromise = Quotation.countDocuments(quotationQuery);
-
-        const [requests, quotations, totalQuotations] = await Promise.all([
-            requestsPromise,
-            quotationsPromise,
-            countPromise
+        const [quotations, total] = await Promise.all([
+            Quotation.find(query)
+                .populate('managerId', 'fullName email')
+                .sort({ createdAt: -1 }) // Newest first
+                .skip(skip)
+                .limit(parseInt(limit)),
+            Quotation.countDocuments(query)
         ]);
 
-        // Map requests to look like quotations
-        const requestQuotations = requests.map(req => ({
-            _id: req._id, // Use request ID as pseudo-quotation ID
-            requestId: req,
-            clientId: req.clientId,
-            createdDate: req.createdAt,
-            createdAt: req.createdAt,
-            totalAmount: 0,
-            status: 'Pending Approval', // Maps to QuotationStatus.pending
-            items: [{
-                description: req.itemName,
-                amount: 0
-            }],
-            isVirtual: true // Flag to identify it's not a real quotation
-        }));
-
-        // Merge: Requests first (newer), then quotations
-        // Note: this breaks strict pagination for mixed lists, but ensures visibility of new requests
-        const combined = [...requestQuotations, ...quotations];
-
         res.json({
-            quotations: combined,
+            quotations,
             pagination: {
                 page: parseInt(page),
                 limit: parseInt(limit),
-                total: totalQuotations + requests.length,
-                totalPages: Math.ceil((totalQuotations + requests.length) / limit),
-                hasMore: (skip + quotations.length < totalQuotations) // Simplified
+                total,
+                totalPages: Math.ceil(total / limit),
+                hasMore: skip + quotations.length < total,
             }
         });
     } catch (error) {
@@ -125,8 +83,7 @@ exports.getQuotation = async (req, res) => {
     try {
         const quotation = await Quotation.findById(req.params.id)
             .populate('clientId', 'fullName email customerCode phone')
-            .populate('managerId', 'fullName email')
-            .populate('requestId');
+            .populate('managerId', 'fullName email');
 
         if (!quotation) {
             return res.status(404).json({ message: 'Quotation not found' });
@@ -147,7 +104,7 @@ exports.getClientQuotation = async (req, res) => {
         const { id, clientId } = req.params;
 
         const quotation = await Quotation.findOne({ _id: id, clientId })
-            .populate('requestId', 'requestNumber itemName mode deliveryType');
+            .populate('managerId', 'fullName email');
 
         if (!quotation) {
             return res.status(404).json({ message: 'Quotation not found' });
@@ -162,62 +119,51 @@ exports.getClientQuotation = async (req, res) => {
 };
 
 // ============================================
-// Create new quotation (Manager)
+// Create new quotation (Originally created by Client as Request)
 // ============================================
 exports.createQuotation = async (req, res) => {
     try {
+        const userId = req.user.id;
         const {
-            requestId,
-            managerId,
-            clientId,
+            origin,
+            destination,
             items,
-            taxRate,
-            discount,
-            discountReason,
-            currency,
-            validUntil,
-            termsAndConditions,
-            internalNotes,
+            pickupDate,
+            deliveryDate,
+            cargoType,
+            serviceType,
+            specialInstructions
         } = req.body;
 
-        // Validate required fields
-        if (!requestId || !managerId || !clientId || !items || items.length === 0) {
+        // Validation for critical fields
+        if (!origin || !destination || !items || items.length === 0) {
             return res.status(400).json({
                 message: 'Missing required fields',
-                required: ['requestId', 'managerId', 'clientId', 'items']
+                required: ['origin', 'destination', 'items']
             });
         }
 
-        // Calculate totals
-        const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
-        const tax = (subtotal * (taxRate || 0)) / 100;
-        const totalAmount = subtotal + tax - (discount || 0);
-
-        // Set validity to 30 days from now if not provided
-        const validityDate = validUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
         const newQuotation = new Quotation({
-            requestId,
-            managerId,
-            clientId,
-            items,
-            subtotal,
-            taxRate: taxRate || 0,
-            tax,
-            discount: discount || 0,
-            discountReason,
-            totalAmount,
-            currency: currency || 'USD',
-            validUntil: validityDate,
-            termsAndConditions,
-            internalNotes,
-            status: 'Draft',
+            clientId: userId,
+            origin,
+            destination,
+            items, // Initial items from request
+            pickupDate,
+            deliveryDate,
+            cargoType,
+            serviceType,
+            specialInstructions,
+            status: 'Pending',
+            totalAmount: 0 // Initialize to 0
         });
 
         const savedQuotation = await newQuotation.save();
 
+        // Notify managers (optional but good for workflow)
+        // await Notification.createNotificationForManagers(...)
+
         res.status(201).json({
-            message: 'Quotation created successfully',
+            message: 'Quotation request created successfully',
             quotation: savedQuotation,
         });
     } catch (error) {
@@ -246,7 +192,8 @@ exports.updateQuotation = async (req, res) => {
         // Update allowed fields
         const allowedUpdates = [
             'items', 'taxRate', 'discount', 'discountReason', 'currency',
-            'validUntil', 'termsAndConditions', 'internalNotes'
+            'validUntil', 'termsAndConditions', 'internalNotes',
+            'status', 'managerId', 'origin', 'destination', 'pickupDate', 'deliveryDate'
         ];
 
         allowedUpdates.forEach(field => {
@@ -275,22 +222,13 @@ exports.updateQuotation = async (req, res) => {
 // ============================================
 exports.approveByManager = async (req, res) => {
     try {
-        const quotation = await Quotation.findById(req.params.id)
-            .populate('requestId', 'requestNumber');
+        const quotation = await Quotation.findById(req.params.id);
 
         if (!quotation) {
             return res.status(404).json({ message: 'Quotation not found' });
         }
 
         await quotation.approveByManager();
-
-        // Update related request status
-        if (quotation.requestId) {
-            await ShipmentRequest.findByIdAndUpdate(
-                quotation.requestId._id || quotation.requestId,
-                { status: 'Quoted' }
-            );
-        }
 
         res.json({
             message: 'Quotation approved by manager',
@@ -307,8 +245,7 @@ exports.approveByManager = async (req, res) => {
 // ============================================
 exports.sendToClient = async (req, res) => {
     try {
-        const quotation = await Quotation.findById(req.params.id)
-            .populate('requestId', 'requestNumber');
+        const quotation = await Quotation.findById(req.params.id);
 
         if (!quotation) {
             return res.status(404).json({ message: 'Quotation not found' });
@@ -346,14 +283,6 @@ exports.acceptByClient = async (req, res) => {
 
         await quotation.acceptByClient();
 
-        // Update related request status to Approved
-        if (quotation.requestId) {
-            await ShipmentRequest.findByIdAndUpdate(
-                quotation.requestId,
-                { status: 'Approved' }
-            );
-        }
-
         // Notify manager
         await Notification.createNotification({
             recipientId: quotation.managerId,
@@ -389,14 +318,6 @@ exports.rejectByClient = async (req, res) => {
 
         await quotation.rejectByClient(reason);
 
-        // Update related request status
-        if (quotation.requestId) {
-            await ShipmentRequest.findByIdAndUpdate(
-                quotation.requestId,
-                { status: 'Rejected' }
-            );
-        }
-
         // Notify manager
         await Notification.createNotification({
             recipientId: quotation.managerId,
@@ -415,19 +336,6 @@ exports.rejectByClient = async (req, res) => {
     } catch (error) {
         console.error('Reject By Client Error:', error);
         res.status(500).json({ message: 'Failed to reject quotation', error: error.message });
-    }
-};
-
-// ============================================
-// Get quotations by request ID
-// ============================================
-exports.getByRequest = async (req, res) => {
-    try {
-        const quotations = await Quotation.findByRequest(req.params.requestId);
-        res.json(quotations);
-    } catch (error) {
-        console.error('Get By Request Error:', error);
-        res.status(500).json({ message: 'Failed to fetch quotations', error: error.message });
     }
 };
 
@@ -461,17 +369,9 @@ exports.confirmAddress = async (req, res) => {
             return res.status(404).json({ message: 'Quotation not found' });
         }
 
-        // Update the related ShipmentRequest with the new addresses
-        if (quotation.requestId) {
-            const updateData = {};
-            if (pickupAddress) updateData.pickupAddress = pickupAddress;
-            if (deliveryAddress) updateData.destinationAddress = deliveryAddress;
-
-            await ShipmentRequest.findByIdAndUpdate(
-                quotation.requestId,
-                updateData
-            );
-        }
+        // Update addresses in quotation directly
+        if (pickupAddress) quotation.origin = pickupAddress;
+        if (deliveryAddress) quotation.destination = deliveryAddress;
 
         // Update Quotation status
         quotation.status = 'Ready for Pickup';
@@ -485,15 +385,17 @@ exports.confirmAddress = async (req, res) => {
 
         // Notify manager
         try {
-            await Notification.createNotification({
-                recipientId: quotation.managerId,
-                title: 'Address Confirmed',
-                message: `Client has confirmed address details for quotation ${quotation.quotationNumber}. Ready for pickup.`,
-                type: 'info',
-                category: 'quotation',
-                relatedId: quotation._id,
-                relatedModel: 'Quotation',
-            });
+            if (quotation.managerId) {
+                await Notification.createNotification({
+                    recipientId: quotation.managerId,
+                    title: 'Address Confirmed',
+                    message: `Client has confirmed address details for quotation ${quotation.quotationNumber}. Ready for pickup.`,
+                    type: 'info',
+                    category: 'quotation',
+                    relatedId: quotation._id,
+                    relatedModel: 'Quotation',
+                });
+            }
         } catch (notifError) {
             console.error('Failed to create notification', notifError);
         }

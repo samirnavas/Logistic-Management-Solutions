@@ -2,12 +2,14 @@ const express = require('express');
 const router = express.Router();
 const quotationController = require('../controllers/quotationController');
 
+const { protect } = require('../middleware/auth');
+
 // ============================================
 // Manager Routes
 // ============================================
 
 // Create new quotation
-router.post('/', quotationController.createQuotation);
+router.post('/', protect, quotationController.createQuotation);
 
 // Get all quotations (manager view)
 router.get('/', quotationController.getAllQuotations);
@@ -21,8 +23,7 @@ router.patch('/:id/approve', quotationController.approveByManager);
 // Send quotation to client
 router.patch('/:id/send', quotationController.sendToClient);
 
-// Get quotations for a specific request
-router.get('/request/:requestId', quotationController.getByRequest);
+
 
 // ============================================
 // Client Routes

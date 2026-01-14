@@ -7,7 +7,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
-import 'package:bb_logistics/src/features/shipment/data/mock_shipment_repository.dart';
+// import 'package:bb_logistics/src/features/shipment/data/mock_shipment_repository.dart';
+import 'package:bb_logistics/src/features/quotation/data/quotation_repository.dart';
+import 'package:bb_logistics/src/features/home/data/dashboard_repository.dart';
 
 class RequestShipmentScreen extends ConsumerStatefulWidget {
   const RequestShipmentScreen({super.key});
@@ -366,7 +368,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                     shadowColor: Colors.black.withValues(alpha: 0.3),
                   ),
                   child: Text(
-                    'REQUEST PICKUP',
+                    'SUBMIT REQUEST',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -412,45 +414,56 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      final requestData = {
-        'clientId': user.id,
-        'mode': _shippingMode == 'By Air' ? 'Air' : 'Sea',
-        'deliveryType': _deliveryType == 'Shipment door to door'
-            ? 'Door to Door'
-            : 'Warehouse',
-        'itemName': _itemNameController.text,
-        'boxCount': int.parse(_boxesController.text),
-        'totalCbm': double.tryParse(_cbmController.text) ?? 0,
-        'hsCode': _hsCodeController.text,
-        'pickupAddress': {
-          'name': _nameController.text,
-          'phone': '$_countryCode ${_phoneController.text}',
-          'addressLine': _addressController.text,
-          'city': _cityController.text,
-          'state': _stateController.text,
-          'country': _countryController.text,
-          'zip': _zipController.text,
-        },
-        'destinationAddress': {
-          // Using placeholder destination as form doesn't have destination fields yet
-          // Assuming Warehouse Delivery or using User's default address could be options
-          // modifying to just duplicate pickup or use dummy for now to satisfy backend requirement
-          // The UI design seemed to miss Destination Address, so I'll use a dummy one or the user's saved address logic if available.
-          // For now, let's use a "To Be Confirmed" structure since the UI only asked for Pickup Address
-          'name': user.fullName,
-          'phone': user.phone,
-          'addressLine': 'To Be Confirmed',
-          'city': 'To Be Confirmed',
-          'state': '',
-          'country': 'To Be Confirmed',
-          'zip': '00000',
-        },
-        'specialInstructions': _notesController.text,
+      final pickupAddress = {
+        'name': _nameController.text,
+        'phone': '$_countryCode ${_phoneController.text}',
+        'addressLine': _addressController.text,
+        'city': _cityController.text,
+        'state': _stateController.text,
+        'country': _countryController.text,
+        'zip': _zipController.text,
       };
 
-      await ref
-          .read(shipmentRepositoryProvider)
-          .createShipmentRequest(requestData);
+      final destinationAddress = {
+        // Using dummy destination as per current UI limitation
+        'name': 'To Be Confirmed',
+        'phone': '9999999999',
+        'addressLine': 'To Be Confirmed',
+        'city': 'To Be Confirmed',
+        'state': '',
+        'country': 'To Be Confirmed',
+        'zip': '00000',
+      };
+
+      // Construct item description from form details
+      final itemDescription =
+          '${_itemNameController.text} - ${_boxesController.text} Boxes, ${_cbmController.text} CBM, HS: ${_hsCodeController.text}';
+
+      final requestData = {
+        'origin': pickupAddress,
+        'destination': destinationAddress,
+        'items': [
+          {
+            'description': itemDescription,
+            'quantity': int.tryParse(_boxesController.text) ?? 1,
+            'unitPrice': 0,
+            'amount': 0,
+          },
+        ],
+        'cargoType': 'General Cargo', // Default
+        'serviceType': 'Standard', // Default
+        'specialInstructions':
+            'Mode: $_shippingMode, Delivery: $_deliveryType\nNotes: ${_notesController.text}',
+        'pickupDate': DateTime.now()
+            .add(const Duration(days: 1))
+            .toIso8601String(), // Default to tomorrow
+      };
+
+      await ref.read(quotationRepositoryProvider).createQuotation(requestData);
+
+      // Invalidate providers to force refresh
+      ref.invalidate(quotationsProvider);
+      ref.invalidate(dashboardStatsProvider);
 
       // Dismiss loading
       if (mounted) Navigator.of(context).pop();
@@ -498,7 +511,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                   children: [
                     const TextSpan(text: 'Your request '),
                     TextSpan(
-                      text: '#RQ1982',
+                      text: '#PENDING',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppTheme.textDark,
@@ -517,7 +530,8 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                 height: 48,
                 child: ElevatedButton(
                   onPressed: () {
-                    context.go('/home');
+                    // Navigate to Quotation Screen
+                    context.go('/quotation');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryBlue,
@@ -527,7 +541,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                     elevation: 0,
                   ),
                   child: Text(
-                    'GO TO DASHBOARD',
+                    'GO TO QUOTATIONS',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,

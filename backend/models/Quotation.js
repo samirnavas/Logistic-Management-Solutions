@@ -17,12 +17,12 @@ const lineItemSchema = new mongoose.Schema({
     },
     unitPrice: {
         type: Number,
-        required: [true, 'Unit price is required'],
+        default: 0,
         min: [0, 'Unit price cannot be negative'],
     },
     amount: {
         type: Number,
-        required: [true, 'Amount is required'],
+        default: 0,
         min: [0, 'Amount cannot be negative'],
     },
     category: {
@@ -32,21 +32,54 @@ const lineItemSchema = new mongoose.Schema({
     },
 }, { _id: false });
 
+const addressSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: [true, 'Contact name is required'],
+        trim: true,
+        maxlength: [100, 'Name cannot exceed 100 characters'],
+    },
+    phone: {
+        type: String,
+        required: [true, 'Contact phone is required'],
+        trim: true,
+    },
+    addressLine: {
+        type: String,
+        required: [true, 'Address line is required'],
+        trim: true,
+        maxlength: [200, 'Address line cannot exceed 200 characters'],
+    },
+    city: {
+        type: String,
+        required: [true, 'City is required'],
+        trim: true,
+    },
+    state: {
+        type: String,
+        trim: true,
+        default: '',
+    },
+    country: {
+        type: String,
+        required: [true, 'Country is required'],
+        trim: true,
+    },
+    zip: {
+        type: String,
+        required: [true, 'ZIP/Postal code is required'],
+        trim: true,
+    },
+}, { _id: false });
+
 // ============================================
 // Quotation Schema
 // ============================================
 const quotationSchema = new mongoose.Schema({
     // --- Relations ---
-    requestId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'ShipmentRequest',
-        required: [true, 'Request ID is required'],
-        index: true,
-    },
     managerId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: [true, 'Manager ID is required'],
         index: true,
     },
     clientId: {
@@ -63,6 +96,38 @@ const quotationSchema = new mongoose.Schema({
         index: true,
     },
 
+    // --- Shipment Details ---
+    origin: {
+        type: addressSchema,
+        required: [true, 'Origin address is required'],
+    },
+    destination: {
+        type: addressSchema,
+        required: [true, 'Destination address is required'],
+    },
+    pickupDate: {
+        type: Date,
+    },
+    deliveryDate: {
+        type: Date,
+    },
+    cargoType: {
+        type: String,
+        required: [true, 'Cargo type is required'],
+        default: 'General Cargo'
+    },
+    serviceType: {
+        type: String,
+        enum: ['Standard', 'Express', 'Economy', 'Priority'],
+        default: 'Standard',
+    },
+    specialInstructions: {
+        type: String,
+        trim: true,
+        maxlength: [500, 'Instructions cannot exceed 500 characters'],
+        default: '',
+    },
+
     // --- Financial Details ---
     items: {
         type: [lineItemSchema],
@@ -75,7 +140,7 @@ const quotationSchema = new mongoose.Schema({
     },
     subtotal: {
         type: Number,
-        required: [true, 'Subtotal is required'],
+        default: 0,
         min: [0, 'Subtotal cannot be negative'],
     },
     taxRate: {
@@ -101,7 +166,7 @@ const quotationSchema = new mongoose.Schema({
     },
     totalAmount: {
         type: Number,
-        required: [true, 'Total amount is required'],
+        default: 0,
         min: [0, 'Total amount cannot be negative'],
     },
     currency: {
@@ -145,7 +210,6 @@ const quotationSchema = new mongoose.Schema({
     // --- Validity ---
     validUntil: {
         type: Date,
-        required: [true, 'Validity date is required'],
     },
 
     // --- Documents ---
@@ -172,10 +236,10 @@ const quotationSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: {
-            values: ['Draft', 'Pending Approval', 'Approved', 'Sent', 'Accepted', 'Rejected', 'Expired', 'Cancelled', 'Ready for Pickup'],
+            values: ['Draft', 'Pending', 'Pending Approval', 'Approved', 'Sent', 'Accepted', 'Rejected', 'Expired', 'Cancelled', 'Ready for Pickup'],
             message: 'Invalid quotation status',
         },
-        default: 'Draft',
+        default: 'Pending',
         index: true,
     },
 
@@ -217,7 +281,7 @@ const quotationSchema = new mongoose.Schema({
 // ============================================
 // Note: Single-field indexes are defined in field definitions
 // Only compound indexes defined here
-quotationSchema.index({ requestId: 1, status: 1 });
+// quotationSchema.index({ requestId: 1, status: 1 });
 quotationSchema.index({ clientId: 1, status: 1 });
 quotationSchema.index({ managerId: 1, createdAt: -1 });
 quotationSchema.index({ validUntil: 1 });

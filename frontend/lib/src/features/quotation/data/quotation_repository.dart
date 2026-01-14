@@ -75,6 +75,25 @@ class QuotationRepository {
       'deliveryAddress': deliveryAddress,
     });
   }
+
+  /// Create a new quotation request
+  Future<Quotation> createQuotation(Map<String, dynamic> requestData) async {
+    final response = await _apiService.postRequest(
+      '/api/quotations',
+      requestData,
+    );
+
+    // Response format: { message: "...", quotation: {...} }
+    if (response is Map<String, dynamic> && response.containsKey('quotation')) {
+      final quotationJson = response['quotation'];
+      if (quotationJson.containsKey('_id') &&
+          !quotationJson.containsKey('id')) {
+        quotationJson['id'] = quotationJson['_id'];
+      }
+      return Quotation.fromJson(quotationJson);
+    }
+    throw Exception('Failed to parse created quotation');
+  }
 }
 
 @riverpod
