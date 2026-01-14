@@ -393,11 +393,10 @@ shipmentSchema.virtual('routeSummary').get(function () {
 /**
  * Auto-generate tracking number if not provided
  */
-shipmentSchema.pre('save', async function (next) {
+shipmentSchema.pre('save', async function () {
     if (this.isNew && !this.trackingNumber) {
         this.trackingNumber = await generateTrackingNumber();
     }
-    next();
 });
 
 // ============================================

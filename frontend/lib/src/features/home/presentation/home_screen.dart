@@ -10,6 +10,7 @@ import 'package:bb_logistics/src/features/shipment/presentation/widgets/shipment
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -123,7 +124,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             TextButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                HapticFeedback.lightImpact();
+                              },
                               child: Text(
                                 'View All >',
                                 style: Theme.of(context).textTheme.bodyMedium
@@ -158,10 +161,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       product: '${s.origin} → ${s.destination}',
                                       date:
                                           '${s.estimatedDelivery.day} ${_getMonthName(s.estimatedDelivery.month)} ${s.estimatedDelivery.year}',
-                                      onTrack: () => context.push(
-                                        '/tracking/${s.trackingNumber}',
-                                      ),
-                                      onViewDetails: () {},
+                                      onTrack: () {
+                                        HapticFeedback.lightImpact();
+                                        context.push(
+                                          '/tracking/${s.trackingNumber}',
+                                        );
+                                      },
+                                      onViewDetails: () {
+                                        HapticFeedback.lightImpact();
+                                      },
                                     )
                                     .animate()
                                     .fadeIn(delay: (700 + (index * 100)).ms)
@@ -202,6 +210,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         size: 28,
                       ),
                       onPressed: () {
+                        HapticFeedback.lightImpact();
                         _scaffoldKey.currentState?.openDrawer();
                       },
                     ),
@@ -215,7 +224,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           Icons.notifications_none_outlined,
                           color: AppTheme.primaryBlue,
                         ),
-                        onPressed: () {},
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+                        },
                       ),
                     ),
                   ],
@@ -230,24 +241,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: SizedBox(
           width: MediaQuery.of(context).size.width * 0.7,
           height: 48,
-          child: FloatingActionButton.extended(
-            onPressed: () => context.push('/request-shipment'),
-            backgroundColor: AppTheme.primaryBlue,
-            elevation: 6,
-            shape: RoundedRectangleBorder(
+          child: Container(
+            decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+                  blurRadius: 12,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 4),
+                ),
+                BoxShadow(
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            icon: const Icon(
-              Icons.add_circle_outline,
-              color: Colors.white,
-              size: 24,
-            ),
-            label: Text(
-              'CREATE NEW REQUEST',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            child: FloatingActionButton.extended(
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                context.push('/request-shipment');
+              },
+              backgroundColor: AppTheme.primaryBlue,
+              elevation: 0,
+              highlightElevation: 0,
+              hoverElevation: 0,
+              focusElevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(28),
+              ),
+              icon: const Icon(
+                Icons.add_circle_outline,
                 color: Colors.white,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
+                size: 24,
+              ),
+              label: Text(
+                'CREATE NEW REQUEST',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ),
@@ -311,17 +347,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
           const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () async {
+                HapticFeedback.mediumImpact();
+                await Clipboard.setData(ClipboardData(text: code));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Customer code copied to clipboard'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
               borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              'Copy',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.primaryBlue,
-                fontWeight: FontWeight.w600,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'Copy',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.primaryBlue,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ),
@@ -407,47 +464,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     Color bgColor,
     Color iconColor,
   ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          // Subtle light blue glow for depth
-          BoxShadow(
-            color: AppTheme.primaryBlue.withValues(alpha: 0.06),
-            blurRadius: 8,
-            spreadRadius: 0,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: const BoxDecoration(
-              color: AppTheme.surface,
-              shape: BoxShape.circle,
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        // Add navigation logic if needed
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            // Subtle light blue glow for depth
+            BoxShadow(
+              color: AppTheme.primaryBlue.withValues(alpha: 0.06),
+              blurRadius: 8,
+              spreadRadius: 0,
+              offset: const Offset(0, 2),
             ),
-            child: Icon(icon, size: 16, color: iconColor),
-          ),
-          const SizedBox(height: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                count,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ],
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: const BoxDecoration(
+                color: AppTheme.surface,
+                shape: BoxShape.circle,
               ),
-              Text(label, style: Theme.of(context).textTheme.bodySmall),
-            ],
-          ),
-        ],
+              child: Icon(icon, size: 16, color: iconColor),
+            ),
+            const SizedBox(height: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  count,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                Text(label, style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

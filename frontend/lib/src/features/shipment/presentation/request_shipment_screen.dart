@@ -5,14 +5,19 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-class RequestShipmentScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
+import 'package:bb_logistics/src/features/shipment/data/mock_shipment_repository.dart';
+
+class RequestShipmentScreen extends ConsumerStatefulWidget {
   const RequestShipmentScreen({super.key});
 
   @override
-  State<RequestShipmentScreen> createState() => _RequestShipmentScreenState();
+  ConsumerState<RequestShipmentScreen> createState() =>
+      _RequestShipmentScreenState();
 }
 
-class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
+class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
   final _formKey = GlobalKey<FormState>();
   String _shippingMode = 'By Air';
   String _deliveryType = 'Door to Door';
@@ -347,22 +352,11 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
               left: 24, // Add horizontal padding
               right: 24, // Add horizontal padding
               // Float 24px above bottom, or 24px above keyboard
-              bottom: isKeyboardVisible ? bottomInset + 12 : 32,
+              bottom: isKeyboardVisible ? 12 : 32,
               child: SizedBox(
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      _showSuccessDialog();
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please fill in all required fields.'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  },
+                  onPressed: _submitRequest,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryBlue,
                     shape: RoundedRectangleBorder(
@@ -387,6 +381,92 @@ class _RequestShipmentScreenState extends State<RequestShipmentScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _submitRequest() async {
+    if (!_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill in all required fields.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Get current user
+    final authState = ref.read(authRepositoryProvider);
+    final user = authState.value;
+    if (user == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('User not logged in')));
+      return;
+    }
+
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final requestData = {
+        'clientId': user.id,
+        'mode': _shippingMode == 'By Air' ? 'Air' : 'Sea',
+        'deliveryType': _deliveryType == 'Shipment door to door'
+            ? 'Door to Door'
+            : 'Warehouse',
+        'itemName': _itemNameController.text,
+        'boxCount': int.parse(_boxesController.text),
+        'totalCbm': double.tryParse(_cbmController.text) ?? 0,
+        'hsCode': _hsCodeController.text,
+        'pickupAddress': {
+          'name': _nameController.text,
+          'phone': '$_countryCode ${_phoneController.text}',
+          'addressLine': _addressController.text,
+          'city': _cityController.text,
+          'state': _stateController.text,
+          'country': _countryController.text,
+          'zip': _zipController.text,
+        },
+        'destinationAddress': {
+          // Using placeholder destination as form doesn't have destination fields yet
+          // Assuming Warehouse Delivery or using User's default address could be options
+          // modifying to just duplicate pickup or use dummy for now to satisfy backend requirement
+          // The UI design seemed to miss Destination Address, so I'll use a dummy one or the user's saved address logic if available.
+          // For now, let's use a "To Be Confirmed" structure since the UI only asked for Pickup Address
+          'name': user.fullName,
+          'phone': user.phone,
+          'addressLine': 'To Be Confirmed',
+          'city': 'To Be Confirmed',
+          'state': '',
+          'country': 'To Be Confirmed',
+          'zip': '00000',
+        },
+        'specialInstructions': _notesController.text,
+      };
+
+      await ref
+          .read(shipmentRepositoryProvider)
+          .createShipmentRequest(requestData);
+
+      // Dismiss loading
+      if (mounted) Navigator.of(context).pop();
+
+      _showSuccessDialog();
+    } catch (e) {
+      // Dismiss loading
+      if (mounted) Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to create request: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _showSuccessDialog() {

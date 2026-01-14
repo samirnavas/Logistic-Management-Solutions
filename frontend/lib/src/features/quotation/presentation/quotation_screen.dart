@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class QuotationScreen extends ConsumerStatefulWidget {
@@ -161,6 +162,7 @@ class _QuotationScreenState extends ConsumerState<QuotationScreen> {
                         size: 28,
                       ),
                       onPressed: () {
+                        HapticFeedback.lightImpact();
                         _scaffoldKey.currentState?.openDrawer();
                       },
                     ),
@@ -174,7 +176,9 @@ class _QuotationScreenState extends ConsumerState<QuotationScreen> {
                           Icons.notifications_none_outlined,
                           color: AppTheme.primaryBlue,
                         ),
-                        onPressed: () {},
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+                        },
                       ),
                     ),
                   ],
@@ -260,7 +264,10 @@ class _QuotationCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => context.push('/quotations/${quotation.id}'),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            context.push('/quotations/${quotation.id}');
+          },
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -367,7 +374,10 @@ class _QuotationCard extends StatelessWidget {
 
   Widget _buildViewButton(BuildContext context) {
     return TextButton(
-      onPressed: () => context.push('/quotations/${quotation.id}'),
+      onPressed: () {
+        HapticFeedback.lightImpact();
+        context.push('/quotations/${quotation.id}');
+      },
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         minimumSize: Size.zero,

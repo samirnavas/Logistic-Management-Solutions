@@ -51,30 +51,65 @@ exports.getClientQuotations = async (req, res) => {
         const { page = 1, limit = 20 } = req.query;
         const skip = (page - 1) * limit;
 
-        // Only show approved quotations to clients
-        const query = {
+        // 1. Fetch Approved/Sent Quotations
+        const quotationQuery = {
             clientId,
-            isApprovedByManager: true,
-            status: { $in: ['Approved', 'Sent', 'Accepted', 'Rejected'] }
+            status: { $in: ['Approved', 'Sent', 'Accepted', 'Rejected', 'Ready for Pickup'] }
         };
 
-        const [quotations, total] = await Promise.all([
-            Quotation.find(query)
-                .populate('requestId', 'requestNumber itemName mode')
-                .sort({ createdAt: -1 })
-                .skip(skip)
-                .limit(parseInt(limit)),
-            Quotation.countDocuments(query)
+        // 2. Fetch Pending Shipment Requests (to show as "Request Sent")
+        // We only fetch these on the first page to ensure they appear at the top
+        // or we can try to merge properly. For simplicity, we'll fetch them and prepend.
+        // But pagination logic gets complex.
+        // Let's just fetch pending requests if page=1, or simply ignore pagination for requests for now (assuming low volume)
+
+        const requestsPromise = ShipmentRequest.find({
+            clientId,
+            status: 'Pending'
+        }).sort({ createdAt: -1 });
+
+        const quotationsPromise = Quotation.find(quotationQuery)
+            .populate('requestId', 'requestNumber itemName mode')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        const countPromise = Quotation.countDocuments(quotationQuery);
+
+        const [requests, quotations, totalQuotations] = await Promise.all([
+            requestsPromise,
+            quotationsPromise,
+            countPromise
         ]);
 
+        // Map requests to look like quotations
+        const requestQuotations = requests.map(req => ({
+            _id: req._id, // Use request ID as pseudo-quotation ID
+            requestId: req,
+            clientId: req.clientId,
+            createdDate: req.createdAt,
+            createdAt: req.createdAt,
+            totalAmount: 0,
+            status: 'Pending Approval', // Maps to QuotationStatus.pending
+            items: [{
+                description: req.itemName,
+                amount: 0
+            }],
+            isVirtual: true // Flag to identify it's not a real quotation
+        }));
+
+        // Merge: Requests first (newer), then quotations
+        // Note: this breaks strict pagination for mixed lists, but ensures visibility of new requests
+        const combined = [...requestQuotations, ...quotations];
+
         res.json({
-            quotations,
+            quotations: combined,
             pagination: {
                 page: parseInt(page),
                 limit: parseInt(limit),
-                total,
-                totalPages: Math.ceil(total / limit),
-                hasMore: skip + quotations.length < total,
+                total: totalQuotations + requests.length,
+                totalPages: Math.ceil((totalQuotations + requests.length) / limit),
+                hasMore: (skip + quotations.length < totalQuotations) // Simplified
             }
         });
     } catch (error) {

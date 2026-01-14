@@ -292,11 +292,10 @@ shipmentRequestSchema.virtual('ageInDays').get(function () {
 /**
  * Auto-generate request number
  */
-shipmentRequestSchema.pre('save', async function (next) {
+shipmentRequestSchema.pre('save', async function () {
     if (this.isNew && !this.requestNumber) {
         this.requestNumber = await generateRequestNumber();
     }
-    next();
 });
 
 // ============================================

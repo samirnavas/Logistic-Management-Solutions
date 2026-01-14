@@ -1,7 +1,7 @@
 import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+
 import 'package:go_router/go_router.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -78,10 +78,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         children: [
           // Top Left Smoke
           Positioned(
-            top: 0,
+            top: size.height * 0.40,
             left: 0,
-            child: FadeTransition(
-              opacity: _fadeAnimation,
+            child: SlideTransition(
+              position: _slideAnimation,
               child: Image.asset(
                 'assets/Splash smoke left.png',
                 width: size.width * 0.6,
@@ -126,9 +126,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 padding: const EdgeInsets.only(
                   bottom: 100.0,
                 ), // Adjust to allow space for bottom image
-                child: SvgPicture.asset(
-                  'assets/logo.svg',
-                  width: size.width * 0.4,
+                child: Image.asset(
+                  'assets/B&B Logo.png',
+                  width: size.width * 0.6,
                 ),
               ),
             ),

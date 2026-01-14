@@ -73,4 +73,7 @@ abstract class ShipmentRepository {
   ///
   /// Returns a list of [Shipment] objects matching the status.
   Future<List<Shipment>> getShipmentsByStatus(String status);
+
+  /// Creates a new shipment request.
+  Future<void> createShipmentRequest(Map<String, dynamic> requestData);
 }

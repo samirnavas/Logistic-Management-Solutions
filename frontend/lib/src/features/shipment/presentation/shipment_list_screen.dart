@@ -5,6 +5,7 @@ import 'package:bb_logistics/src/features/shipment/presentation/widgets/shipment
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class ShipmentListScreen extends ConsumerWidget {
@@ -40,6 +41,7 @@ class ShipmentListScreen extends ConsumerWidget {
                         size: 28,
                       ),
                       onPressed: () {
+                        HapticFeedback.lightImpact();
                         // Scaffold.of(context).openDrawer(); // If drawer exists
                       },
                     ),
@@ -61,7 +63,9 @@ class ShipmentListScreen extends ConsumerWidget {
                           Icons.notifications_none_outlined,
                           color: AppTheme.primaryBlue,
                         ),
-                        onPressed: () {},
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+                        },
                       ),
                     ),
                   ],
@@ -126,6 +130,7 @@ class ShipmentListScreen extends ConsumerWidget {
                               const SizedBox(height: 8),
                               TextButton(
                                 onPressed: () {
+                                  HapticFeedback.lightImpact();
                                   ref.invalidate(shipmentListProvider);
                                 },
                                 child: const Text('Try Again'),
@@ -196,11 +201,13 @@ class ShipmentListScreen extends ConsumerWidget {
                                   shipment.estimatedDelivery,
                                 ),
                                 onTrack: () {
+                                  HapticFeedback.lightImpact();
                                   context.push(
                                     '/tracking/${shipment.trackingNumber}',
                                   );
                                 },
                                 onViewDetails: () {
+                                  HapticFeedback.lightImpact();
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text(

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:flutter/services.dart';
+
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
 
@@ -51,6 +53,7 @@ class AppDrawer extends ConsumerWidget {
                   leading: const Icon(Icons.dashboard_outlined),
                   title: const Text('Home'),
                   onTap: () {
+                    HapticFeedback.lightImpact();
                     context.pop(); // Close drawer
                     context.go('/home');
                   },
@@ -59,14 +62,16 @@ class AppDrawer extends ConsumerWidget {
                   leading: const Icon(Icons.add_box_outlined),
                   title: const Text('New Shipment'),
                   onTap: () {
+                    HapticFeedback.lightImpact();
                     context.pop();
-                    context.push('/create-request');
+                    context.push('/request-shipment');
                   },
                 ),
                 ListTile(
                   leading: const Icon(Icons.location_searching),
                   title: const Text('Track Shipment'),
                   onTap: () {
+                    HapticFeedback.lightImpact();
                     context.pop();
                     context.go('/shipment');
                   },
@@ -75,6 +80,7 @@ class AppDrawer extends ConsumerWidget {
                   leading: const Icon(Icons.request_quote_outlined),
                   title: const Text('Quotations'),
                   onTap: () {
+                    HapticFeedback.lightImpact();
                     context.pop();
                     context.go('/quotation');
                   },
@@ -84,6 +90,7 @@ class AppDrawer extends ConsumerWidget {
                   leading: const Icon(Icons.person_outline),
                   title: const Text('Profile'),
                   onTap: () {
+                    HapticFeedback.lightImpact();
                     context.pop();
                     context.go('/profile');
                   },
@@ -92,6 +99,7 @@ class AppDrawer extends ConsumerWidget {
                   leading: const Icon(Icons.support_agent),
                   title: const Text('Support'),
                   onTap: () {
+                    HapticFeedback.lightImpact();
                     context.pop();
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Contacting Support...')),
@@ -105,6 +113,7 @@ class AppDrawer extends ConsumerWidget {
                     style: TextStyle(color: Colors.red),
                   ),
                   onTap: () {
+                    HapticFeedback.lightImpact();
                     context.pop();
                     ref.read(authRepositoryProvider.notifier).signOut();
                   },

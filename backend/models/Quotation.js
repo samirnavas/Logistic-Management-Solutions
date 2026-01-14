@@ -259,7 +259,7 @@ quotationSchema.virtual('daysUntilExpiry').get(function () {
 /**
  * Auto-generate quotation number and calculate totals
  */
-quotationSchema.pre('save', async function (next) {
+quotationSchema.pre('save', async function () {
     // Generate quotation number
     if (this.isNew && !this.quotationNumber) {
         this.quotationNumber = await generateQuotationNumber();
@@ -269,8 +269,6 @@ quotationSchema.pre('save', async function (next) {
     if (this.isModified('items') || this.isModified('taxRate') || this.isModified('discount')) {
         this.calculateTotals();
     }
-
-    next();
 });
 
 // ============================================

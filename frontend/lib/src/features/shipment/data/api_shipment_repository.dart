@@ -74,4 +74,9 @@ class ApiShipmentRepository implements ShipmentRepository {
     // Requires DELETE method
     throw UnimplementedError('Delete not implemented yet');
   }
+
+  @override
+  Future<void> createShipmentRequest(Map<String, dynamic> requestData) async {
+    await _apiService.postRequest('/api/requests', requestData);
+  }
 }

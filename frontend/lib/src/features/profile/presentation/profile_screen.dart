@@ -58,7 +58,9 @@ class ProfileScreen extends ConsumerWidget {
                           Icons.notifications_none_outlined,
                           color: AppTheme.primaryBlue,
                         ),
-                        onPressed: () {},
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+                        },
                       ),
                     ),
                   ],
@@ -101,6 +103,7 @@ class ProfileScreen extends ConsumerWidget {
                               title: const Text('Edit Profile'),
                               trailing: const Icon(Icons.chevron_right),
                               onTap: () {
+                                HapticFeedback.lightImpact();
                                 if (user != null) {
                                   showModalBottomSheet(
                                     context: context,
@@ -120,13 +123,17 @@ class ProfileScreen extends ConsumerWidget {
                               leading: const Icon(Icons.location_on_outlined),
                               title: const Text('Saved Addresses'),
                               trailing: const Icon(Icons.chevron_right),
-                              onTap: () {},
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                              },
                             ),
                             ListTile(
                               leading: const Icon(Icons.lock_outline),
                               title: const Text('Change Password'),
                               trailing: const Icon(Icons.chevron_right),
-                              onTap: () {},
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                              },
                             ),
                           ],
                         ),
@@ -141,6 +148,7 @@ class ProfileScreen extends ConsumerWidget {
                               trailing: Switch(
                                 value: notificationsEnabled,
                                 onChanged: (val) {
+                                  HapticFeedback.lightImpact();
                                   ref
                                       .read(settingsProvider)
                                       .toggleNotifications(val);
@@ -154,7 +162,9 @@ class ProfileScreen extends ConsumerWidget {
                               leading: const Icon(Icons.language_outlined),
                               title: const Text('Language'),
                               trailing: const Icon(Icons.chevron_right),
-                              onTap: () {},
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                              },
                             ),
                             ListTile(
                               leading: const Icon(Icons.dark_mode_outlined),
@@ -162,6 +172,7 @@ class ProfileScreen extends ConsumerWidget {
                               trailing: Switch(
                                 value: isDarkMode,
                                 onChanged: (val) {
+                                  HapticFeedback.lightImpact();
                                   ref
                                       .read(settingsProvider)
                                       .toggleDarkMode(val);
@@ -182,19 +193,25 @@ class ProfileScreen extends ConsumerWidget {
                               leading: const Icon(Icons.help_outline),
                               title: const Text('Help Center'),
                               trailing: const Icon(Icons.chevron_right),
-                              onTap: () {},
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                              },
                             ),
                             ListTile(
                               leading: const Icon(Icons.privacy_tip_outlined),
                               title: const Text('Privacy Policy'),
                               trailing: const Icon(Icons.chevron_right),
-                              onTap: () {},
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                              },
                             ),
                             ListTile(
                               leading: const Icon(Icons.description_outlined),
                               title: const Text('Terms & Conditions'),
                               trailing: const Icon(Icons.chevron_right),
-                              onTap: () {},
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                              },
                             ),
                           ],
                         ),
@@ -213,6 +230,7 @@ class ProfileScreen extends ConsumerWidget {
                                     ?.copyWith(color: Colors.red),
                               ),
                               onTap: () {
+                                HapticFeedback.lightImpact();
                                 showDialog(
                                   context: context,
                                   builder: (context) => AlertDialog(
@@ -341,6 +359,7 @@ class _ProfileHeader extends StatelessWidget {
             // Customer Code Chip
             GestureDetector(
               onTap: () {
+                HapticFeedback.mediumImpact();
                 Clipboard.setData(ClipboardData(text: user!.customerCode));
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -477,7 +496,10 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
               ),
               IconButton(
                 icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.pop(context);
+                },
               ),
             ],
           ),
@@ -519,6 +541,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
+                HapticFeedback.lightImpact();
                 // Return data to console for now
                 final updatedData = {
                   'fullName': _nameController.text.trim(),

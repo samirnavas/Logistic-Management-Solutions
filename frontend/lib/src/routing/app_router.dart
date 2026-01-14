@@ -45,6 +45,11 @@ GoRouter goRouter(Ref ref) {
         return '/login';
       }
 
+      // Redirect root to home if logged in
+      if (isLoggedIn && path == '/') {
+        return '/home';
+      }
+
       return null;
     },
     routes: [
@@ -62,7 +67,7 @@ GoRouter goRouter(Ref ref) {
         builder: (context, state) => const SignupScreen(),
       ),
       GoRoute(
-        path: '/create-request',
+        path: '/request-shipment',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const RequestShipmentScreen(),
       ),
