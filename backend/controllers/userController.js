@@ -1,4 +1,64 @@
 const User = require('../models/User');
+const Shipment = require('../models/Shipment');
+const Quotation = require('../models/Quotation');
+
+// ============================================
+// Get User Dashboard Stats
+// ============================================
+exports.getDashboardStats = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+
+
+
+
+        // 1. Requests - Total count of shipments
+        const requests = await Shipment.countDocuments({ clientId: userId });
+
+        // 2. Shipped - Status 'In Transit'
+        const shipped = await Shipment.countDocuments({
+            clientId: userId,
+            status: { $regex: 'Transit', $options: 'i' } // Case insensitive match for 'In Transit'
+        });
+
+        // 3. Delivered - Status 'Delivered'
+        const delivered = await Shipment.countDocuments({
+            clientId: userId,
+            status: 'Delivered'
+        });
+
+        // 4. Cleared - Status 'Customs Cleared'
+        const cleared = await Shipment.countDocuments({
+            clientId: userId,
+            status: 'Customs Cleared'
+        });
+
+        // 5. Dispatch - Status 'Out for Delivery' or 'Picked Up'
+        const dispatch = await Shipment.countDocuments({
+            clientId: userId,
+            status: { $in: ['Out for Delivery', 'Picked Up', 'Arrived at Hub'] }
+        });
+
+        // 6. Waiting - Status 'Processing' or 'Customs'
+        const waiting = await Shipment.countDocuments({
+            clientId: userId,
+            status: { $in: ['Processing', 'Customs', 'Pending'] }
+        });
+
+        res.json({
+            requests,
+            shipped,
+            delivered,
+            cleared,
+            dispatch,
+            waiting
+        });
+    } catch (error) {
+        console.error('Get Dashboard Stats Error:', error);
+        res.status(500).json({ message: 'Failed to fetch dashboard stats', error: error.message });
+    }
+};
 
 // ============================================
 // Get user's saved addresses

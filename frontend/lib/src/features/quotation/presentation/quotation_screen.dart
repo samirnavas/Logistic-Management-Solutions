@@ -1,7 +1,7 @@
 import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:bb_logistics/src/core/widgets/app_drawer.dart';
 import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
-import 'package:bb_logistics/src/features/quotation/data/mock_quotation_repository.dart';
+import 'package:bb_logistics/src/features/quotation/data/quotation_repository.dart';
 import 'package:bb_logistics/src/features/quotation/domain/quotation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -402,6 +402,8 @@ class _QuotationCard extends StatelessWidget {
         return AppTheme.warning;
       case QuotationStatus.rejected:
         return AppTheme.error;
+      case QuotationStatus.readyForPickup:
+        return AppTheme.primaryBlue;
     }
   }
 
@@ -415,7 +417,9 @@ class _QuotationCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        quotation.status.displayName,
+        quotation.status == QuotationStatus.pending
+            ? 'Request Sent'
+            : quotation.status.displayName,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
           color: color,
           fontWeight: FontWeight.bold,

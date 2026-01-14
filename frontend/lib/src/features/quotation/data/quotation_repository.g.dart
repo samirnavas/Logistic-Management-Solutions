@@ -1,32 +1,31 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'mock_quotation_repository.dart';
+part of 'quotation_repository.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$mockQuotationRepositoryHash() =>
-    r'4094d7ea67260750e4d1f94d3394ec8cde0b5758';
+String _$quotationRepositoryHash() =>
+    r'7eb43b8391914fc1d145f9eeabfc8d8dcd902f85';
 
-/// See also [mockQuotationRepository].
-@ProviderFor(mockQuotationRepository)
-final mockQuotationRepositoryProvider =
-    AutoDisposeProvider<MockQuotationRepository>.internal(
-      mockQuotationRepository,
-      name: r'mockQuotationRepositoryProvider',
+/// See also [quotationRepository].
+@ProviderFor(quotationRepository)
+final quotationRepositoryProvider =
+    AutoDisposeProvider<QuotationRepository>.internal(
+      quotationRepository,
+      name: r'quotationRepositoryProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$mockQuotationRepositoryHash,
+          : _$quotationRepositoryHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef MockQuotationRepositoryRef =
-    AutoDisposeProviderRef<MockQuotationRepository>;
-String _$quotationsHash() => r'becbabc7b64f7b39d9126181cb6750c69391aef6';
+typedef QuotationRepositoryRef = AutoDisposeProviderRef<QuotationRepository>;
+String _$quotationsHash() => r'd892ac17e9d69bbabd2528ea1dbe865c1314ce3c';
 
 /// See also [quotations].
 @ProviderFor(quotations)
@@ -43,7 +42,7 @@ final quotationsProvider = AutoDisposeFutureProvider<List<Quotation>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef QuotationsRef = AutoDisposeFutureProviderRef<List<Quotation>>;
-String _$quotationByIdHash() => r'15704b9aa87104536db3821cdf653ed3df23bf96';
+String _$quotationByIdHash() => r'9fa55f48f3963265b7e9ded0dbeff7831b9f4e21';
 
 /// Copied from Dart SDK
 class _SystemHash {

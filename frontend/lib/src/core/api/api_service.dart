@@ -59,6 +59,45 @@ class ApiService {
     }
   }
 
+  Future<dynamic> putRequest(String endpoint, Map<String, dynamic> data) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+    String? token = await _storage.read(key: 'jwt_token');
+
+    try {
+      final response = await http.put(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(data),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body);
+      } else {
+        try {
+          final errorBody = jsonDecode(response.body);
+          throw Exception(
+            errorBody['message'] ??
+                errorBody['msg'] ??
+                'Server Error: ${response.statusCode}',
+          );
+        } catch (e) {
+          if (e is Exception && e.toString().contains('Server Error')) {
+            rethrow;
+          }
+          throw Exception(
+            'Failed to put data: ${response.statusCode} - ${response.body}',
+          );
+        }
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Connection Failed: $e');
+    }
+  }
+
   Future<dynamic> getRequest(String endpoint) async {
     final url = Uri.parse('$baseUrl$endpoint');
     String? token = await _storage.read(key: 'jwt_token');

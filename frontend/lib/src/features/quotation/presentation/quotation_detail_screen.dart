@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:bb_logistics/src/core/theme/theme.dart';
-import 'package:bb_logistics/src/features/quotation/data/mock_quotation_repository.dart';
+import 'package:bb_logistics/src/features/quotation/data/quotation_repository.dart';
 import 'package:bb_logistics/src/features/quotation/domain/quotation.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -36,18 +36,22 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
 
   Future<void> _loadPdfFromUrl(String? pdfUrl) async {
     if (pdfUrl == null || pdfUrl.isEmpty) {
-      setState(() {
-        _pdfLoading = false;
-        _pdfError = 'No PDF available';
-      });
+      if (mounted) {
+        setState(() {
+          _pdfLoading = false;
+          _pdfError = 'No PDF available';
+        });
+      }
       return;
     }
 
     try {
-      setState(() {
-        _pdfLoading = true;
-        _pdfError = null;
-      });
+      if (mounted) {
+        setState(() {
+          _pdfLoading = true;
+          _pdfError = null;
+        });
+      }
 
       // Download PDF from URL
       final response = await HttpClient()
@@ -60,15 +64,19 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
       final file = File('${dir.path}/$fileName');
       await file.writeAsBytes(bytes);
 
-      setState(() {
-        _pdfPath = file.path;
-        _pdfLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _pdfPath = file.path;
+          _pdfLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _pdfLoading = false;
-        _pdfError = 'Failed to load PDF';
-      });
+      if (mounted) {
+        setState(() {
+          _pdfLoading = false;
+          _pdfError = 'Failed to load PDF';
+        });
+      }
     }
   }
 
@@ -185,6 +193,21 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
   }
 
   Widget _buildContent(BuildContext context, Quotation quotation) {
+    if (quotation.status == QuotationStatus.pending) {
+      return Column(
+        children: [
+          _buildSummaryCard(quotation),
+          _buildPendingBanner(context),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: _buildPendingItemsList(context, quotation),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       children: [
         // Summary Header Card
@@ -213,6 +236,10 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
             children: [_buildBreakdownTab(quotation), _buildPdfTab(quotation)],
           ),
         ),
+
+        // Action Buttons
+        if (quotation.status == QuotationStatus.approved)
+          _buildActionButtons(context, quotation),
       ],
     );
   }
@@ -336,43 +363,35 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              Center(
-                child: Column(
-                  children: [
-                    Text(
-                      'Total Amount',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: isSmallScreen ? 12 : 14,
+              if (quotation.status != QuotationStatus.pending) ...[
+                const SizedBox(height: 20),
+                Center(
+                  child: Column(
+                    children: [
+                      Text(
+                        'Total Amount',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: isSmallScreen ? 12 : 14,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: quotation.status == QuotationStatus.pending
-                          ? Text(
-                              'Pending Review',
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.9),
-                                    fontStyle: FontStyle.italic,
-                                    fontSize: isSmallScreen ? 16 : 18,
-                                  ),
-                            )
-                          : Text(
-                              currencyFormat.format(quotation.totalAmount),
-                              style: Theme.of(context).textTheme.displaySmall
-                                  ?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: isSmallScreen ? 20 : 24,
-                                  ),
-                            ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          currencyFormat.format(quotation.totalAmount),
+                          style: Theme.of(context).textTheme.displaySmall
+                              ?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: isSmallScreen ? 20 : 24,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         );
@@ -391,6 +410,9 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
         break;
       case QuotationStatus.rejected:
         badgeColor = AppTheme.error;
+        break;
+      case QuotationStatus.readyForPickup:
+        badgeColor = AppTheme.primaryBlue;
         break;
     }
 
@@ -413,7 +435,9 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
           ),
           const SizedBox(width: 6),
           Text(
-            status.displayName,
+            status == QuotationStatus.pending
+                ? 'Request Sent'
+                : status.displayName,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: badgeColor,
               fontWeight: FontWeight.bold,
@@ -622,6 +646,85 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     );
   }
 
+  Widget _buildPendingBanner(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.warning.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppTheme.warning.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: AppTheme.warning),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Waiting for Manager to provide details.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.warning,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPendingItemsList(BuildContext context, Quotation quotation) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.textGrey.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Requested Items',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          ...quotation.items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.inventory_2_outlined,
+                    size: 20,
+                    color: AppTheme.textGrey,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      item.description,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPdfTab(Quotation quotation) {
     // Show pending state for pending quotations
     if (quotation.status == QuotationStatus.pending) {
@@ -769,6 +872,279 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
       onPageError: (page, error) {
         debugPrint('PDF Page $page Error: $error');
       },
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context, Quotation quotation) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            offset: const Offset(0, -4),
+            blurRadius: 16,
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () => _showAddressConfirmationDialog(context, quotation),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryBlue,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
+            ),
+            child: const Text(
+              'Proceed / Enter Address',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAddressConfirmationDialog(
+    BuildContext context,
+    Quotation quotation,
+  ) {
+    final formKey = GlobalKey<FormState>();
+    final pickupNameController = TextEditingController();
+    final pickupAddressController = TextEditingController();
+    final pickupCityController = TextEditingController();
+    final pickupZipController = TextEditingController();
+    final pickupCountryController = TextEditingController();
+    final pickupPhoneController = TextEditingController();
+
+    final deliveryNameController = TextEditingController();
+    final deliveryAddressController = TextEditingController();
+    final deliveryCityController = TextEditingController();
+    final deliveryZipController = TextEditingController();
+    final deliveryCountryController = TextEditingController();
+    final deliveryPhoneController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Address Details'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Pickup Address',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: pickupNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Contact Name',
+                    ),
+                    validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: pickupPhoneController,
+                    decoration: const InputDecoration(labelText: 'Phone'),
+                    validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: pickupAddressController,
+                    decoration: const InputDecoration(
+                      labelText: 'Address Line',
+                    ),
+                    validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: pickupCityController,
+                          decoration: const InputDecoration(labelText: 'City'),
+                          validator: (v) =>
+                              v?.isEmpty == true ? 'Required' : null,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextFormField(
+                          controller: pickupZipController,
+                          decoration: const InputDecoration(
+                            labelText: 'ZIP Code',
+                          ),
+                          validator: (v) =>
+                              v?.isEmpty == true ? 'Required' : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: pickupCountryController,
+                    decoration: const InputDecoration(labelText: 'Country'),
+                    validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                  ),
+
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 24),
+
+                  const Text(
+                    'Delivery Address',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: deliveryNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Recipient Name',
+                    ),
+                    validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: deliveryPhoneController,
+                    decoration: const InputDecoration(labelText: 'Phone'),
+                    validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: deliveryAddressController,
+                    decoration: const InputDecoration(
+                      labelText: 'Address Line',
+                    ),
+                    validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: deliveryCityController,
+                          decoration: const InputDecoration(labelText: 'City'),
+                          validator: (v) =>
+                              v?.isEmpty == true ? 'Required' : null,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextFormField(
+                          controller: deliveryZipController,
+                          decoration: const InputDecoration(
+                            labelText: 'ZIP Code',
+                          ),
+                          validator: (v) =>
+                              v?.isEmpty == true ? 'Required' : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: deliveryCountryController,
+                    decoration: const InputDecoration(labelText: 'Country'),
+                    validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (formKey.currentState?.validate() == true) {
+                try {
+                  // Show loading
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (c) =>
+                        const Center(child: CircularProgressIndicator()),
+                  );
+
+                  final pickupAddress = {
+                    'name': pickupNameController.text,
+                    'phone': pickupPhoneController.text,
+                    'addressLine': pickupAddressController.text,
+                    'city': pickupCityController.text,
+                    'zip': pickupZipController.text,
+                    'country': pickupCountryController.text,
+                  };
+
+                  final deliveryAddress = {
+                    'name': deliveryNameController.text,
+                    'phone': deliveryPhoneController.text,
+                    'addressLine': deliveryAddressController.text,
+                    'city': deliveryCityController.text,
+                    'zip': deliveryZipController.text,
+                    'country': deliveryCountryController.text,
+                  };
+
+                  await ref
+                      .read(quotationRepositoryProvider)
+                      .confirmAddress(
+                        quotation.id,
+                        pickupAddress,
+                        deliveryAddress,
+                      );
+
+                  // Close loading
+                  if (context.mounted) Navigator.pop(context);
+
+                  // Close dialog
+                  if (context.mounted) Navigator.pop(context);
+
+                  // Refresh
+                  ref.invalidate(quotationByIdProvider(quotation.id));
+                  ref.invalidate(quotationsProvider);
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Address confirmed! Request sent for pickup.',
+                        ),
+                        backgroundColor: AppTheme.success,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  // Close loading
+                  if (context.mounted) Navigator.pop(context);
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                  }
+                }
+              }
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
     );
   }
 }

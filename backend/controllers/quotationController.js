@@ -413,3 +413,62 @@ exports.deleteQuotation = async (req, res) => {
         res.status(500).json({ message: 'Failed to delete quotation', error: error.message });
     }
 };
+
+// ============================================
+// Confirm address and set Ready for Pickup
+// ============================================
+exports.confirmAddress = async (req, res) => {
+    try {
+        const { pickupAddress, deliveryAddress } = req.body;
+        const quotation = await Quotation.findById(req.params.id);
+
+        if (!quotation) {
+            return res.status(404).json({ message: 'Quotation not found' });
+        }
+
+        // Update the related ShipmentRequest with the new addresses
+        if (quotation.requestId) {
+            const updateData = {};
+            if (pickupAddress) updateData.pickupAddress = pickupAddress;
+            if (deliveryAddress) updateData.destinationAddress = deliveryAddress;
+
+            await ShipmentRequest.findByIdAndUpdate(
+                quotation.requestId,
+                updateData
+            );
+        }
+
+        // Update Quotation status
+        quotation.status = 'Ready for Pickup';
+        // Also mark as accepted if not already
+        if (!quotation.isAcceptedByClient) {
+            quotation.isAcceptedByClient = true;
+            quotation.clientAcceptedAt = new Date();
+        }
+
+        await quotation.save();
+
+        // Notify manager
+        try {
+            await Notification.createNotification({
+                recipientId: quotation.managerId,
+                title: 'Address Confirmed',
+                message: `Client has confirmed address details for quotation ${quotation.quotationNumber}. Ready for pickup.`,
+                type: 'info',
+                category: 'quotation',
+                relatedId: quotation._id,
+                relatedModel: 'Quotation',
+            });
+        } catch (notifError) {
+            console.error('Failed to create notification', notifError);
+        }
+
+        res.json({
+            message: 'Address confirmed and quotation updated',
+            quotation,
+        });
+    } catch (error) {
+        console.error('Confirm Address Error:', error);
+        res.status(500).json({ message: 'Failed to confirm address', error: error.message });
+    }
+};

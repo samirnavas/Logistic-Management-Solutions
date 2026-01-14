@@ -2,7 +2,8 @@
 enum QuotationStatus {
   pending,
   approved,
-  rejected;
+  rejected,
+  readyForPickup;
 
   String get displayName {
     switch (this) {
@@ -12,6 +13,8 @@ enum QuotationStatus {
         return 'Approved';
       case QuotationStatus.rejected:
         return 'Rejected';
+      case QuotationStatus.readyForPickup:
+        return 'Ready For Pickup';
     }
   }
 }
@@ -33,7 +36,8 @@ class QuotationItem {
   factory QuotationItem.fromJson(Map<String, dynamic> json) {
     return QuotationItem(
       description: json['description'] as String,
-      cost: (json['cost'] as num).toDouble(),
+      // Backend uses 'amount' for the total cost of the line item
+      cost: (json['amount'] ?? json['unitPrice'] ?? 0).toDouble(),
     );
   }
 
@@ -85,18 +89,46 @@ class Quotation {
   factory Quotation.fromJson(Map<String, dynamic> json) {
     return Quotation(
       id: json['id'] as String,
-      requestId: json['requestId'] as String,
-      createdDate: DateTime.parse(json['createdDate'] as String),
-      totalAmount: (json['totalAmount'] as num).toDouble(),
-      status: QuotationStatus.values.firstWhere(
-        (e) => e.name == json['status'],
-        orElse: () => QuotationStatus.pending,
-      ),
+      // Handle populated requestId object or string id
+      requestId: json['requestId'] is Map
+          ? json['requestId']['_id']
+          : (json['requestId'] as String? ?? ''),
+      createdDate: DateTime.parse(
+        json['createdAt'] ?? json['createdDate'],
+      ), // Backend uses createdAt
+      totalAmount: (json['totalAmount'] as num?)?.toDouble() ?? 0.0,
+      status: _parseStatus(json['status']),
       pdfUrl: json['pdfUrl'] as String?,
-      items: (json['items'] as List<dynamic>)
-          .map((item) => QuotationItem.fromJson(item as Map<String, dynamic>))
-          .toList(),
+      items:
+          (json['items'] as List<dynamic>?)
+              ?.map(
+                (item) => QuotationItem.fromJson(item as Map<String, dynamic>),
+              )
+              .toList() ??
+          [],
     );
+  }
+
+  static QuotationStatus _parseStatus(String? status) {
+    if (status == null) return QuotationStatus.pending;
+
+    switch (status) {
+      case 'Draft':
+      case 'Pending Approval':
+        return QuotationStatus.pending;
+      case 'Approved':
+      case 'Sent':
+      case 'Accepted':
+        return QuotationStatus.approved;
+      case 'Rejected':
+      case 'Cancelled':
+      case 'Expired':
+        return QuotationStatus.rejected;
+      case 'Ready for Pickup':
+        return QuotationStatus.readyForPickup;
+      default:
+        return QuotationStatus.pending;
+    }
   }
 
   Map<String, dynamic> toJson() {

@@ -15,6 +15,9 @@ router.put('/:userId', userController.updateProfile);
 // Update avatar
 router.patch('/:userId/avatar', userController.updateAvatar);
 
+// Get dashboard stats
+router.get('/:userId/dashboard-stats', userController.getDashboardStats);
+
 // ============================================
 // Address Management Routes
 // ============================================

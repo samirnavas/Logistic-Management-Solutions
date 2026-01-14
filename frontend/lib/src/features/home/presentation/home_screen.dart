@@ -2,6 +2,8 @@ import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:bb_logistics/src/core/widgets/app_drawer.dart';
 import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
+import 'package:bb_logistics/src/features/home/data/dashboard_repository.dart';
+import 'package:bb_logistics/src/features/home/domain/dashboard_stats.dart';
 import 'package:bb_logistics/src/features/shipment/data/mock_shipment_repository.dart';
 import 'package:bb_logistics/src/features/shipment/domain/shipment.dart';
 import 'package:bb_logistics/src/features/shipment/presentation/widgets/shipment_card.dart';
@@ -28,18 +30,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     // Watch Shipment Data
     final shipmentsAsync = ref.watch(shipmentListProvider);
+    // Watch Dashboard Stats
+    final statsAsync = ref.watch(dashboardStatsProvider);
 
     return BlueBackgroundScaffold(
       scaffoldKey: _scaffoldKey,
       drawer: const AppDrawer(),
       body: Stack(
         children: [
-          // 1. Scrollable Layer (Moved to bottom of stack, displays behind app bar initially, but we want it to scroll over?)
-          // Wait, if we want it to scroll OVER the header, it must be VISUALLY on top.
-          // But if it's on top, it blocks the buttons.
-          // The USER complained 'not opening'.
-          // I will put the AppBar ON TOP (Last child) to ensure clickability.
-          // This risks "White on White" if scrolled up, but functionality comes first.
+          // 1. Scrollable Layer
           Positioned.fill(
             child: SingleChildScrollView(
               child: Column(
@@ -103,9 +102,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           style: Theme.of(context).textTheme.titleLarge,
                         ).animate().fadeIn(delay: 400.ms),
                         const SizedBox(height: 16),
-                        shipmentsAsync.when(
-                          data: (shipments) =>
-                              _buildStatusGrid(context, shipments),
+
+                        // Pass statsAsync instead of shipmentsAsync to _buildStatusGrid
+                        // But we also need to keep shipmentsAsync for the list below.
+                        statsAsync.when(
+                          data: (stats) => _buildStatusGrid(context, stats),
                           loading: () =>
                               const Center(child: CircularProgressIndicator()),
                           error: (e, s) => Text('Error loading status: $e'),
@@ -338,36 +339,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildStatusGrid(BuildContext context, List<Shipment> shipments) {
+  Widget _buildStatusGrid(BuildContext context, DashboardStats stats) {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Responsive grid: 2 columns on small screens, 3 on larger
         final crossAxisCount = constraints.maxWidth < 350 ? 2 : 3;
-        final aspectRatio = constraints.maxWidth < 350 ? 1.0 : 0.85;
-
-        // Calculate counts
-        // Status strings might need normalization if they come from DB freely.
-        // Assuming: Pending, In Transit, Delivered, Cleared, Dispatch, Waiting
-        final requests = shipments.length;
-        final shipped = shipments
-            .where((s) => s.status.toLowerCase().contains('transit'))
-            .length;
-        final delivered = shipments
-            .where((s) => s.status.toLowerCase() == 'delivered')
-            .length;
-        final cleared = shipments
-            .where((s) => s.status.toLowerCase() == 'cleared')
-            .length;
-        final dispatch = shipments
-            .where((s) => s.status.toLowerCase() == 'dispatch')
-            .length;
-        final waiting = shipments
-            .where(
-              (s) =>
-                  s.status.toLowerCase() == 'waiting' ||
-                  s.status.toLowerCase() == 'pending',
-            )
-            .length;
+        final aspectRatio = constraints.maxWidth < 350 ? 1.0 : 0.82;
 
         return GridView.count(
           shrinkWrap: true,
@@ -380,51 +357,51 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             _buildStatusItem(
               context,
               'Requests',
-              '$requests',
+              '${stats.requests}',
               Icons.assignment_outlined,
               AppTheme.primaryBlue.withValues(alpha: 0.1),
               AppTheme.primaryBlue,
-            ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.2, end: 0),
+            ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2, end: 0),
             _buildStatusItem(
               context,
               'Shipped',
-              '$shipped',
-              Icons.directions_boat_outlined,
-              AppTheme.primaryCyan.withValues(alpha: 0.1),
-              AppTheme.primaryCyan,
-            ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.2, end: 0),
+              '${stats.shipped}',
+              Icons.local_shipping_outlined,
+              Colors.indigo.withValues(alpha: 0.1),
+              Colors.indigo,
+            ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
             _buildStatusItem(
               context,
               'Delivered',
-              '$delivered',
+              '${stats.delivered}',
               Icons.check_circle_outlined,
-              Colors.orange.withValues(alpha: 0.1),
-              Colors.orange,
-            ).animate().fadeIn(delay: 550.ms).slideY(begin: 0.2, end: 0),
+              Colors.green.withValues(alpha: 0.1),
+              Colors.green,
+            ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2, end: 0),
             _buildStatusItem(
               context,
               'Cleared',
-              '$cleared',
+              '${stats.cleared}',
               Icons.verified_user_outlined,
-              AppTheme.primaryGreen.withValues(alpha: 0.1),
-              AppTheme.primaryGreen,
-            ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2, end: 0),
+              Colors.teal.withValues(alpha: 0.1),
+              Colors.teal,
+            ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
             _buildStatusItem(
               context,
               'Dispatch',
-              '$dispatch',
-              Icons.local_shipping_outlined,
-              Colors.green.withValues(alpha: 0.1),
-              Colors.green,
-            ).animate().fadeIn(delay: 650.ms).slideY(begin: 0.2, end: 0),
+              '${stats.dispatch}',
+              Icons.send_outlined,
+              Colors.orange.withValues(alpha: 0.1),
+              Colors.orange,
+            ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.2, end: 0),
             _buildStatusItem(
               context,
               'Waiting',
-              '$waiting',
-              Icons.schedule_outlined,
-              Colors.purple.withValues(alpha: 0.1),
-              Colors.purple,
-            ).animate().fadeIn(delay: 700.ms).slideY(begin: 0.2, end: 0),
+              '${stats.waiting}',
+              Icons.access_time,
+              Colors.red.withValues(alpha: 0.1),
+              Colors.red,
+            ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2, end: 0),
           ],
         );
       },
