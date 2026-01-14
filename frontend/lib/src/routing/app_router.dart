@@ -1,5 +1,5 @@
 import 'package:bb_logistics/src/core/widgets/scaffold_with_nav_bar.dart';
-
+import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
 import 'package:bb_logistics/src/features/auth/presentation/login_screen.dart';
 import 'package:bb_logistics/src/features/auth/presentation/onboarding_screen.dart';
 import 'package:bb_logistics/src/features/auth/presentation/signup_screen.dart';
@@ -22,31 +22,28 @@ final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 @riverpod
 GoRouter goRouter(Ref ref) {
-  // We do NOT watch the auth state here to avoid rebuilding the entire Router
-  // which causes the app to restart at initialLocation.
-
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/home',
+    initialLocation: '/splash',
     debugLogDiagnostics: true,
     redirect: (context, state) {
-      // final path = state.uri.path;
-      // final authState = ref.read(authRepositoryProvider);
-      // final user = authState.valueOrNull;
-      // final isLoggedIn = user != null;
+      final path = state.uri.path;
+      final authState = ref.read(authRepositoryProvider);
+      final user = authState.valueOrNull;
+      final isLoggedIn = user != null;
 
-      // Public pages
-      // if (path == '/splash' ||
-      //     path == '/onboarding' ||
-      //     path == '/login' ||
-      //     path == '/signup') {
-      //   return null;
-      // }
+      // Public pages - allow access without login
+      if (path == '/splash' ||
+          path == '/onboarding' ||
+          path == '/login' ||
+          path == '/signup') {
+        return null;
+      }
 
-      // Protected pages
-      // if (!isLoggedIn) {
-      //   return '/login';
-      // }
+      // Protected pages - redirect to login if not authenticated
+      if (!isLoggedIn) {
+        return '/login';
+      }
 
       return null;
     },

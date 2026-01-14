@@ -7,17 +7,9 @@ part of 'mock_shipment_repository.dart';
 // **************************************************************************
 
 String _$shipmentRepositoryHash() =>
-    r'339b1397f93a73cbe1a01f8d784682977bee3bed';
+    r'1fd66cdd93683da41f36303dc90ecbe3c3b0fb09';
 
-/// Provides the [ShipmentRepository] instance.
-///
-/// This can be overridden in tests or when switching to a real API:
-/// ```dart
-/// // In production, override with API implementation
-/// ref.read(shipmentRepositoryProvider.notifier).state = ApiShipmentRepository();
-/// ```
-///
-/// Copied from [shipmentRepository].
+/// See also [shipmentRepository].
 @ProviderFor(shipmentRepository)
 final shipmentRepositoryProvider =
     AutoDisposeProvider<ShipmentRepository>.internal(

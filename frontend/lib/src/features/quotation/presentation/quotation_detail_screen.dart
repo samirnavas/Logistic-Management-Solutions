@@ -454,7 +454,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                   color: AppTheme.warning.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.hourglass_empty,
                   size: 40,
                   color: AppTheme.warning,
@@ -647,7 +647,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                   color: AppTheme.warning.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.hourglass_empty,
                   size: 40,
                   color: AppTheme.warning,

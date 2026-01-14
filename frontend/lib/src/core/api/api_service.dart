@@ -9,8 +9,8 @@ class ApiService {
   // Smart URL selection
   static String get baseUrl {
     if (Platform.isAndroid) {
-      // Using adb reverse tcp:5000 tcp:5000 allows localhost on Android too
-      return 'http://127.0.0.1:5000';
+      // 10.0.2.2 is the special IP for Android emulator to reach host's localhost
+      return 'http://10.0.2.2:5000';
     }
     return 'http://localhost:5000'; // iOS Simulator & Web
   }

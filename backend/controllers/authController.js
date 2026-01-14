@@ -1,4 +1,14 @@
 const User = require('../models/User');
+const jwt = require('jsonwebtoken');
+
+// ============================================
+// JWT Token Generator
+// ============================================
+const generateToken = (id) => {
+    return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback_secret_key_change_in_production', {
+        expiresIn: '30d',
+    });
+};
 
 // ============================================
 // Register new user
@@ -6,7 +16,7 @@ const User = require('../models/User');
 exports.register = async (req, res) => {
     try {
         console.log('Register request received with body:', req.body);
-        const { fullName, email, phone, country, password, role } = req.body;
+        const { fullName, email, phone, country, password, role, location } = req.body;
 
         // Validate required fields
         if (!fullName || !email || !password) {
@@ -22,6 +32,19 @@ exports.register = async (req, res) => {
             return res.status(400).json({ message: 'User already exists with this email' });
         }
 
+        // Build savedAddresses array from location or country fields
+        let savedAddresses = [];
+        if (location || country) {
+            savedAddresses = [{
+                label: 'Default',
+                addressLine: location || '', // Map location to addressLine
+                city: location || '',        // Map location to city as well
+                country: country || '',
+                zipCode: '',
+                isDefault: true,
+            }];
+        }
+
         // Create user (password is auto-hashed in pre-save hook)
         // customerCode is auto-generated for clients in pre-save hook
         const newUser = new User({
@@ -30,14 +53,7 @@ exports.register = async (req, res) => {
             phone: phone || '',
             password, // Will be hashed by pre-save hook
             role: role || 'client',
-            savedAddresses: country ? [{
-                label: 'Default',
-                addressLine: '',
-                city: '',
-                country,
-                zipCode: '',
-                isDefault: true,
-            }] : [],
+            savedAddresses,
         });
 
         const savedUser = await newUser.save();
@@ -45,6 +61,7 @@ exports.register = async (req, res) => {
         res.status(201).json({
             message: 'User registered successfully',
             user: savedUser, // toJSON transform removes password
+            token: generateToken(savedUser._id),
         });
 
     } catch (error) {
@@ -105,6 +122,7 @@ exports.login = async (req, res) => {
         res.status(200).json({
             message: 'Login successful',
             user: user.toJSON(), // toJSON transform removes password
+            token: generateToken(user._id),
         });
 
     } catch (error) {
