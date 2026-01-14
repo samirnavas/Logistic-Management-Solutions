@@ -153,7 +153,7 @@ exports.createQuotation = async (req, res) => {
             cargoType,
             serviceType,
             specialInstructions,
-            status: 'Pending',
+            status: 'request_sent',
             totalAmount: 0 // Initialize to 0
         });
 
@@ -202,6 +202,15 @@ exports.updateQuotation = async (req, res) => {
             }
         });
 
+        // Automatically update status to 'cost_calculated' if manager updates price/items
+        // and current status is 'request_sent'
+        if (quotation.status === 'request_sent' && (req.body.totalAmount !== undefined || req.body.items !== undefined)) {
+            // Ensure we don't accidentally set it if the manager explicitly set it to something else in this same update (though unlikely via this logic)
+            if (!req.body.status) {
+                quotation.status = 'cost_calculated';
+            }
+        }
+
         // Recalculate totals
         quotation.calculateTotals();
 
@@ -214,6 +223,41 @@ exports.updateQuotation = async (req, res) => {
     } catch (error) {
         console.error('Update Quotation Error:', error);
         res.status(400).json({ message: 'Failed to update quotation', error: error.message });
+    }
+};
+
+// ============================================
+// Reject quotation (Manager)
+// ============================================
+exports.rejectQuotation = async (req, res) => {
+    try {
+        const quotation = await Quotation.findById(req.params.id);
+
+        if (!quotation) {
+            return res.status(404).json({ message: 'Quotation not found' });
+        }
+
+        quotation.status = 'rejected';
+        const updatedQuotation = await quotation.save();
+
+        // Notify client
+        await Notification.createNotification({
+            recipientId: quotation.clientId,
+            title: 'Request Rejected',
+            message: `Your request ${quotation.quotationNumber} has been rejected by the manager.`,
+            type: 'error',
+            category: 'quotation',
+            relatedId: quotation._id,
+            relatedModel: 'Quotation',
+        });
+
+        res.json({
+            message: 'Quotation rejected successfully',
+            quotation: updatedQuotation,
+        });
+    } catch (error) {
+        console.error('Reject Quotation Error:', error);
+        res.status(500).json({ message: 'Failed to reject quotation', error: error.message });
     }
 };
 
@@ -374,8 +418,9 @@ exports.confirmAddress = async (req, res) => {
         if (deliveryAddress) quotation.destination = deliveryAddress;
 
         // Update Quotation status
-        quotation.status = 'Ready for Pickup';
-        // Also mark as accepted if not already
+        quotation.status = 'ready_for_pickup';
+
+        // Also mark as accepted if not already (legacy compatibility)
         if (!quotation.isAcceptedByClient) {
             quotation.isAcceptedByClient = true;
             quotation.clientAcceptedAt = new Date();

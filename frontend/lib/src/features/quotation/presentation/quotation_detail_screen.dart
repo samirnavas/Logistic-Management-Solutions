@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/services.dart';
 
 import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:bb_logistics/src/features/quotation/data/quotation_repository.dart';
@@ -193,11 +194,24 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
   }
 
   Widget _buildContent(BuildContext context, Quotation quotation) {
-    if (quotation.status == QuotationStatus.pending) {
+    if (quotation.status == QuotationStatus.requestSent) {
       return Column(
         children: [
           _buildSummaryCard(quotation),
           _buildPendingBanner(context),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: _buildPendingItemsList(context, quotation),
+            ),
+          ),
+        ],
+      );
+    } else if (quotation.status == QuotationStatus.rejected) {
+      return Column(
+        children: [
+          _buildSummaryCard(quotation),
+          _buildRejectedBanner(context),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -238,7 +252,8 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
         ),
 
         // Action Buttons
-        if (quotation.status == QuotationStatus.approved)
+        if (quotation.status == QuotationStatus.costCalculated ||
+            quotation.status == QuotationStatus.shipped)
           _buildActionButtons(context, quotation),
       ],
     );
@@ -343,7 +358,8 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                   ),
                 ],
               ),
-              if (quotation.status != QuotationStatus.pending) ...[
+              if (quotation.status != QuotationStatus.requestSent &&
+                  quotation.status != QuotationStatus.rejected) ...[
                 const SizedBox(height: 20),
                 Center(
                   child: Column(
@@ -382,10 +398,10 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
   Widget _buildStatusBadge(QuotationStatus status) {
     Color badgeColor;
     switch (status) {
-      case QuotationStatus.approved:
+      case QuotationStatus.costCalculated:
         badgeColor = AppTheme.success;
         break;
-      case QuotationStatus.pending:
+      case QuotationStatus.requestSent:
         badgeColor = AppTheme.warning;
         break;
       case QuotationStatus.rejected:
@@ -393,6 +409,12 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
         break;
       case QuotationStatus.readyForPickup:
         badgeColor = AppTheme.primaryBlue;
+        break;
+      case QuotationStatus.shipped:
+        badgeColor = Colors.purple;
+        break;
+      case QuotationStatus.delivered:
+        badgeColor = Colors.green[800]!;
         break;
     }
 
@@ -415,7 +437,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
           ),
           const SizedBox(width: 6),
           Text(
-            status == QuotationStatus.pending
+            status == QuotationStatus.requestSent
                 ? 'Request Sent'
                 : status.displayName,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -435,7 +457,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     );
 
     // Show placeholder for pending quotations
-    if (quotation.status == QuotationStatus.pending) {
+    if (quotation.status == QuotationStatus.requestSent) {
       return Center(
         child: Container(
           margin: const EdgeInsets.all(32),
@@ -642,7 +664,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Waiting for Manager to provide details.',
+              'Request Sent. Waiting for Manager to calculate cost.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: AppTheme.warning,
                 fontWeight: FontWeight.bold,
@@ -707,7 +729,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
 
   Widget _buildPdfTab(Quotation quotation) {
     // Show pending state for pending quotations
-    if (quotation.status == QuotationStatus.pending) {
+    if (quotation.status == QuotationStatus.requestSent) {
       return Center(
         child: Container(
           margin: const EdgeInsets.all(32),
@@ -855,40 +877,210 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     );
   }
 
-  Widget _buildActionButtons(BuildContext context, Quotation quotation) {
+  Widget _buildRejectedBanner(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            offset: const Offset(0, -4),
-            blurRadius: 16,
+        color: AppTheme.error.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppTheme.error.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.cancel_outlined, color: AppTheme.error),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Request Rejected',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.error,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
-      child: SafeArea(
-        child: SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () => _showAddressConfirmationDialog(context, quotation),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryBlue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 0,
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context, Quotation quotation) {
+    if (quotation.status == QuotationStatus.costCalculated) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              offset: const Offset(0, -4),
+              blurRadius: 16,
             ),
-            child: const Text(
-              'Proceed / Enter Address',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ],
+        ),
+        child: SafeArea(
+          child: Row(
+            children: [
+              // Reject Button (optional, can be added if needed, sticking to Proceed for now based on prompt or add Reject if needed)
+              // Prompt said: "Show a primary button: 'Proceed / Enter Address'".
+              // It didn't explicitly ask for a Reject button here on client side, but 'rejected' state exists.
+              // I will stick to what the prompt requested for cost_calculated: "Show a primary button: 'Proceed / Enter Address'".
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () =>
+                      _showAddressConfirmationDialog(context, quotation),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryBlue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Proceed / Enter Address',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else if (quotation.status == QuotationStatus.shipped) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Tracking functionality coming soon...'),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.local_shipping_outlined),
+              label: const Text('Track Shipment'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                backgroundColor: AppTheme.primaryBlue,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
           ),
         ),
-      ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildStyledTextField({
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    TextInputType inputType = TextInputType.text,
+    String? Function(String?)? validator,
+    List<TextInputFormatter>? inputFormatters,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textGrey,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          keyboardType: inputType,
+          textCapitalization:
+              (inputType == TextInputType.name ||
+                  inputType == TextInputType.text)
+              ? TextCapitalization.words
+              : TextCapitalization.none,
+          validator: validator,
+          inputFormatters: inputFormatters,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.grey.shade50,
+            prefixIcon: Icon(icon, color: AppTheme.primaryBlue),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: AppTheme.primaryBlue,
+                width: 1.5,
+              ),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppTheme.error, width: 1),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: AppTheme.primaryBlue,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          height: 2,
+          width: 40,
+          decoration: BoxDecoration(
+            color: AppTheme.primaryBlue,
+            borderRadius: BorderRadius.circular(1),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          height: 1,
+          width: double.infinity,
+          color: AppTheme.textGrey.withValues(alpha: 0.1),
+        ),
+      ],
     );
   }
 
@@ -913,217 +1105,291 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirm Address Details'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        insetPadding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
                 children: [
+                  const Icon(Icons.pin_drop, color: AppTheme.primaryBlue),
+                  const SizedBox(width: 12),
                   const Text(
-                    'Pickup Address',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    'Confirm Address Details',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: pickupNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Contact Name',
-                    ),
-                    validator: (v) => v?.isEmpty == true ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: pickupPhoneController,
-                    decoration: const InputDecoration(labelText: 'Phone'),
-                    validator: (v) => v?.isEmpty == true ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: pickupAddressController,
-                    decoration: const InputDecoration(
-                      labelText: 'Address Line',
-                    ),
-                    validator: (v) => v?.isEmpty == true ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: pickupCityController,
-                          decoration: const InputDecoration(labelText: 'City'),
-                          validator: (v) =>
-                              v?.isEmpty == true ? 'Required' : null,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextFormField(
-                          controller: pickupZipController,
-                          decoration: const InputDecoration(
-                            labelText: 'ZIP Code',
-                          ),
-                          validator: (v) =>
-                              v?.isEmpty == true ? 'Required' : null,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: pickupCountryController,
-                    decoration: const InputDecoration(labelText: 'Country'),
-                    validator: (v) => v?.isEmpty == true ? 'Required' : null,
-                  ),
-
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 24),
-
-                  const Text(
-                    'Delivery Address',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: deliveryNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Recipient Name',
-                    ),
-                    validator: (v) => v?.isEmpty == true ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: deliveryPhoneController,
-                    decoration: const InputDecoration(labelText: 'Phone'),
-                    validator: (v) => v?.isEmpty == true ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: deliveryAddressController,
-                    decoration: const InputDecoration(
-                      labelText: 'Address Line',
-                    ),
-                    validator: (v) => v?.isEmpty == true ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: deliveryCityController,
-                          decoration: const InputDecoration(labelText: 'City'),
-                          validator: (v) =>
-                              v?.isEmpty == true ? 'Required' : null,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextFormField(
-                          controller: deliveryZipController,
-                          decoration: const InputDecoration(
-                            labelText: 'ZIP Code',
-                          ),
-                          validator: (v) =>
-                              v?.isEmpty == true ? 'Required' : null,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: deliveryCountryController,
-                    decoration: const InputDecoration(labelText: 'Country'),
-                    validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
             ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (formKey.currentState?.validate() == true) {
-                try {
-                  // Show loading
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (c) =>
-                        const Center(child: CircularProgressIndicator()),
-                  );
+            const Divider(height: 1),
 
-                  final pickupAddress = {
-                    'name': pickupNameController.text,
-                    'phone': pickupPhoneController.text,
-                    'addressLine': pickupAddressController.text,
-                    'city': pickupCityController.text,
-                    'zip': pickupZipController.text,
-                    'country': pickupCountryController.text,
-                  };
-
-                  final deliveryAddress = {
-                    'name': deliveryNameController.text,
-                    'phone': deliveryPhoneController.text,
-                    'addressLine': deliveryAddressController.text,
-                    'city': deliveryCityController.text,
-                    'zip': deliveryZipController.text,
-                    'country': deliveryCountryController.text,
-                  };
-
-                  await ref
-                      .read(quotationRepositoryProvider)
-                      .confirmAddress(
-                        quotation.id,
-                        pickupAddress,
-                        deliveryAddress,
-                      );
-
-                  // Close loading
-                  if (context.mounted) Navigator.pop(context);
-
-                  // Close dialog
-                  if (context.mounted) Navigator.pop(context);
-
-                  // Refresh
-                  ref.invalidate(quotationByIdProvider(quotation.id));
-                  ref.invalidate(quotationsProvider);
-
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Address confirmed! Request sent for pickup.',
-                        ),
-                        backgroundColor: AppTheme.success,
+            // Scrollable Content
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Pickup Section
+                      _buildSectionHeader('Pickup Details'),
+                      const SizedBox(height: 20),
+                      _buildStyledTextField(
+                        label: 'Contact Name',
+                        controller: pickupNameController,
+                        icon: Icons.person,
+                        inputType: TextInputType.name,
+                        validator: (v) =>
+                            v?.isEmpty == true ? 'Required' : null,
                       ),
-                    );
-                  }
-                } catch (e) {
-                  // Close loading
-                  if (context.mounted) Navigator.pop(context);
+                      const SizedBox(height: 16),
+                      _buildStyledTextField(
+                        label: 'Phone Number',
+                        controller: pickupPhoneController,
+                        icon: Icons.phone,
+                        inputType: TextInputType.phone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'[0-9+\-\(\)\s]'),
+                          ),
+                        ],
+                        validator: (v) =>
+                            v?.isEmpty == true ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildStyledTextField(
+                        label: 'Address Line',
+                        controller: pickupAddressController,
+                        icon: Icons.home,
+                        inputType: TextInputType.text,
+                        validator: (v) =>
+                            v?.isEmpty == true ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildStyledTextField(
+                              label: 'City',
+                              controller: pickupCityController,
+                              icon: Icons.location_city,
+                              inputType: TextInputType.text,
+                              validator: (v) =>
+                                  v?.isEmpty == true ? 'Required' : null,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildStyledTextField(
+                              label: 'Zip/Postal Code',
+                              controller: pickupZipController,
+                              icon: Icons.map,
+                              inputType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              validator: (v) =>
+                                  v?.isEmpty == true ? 'Required' : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _buildStyledTextField(
+                        label: 'Country',
+                        controller: pickupCountryController,
+                        icon: Icons.public,
+                        inputType: TextInputType.text,
+                        validator: (v) =>
+                            v?.isEmpty == true ? 'Required' : null,
+                      ),
 
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('Error: $e')));
-                  }
-                }
-              }
-            },
-            child: const Text('Confirm'),
-          ),
-        ],
+                      const SizedBox(height: 32),
+
+                      // Delivery Section
+                      _buildSectionHeader('Delivery Details'),
+                      const SizedBox(height: 20),
+                      _buildStyledTextField(
+                        label: 'Recipient Name',
+                        controller: deliveryNameController,
+                        icon: Icons.person,
+                        inputType: TextInputType.name,
+                        validator: (v) =>
+                            v?.isEmpty == true ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildStyledTextField(
+                        label: 'Phone Number',
+                        controller: deliveryPhoneController,
+                        icon: Icons.phone,
+                        inputType: TextInputType.phone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'[0-9+\-\(\)\s]'),
+                          ),
+                        ],
+                        validator: (v) =>
+                            v?.isEmpty == true ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildStyledTextField(
+                        label: 'Address Line',
+                        controller: deliveryAddressController,
+                        icon: Icons.home,
+                        inputType: TextInputType.text,
+                        validator: (v) =>
+                            v?.isEmpty == true ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildStyledTextField(
+                              label: 'City',
+                              controller: deliveryCityController,
+                              icon: Icons.location_city,
+                              inputType: TextInputType.text,
+                              validator: (v) =>
+                                  v?.isEmpty == true ? 'Required' : null,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildStyledTextField(
+                              label: 'Zip/Postal Code',
+                              controller: deliveryZipController,
+                              icon: Icons.map,
+                              inputType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              validator: (v) =>
+                                  v?.isEmpty == true ? 'Required' : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _buildStyledTextField(
+                        label: 'Country',
+                        controller: deliveryCountryController,
+                        icon: Icons.public,
+                        inputType: TextInputType.text,
+                        validator: (v) =>
+                            v?.isEmpty == true ? 'Required' : null,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const Divider(height: 1),
+
+            // Footer
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (formKey.currentState?.validate() == true) {
+                      try {
+                        // Show loading
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (c) =>
+                              const Center(child: CircularProgressIndicator()),
+                        );
+
+                        final pickupAddress = {
+                          'name': pickupNameController.text,
+                          'phone': pickupPhoneController.text,
+                          'addressLine': pickupAddressController.text,
+                          'city': pickupCityController.text,
+                          'zip': pickupZipController.text,
+                          'country': pickupCountryController.text,
+                        };
+
+                        final deliveryAddress = {
+                          'name': deliveryNameController.text,
+                          'phone': deliveryPhoneController.text,
+                          'addressLine': deliveryAddressController.text,
+                          'city': deliveryCityController.text,
+                          'zip': deliveryZipController.text,
+                          'country': deliveryCountryController.text,
+                        };
+
+                        await ref
+                            .read(quotationRepositoryProvider)
+                            .confirmAddress(
+                              quotation.id,
+                              pickupAddress,
+                              deliveryAddress,
+                            );
+
+                        // Close loading
+                        if (context.mounted) Navigator.pop(context);
+
+                        // Close dialog
+                        if (context.mounted) Navigator.pop(context);
+
+                        // Refresh
+                        ref.invalidate(quotationByIdProvider(quotation.id));
+                        ref.invalidate(quotationsProvider);
+
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Address confirmed! Request sent for pickup.',
+                              ),
+                              backgroundColor: AppTheme.success,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        // Close loading
+                        if (context.mounted) Navigator.pop(context);
+
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                        }
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryBlue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Confirm & Submit',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

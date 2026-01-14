@@ -44,6 +44,9 @@ router.patch('/:id/reject', quotationController.rejectByClient);
 // Confirm address and proceed (client)
 router.put('/:id/confirm-address', quotationController.confirmAddress);
 
+// Reject quotation (manager)
+router.put('/:id/reject', quotationController.rejectQuotation);
+
 // ============================================
 // Common Routes
 // ============================================

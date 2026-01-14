@@ -236,10 +236,10 @@ const quotationSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: {
-            values: ['Draft', 'Pending', 'Pending Approval', 'Approved', 'Sent', 'Accepted', 'Rejected', 'Expired', 'Cancelled', 'Ready for Pickup'],
+            values: ['request_sent', 'cost_calculated', 'rejected', 'ready_for_pickup', 'shipped', 'delivered'],
             message: 'Invalid quotation status',
         },
-        default: 'Pending',
+        default: 'request_sent',
         index: true,
     },
 

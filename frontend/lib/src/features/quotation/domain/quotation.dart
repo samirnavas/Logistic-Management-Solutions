@@ -1,23 +1,31 @@
 /// Quotation status enum
 enum QuotationStatus {
-  pending,
-  approved,
+  requestSent,
+  costCalculated,
   rejected,
-  readyForPickup;
+  readyForPickup,
+  shipped,
+  delivered;
 
   String get displayName {
     switch (this) {
-      case QuotationStatus.pending:
-        return 'Pending';
-      case QuotationStatus.approved:
-        return 'Approved';
+      case QuotationStatus.requestSent:
+        return 'Request Sent';
+      case QuotationStatus.costCalculated:
+        return 'Cost Calculated';
       case QuotationStatus.rejected:
         return 'Rejected';
       case QuotationStatus.readyForPickup:
         return 'Ready For Pickup';
+      case QuotationStatus.shipped:
+        return 'Shipped';
+      case QuotationStatus.delivered:
+        return 'Delivered';
     }
   }
 }
+
+// ... (QuotationItem and QuotationAddress classes remain the same)
 
 /// Represents a single line item in a quotation
 class QuotationItem {
@@ -200,35 +208,59 @@ class Quotation {
   }
 
   static QuotationStatus _parseStatus(String? status) {
-    if (status == null) return QuotationStatus.pending;
+    if (status == null) return QuotationStatus.requestSent;
 
     switch (status) {
-      case 'Draft':
-      case 'Pending':
-      case 'Pending Approval':
-        return QuotationStatus.pending;
-      case 'Approved':
-      case 'Sent':
-      case 'Accepted':
-        return QuotationStatus.approved;
-      case 'Rejected':
-      case 'Cancelled':
-      case 'Expired':
+      case 'request_sent':
+      case 'Pending': // Legacy
+        return QuotationStatus.requestSent;
+      case 'cost_calculated':
+      case 'Approved': // Legacy
+        return QuotationStatus.costCalculated;
+      case 'rejected':
+      case 'Rejected': // Legacy
         return QuotationStatus.rejected;
-      case 'Ready for Pickup':
+      case 'ready_for_pickup':
+      case 'Ready for Pickup': // Legacy
         return QuotationStatus.readyForPickup;
+      case 'shipped':
+        return QuotationStatus.shipped;
+      case 'delivered':
+        return QuotationStatus.delivered;
       default:
-        return QuotationStatus.pending;
+        return QuotationStatus.requestSent;
     }
   }
 
   Map<String, dynamic> toJson() {
+    String statusStr;
+    switch (status) {
+      case QuotationStatus.requestSent:
+        statusStr = 'request_sent';
+        break;
+      case QuotationStatus.costCalculated:
+        statusStr = 'cost_calculated';
+        break;
+      case QuotationStatus.rejected:
+        statusStr = 'rejected';
+        break;
+      case QuotationStatus.readyForPickup:
+        statusStr = 'ready_for_pickup';
+        break;
+      case QuotationStatus.shipped:
+        statusStr = 'shipped';
+        break;
+      case QuotationStatus.delivered:
+        statusStr = 'delivered';
+        break;
+    }
+
     return {
       'id': id,
       // 'requestId': requestId,
       'createdDate': createdDate.toIso8601String(),
       'totalAmount': totalAmount,
-      'status': status.name,
+      'status': statusStr,
       'pdfUrl': pdfUrl,
       'items': items.map((item) => item.toJson()).toList(),
       'origin': origin?.toJson(),

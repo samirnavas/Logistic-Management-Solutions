@@ -323,7 +323,7 @@ class _QuotationCard extends StatelessWidget {
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               _buildStatusChip(context),
-                              quotation.status == QuotationStatus.pending
+                              quotation.status == QuotationStatus.requestSent
                                   ? Text(
                                       'Calculated upon approval',
                                       style: Theme.of(context)
@@ -406,14 +406,18 @@ class _QuotationCard extends StatelessWidget {
 
   Color _getStatusColor() {
     switch (quotation.status) {
-      case QuotationStatus.approved:
+      case QuotationStatus.costCalculated:
         return AppTheme.success;
-      case QuotationStatus.pending:
+      case QuotationStatus.requestSent:
         return AppTheme.warning;
       case QuotationStatus.rejected:
         return AppTheme.error;
       case QuotationStatus.readyForPickup:
         return AppTheme.primaryBlue;
+      case QuotationStatus.shipped:
+        return Colors.purple;
+      case QuotationStatus.delivered:
+        return Colors.green[800]!;
     }
   }
 
@@ -427,7 +431,7 @@ class _QuotationCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        quotation.status == QuotationStatus.pending
+        quotation.status == QuotationStatus.requestSent
             ? 'Request Sent'
             : quotation.status.displayName,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
