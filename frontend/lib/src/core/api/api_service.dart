@@ -9,8 +9,8 @@ class ApiService {
   // Smart URL selection
   static String get baseUrl {
     if (Platform.isAndroid) {
-      // 10.0.2.2 is the special IP for Android emulator to reach host's localhost
-      return 'http://10.0.2.2:5000';
+      // Using actual machine IP for better firewall compatibility
+      return 'http://10.139.59.209:5000';
     }
     return 'http://localhost:5000'; // iOS Simulator & Web
   }

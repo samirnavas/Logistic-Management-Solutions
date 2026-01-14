@@ -37,10 +37,10 @@ exports.register = async (req, res) => {
         if (location || country) {
             savedAddresses = [{
                 label: 'Default',
-                addressLine: location || '', // Map location to addressLine
-                city: location || '',        // Map location to city as well
+                addressLine: location || 'Pending Update', // Map location to addressLine
+                city: location || 'Pending Update',        // Map location to city as well
                 country: country || '',
-                zipCode: '',
+                zipCode: '00000',
                 isDefault: true,
             }];
         }
