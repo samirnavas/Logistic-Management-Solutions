@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:bb_logistics/src/core/api/upload_service.dart';
 import 'package:bb_logistics/src/core/providers/settings_provider.dart';
 import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
@@ -9,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -299,24 +303,222 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
-class _ProfileHeader extends StatelessWidget {
+class _ProfileHeader extends ConsumerStatefulWidget {
   const _ProfileHeader({this.user});
 
   final User? user;
 
   @override
+  ConsumerState<_ProfileHeader> createState() => _ProfileHeaderState();
+}
+
+class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
+  final ImagePicker _picker = ImagePicker();
+  final UploadService _uploadService = UploadService();
+  bool _isUploading = false;
+
+  Future<void> _pickAndUploadImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (pickedFile == null) return;
+
+      setState(() => _isUploading = true);
+      HapticFeedback.mediumImpact();
+
+      final file = File(pickedFile.path);
+      await _uploadService.uploadAvatar(widget.user!.id, file);
+
+      // Update the user state with new avatar URL
+      await ref.read(authRepositoryProvider.notifier).refreshUser();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Profile picture updated!'),
+            backgroundColor: AppTheme.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to upload: ${e.toString().replaceAll('Exception:', '').trim()}',
+            ),
+            backgroundColor: AppTheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
+  }
+
+  void _showImageSourceDialog() {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Change Profile Picture',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt,
+                    color: AppTheme.primaryBlue,
+                  ),
+                ),
+                title: const Text('Take Photo'),
+                subtitle: const Text('Use your camera'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAndUploadImage(ImageSource.camera);
+                },
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.photo_library,
+                    color: AppTheme.primaryBlue,
+                  ),
+                ),
+                title: const Text('Choose from Gallery'),
+                subtitle: const Text('Select an existing photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAndUploadImage(ImageSource.gallery);
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final user = widget.user;
+
     return Center(
       child: Column(
         children: [
-          const CircleAvatar(
-            radius: 50,
-            backgroundColor: Color(0xFFE1F5FE),
-            child: Icon(Icons.person, size: 50, color: Color(0xFF0288D1)),
-          ).animate().scale(
-            delay: 100.ms,
-            duration: 400.ms,
-            curve: Curves.easeOutBack,
+          // Profile Avatar with Edit Button
+          Stack(
+            children: [
+              // Avatar
+              GestureDetector(
+                onTap: user != null ? _showImageSourceDialog : null,
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primaryBlue.withValues(alpha: 0.2),
+                        blurRadius: 15,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundColor: const Color(0xFFE1F5FE),
+                    backgroundImage: user?.avatarUrl.isNotEmpty == true
+                        ? NetworkImage(user!.avatarUrl)
+                        : null,
+                    child: _isUploading
+                        ? const CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppTheme.primaryBlue,
+                            ),
+                          )
+                        : (user?.avatarUrl.isEmpty ?? true)
+                        ? const Icon(
+                            Icons.person,
+                            size: 50,
+                            color: Color(0xFF0288D1),
+                          )
+                        : null,
+                  ),
+                ),
+              ).animate().scale(
+                delay: 100.ms,
+                duration: 400.ms,
+                curve: Curves.easeOutBack,
+              ),
+              // Edit Button
+              if (user != null)
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child:
+                      GestureDetector(
+                        onTap: _showImageSourceDialog,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryBlue,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                blurRadius: 5,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            size: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ).animate().scale(
+                        delay: 300.ms,
+                        duration: 300.ms,
+                        curve: Curves.easeOutBack,
+                      ),
+                ),
+            ],
           ),
           const SizedBox(height: 16),
           Text(
@@ -338,22 +540,22 @@ class _ProfileHeader extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (user!.phone.isNotEmpty) ...[
+                if (user.phone.isNotEmpty) ...[
                   const Icon(Icons.phone, size: 14, color: Colors.grey),
                   const SizedBox(width: 4),
                   Text(
-                    user!.phone,
+                    user.phone,
                     style: Theme.of(
                       context,
                     ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                   ),
                   const SizedBox(width: 12),
                 ],
-                if (user!.country.isNotEmpty) ...[
+                if (user.country.isNotEmpty) ...[
                   const Icon(Icons.location_on, size: 14, color: Colors.grey),
                   const SizedBox(width: 4),
                   Text(
-                    user!.country,
+                    user.country,
                     style: Theme.of(
                       context,
                     ).textTheme.bodySmall?.copyWith(color: Colors.grey),
@@ -367,7 +569,7 @@ class _ProfileHeader extends StatelessWidget {
             GestureDetector(
               onTap: () {
                 HapticFeedback.mediumImpact();
-                Clipboard.setData(ClipboardData(text: user!.customerCode));
+                Clipboard.setData(ClipboardData(text: user.customerCode));
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: const Text('Customer Code copied'),
@@ -395,7 +597,7 @@ class _ProfileHeader extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Code: ${user!.customerCode}',
+                      'Code: ${user.customerCode}',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: AppTheme.primaryBlue,
                         fontWeight: FontWeight.bold,

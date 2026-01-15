@@ -1,13 +1,17 @@
+import 'dart:io';
+
+import 'package:bb_logistics/src/core/api/upload_service.dart';
 import 'package:bb_logistics/src/core/widgets/app_drawer.dart';
 import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
-// import 'package:bb_logistics/src/features/shipment/data/mock_shipment_repository.dart';
 import 'package:bb_logistics/src/features/quotation/data/quotation_repository.dart';
 import 'package:bb_logistics/src/features/home/data/dashboard_repository.dart';
 
@@ -38,6 +42,11 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
   final _countryController = TextEditingController();
   final _zipController = TextEditingController();
   final _notesController = TextEditingController();
+
+  // Photo state
+  final List<File> _selectedPhotos = [];
+  final ImagePicker _picker = ImagePicker();
+  final UploadService _uploadService = UploadService();
 
   @override
   void dispose() {
@@ -201,19 +210,14 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
 
                             // 4. Product Photos
                             _buildSectionTitle('Product Photos'),
-                            const SizedBox(height: 16),
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: [
-                                  _buildPhotoPlaceholder(),
-                                  const SizedBox(width: 16),
-                                  _buildPhotoPlaceholder(),
-                                  const SizedBox(width: 16),
-                                  _buildPhotoPlaceholder(),
-                                ],
-                              ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Add up to 5 photos of your products',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: Colors.grey[600]),
                             ),
+                            const SizedBox(height: 12),
+                            _buildPhotoSection(),
                             const SizedBox(height: 24),
 
                             // 5. Pickup Address
@@ -439,6 +443,29 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
       final itemDescription =
           '${_itemNameController.text} - ${_boxesController.text} Boxes, ${_cbmController.text} CBM, HS: ${_hsCodeController.text}';
 
+      // Upload photos first if any
+      List<String> uploadedPhotoUrls = [];
+      if (_selectedPhotos.isNotEmpty) {
+        try {
+          uploadedPhotoUrls = await _uploadService.uploadProductPhotos(
+            _selectedPhotos,
+          );
+        } catch (e) {
+          if (mounted) Navigator.of(context).pop();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Failed to upload photos: ${e.toString().replaceAll('Exception:', '').trim()}',
+                ),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+      }
+
       final requestData = {
         'origin': pickupAddress,
         'destination': destinationAddress,
@@ -457,6 +484,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
         'pickupDate': DateTime.now()
             .add(const Duration(days: 1))
             .toIso8601String(), // Default to tomorrow
+        'productPhotos': uploadedPhotoUrls,
       };
 
       await ref.read(quotationRepositoryProvider).createQuotation(requestData);
@@ -775,21 +803,232 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
     );
   }
 
-  Widget _buildPhotoPlaceholder() {
-    return Container(
-      width: 90,
-      height: 90,
-      decoration: BoxDecoration(
-        color: AppTheme.background,
-        borderRadius: BorderRadius.circular(20),
+  Widget _buildPhotoSection() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          // Existing photos
+          ..._selectedPhotos.asMap().entries.map((entry) {
+            final index = entry.key;
+            final file = entry.value;
+            return Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Stack(
+                children: [
+                  Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      image: DecorationImage(
+                        image: FileImage(file),
+                        fit: BoxFit.cover,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Remove button
+                  Positioned(
+                    top: -4,
+                    right: -4,
+                    child: GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        setState(() {
+                          _selectedPhotos.removeAt(index);
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          // Add photo button (if less than 5)
+          if (_selectedPhotos.length < 5)
+            GestureDetector(
+              onTap: _showPhotoSourceDialog,
+              child: Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  color: AppTheme.background,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+                    width: 2,
+                    strokeAlign: BorderSide.strokeAlignInside,
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.add_photo_alternate_outlined,
+                      color: AppTheme.primaryBlue,
+                      size: 28,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_selectedPhotos.length}/5',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.primaryBlue,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
-      child: const Center(
-        child: Icon(
-          Icons.file_upload_outlined,
-          color: AppTheme.primaryBlue,
-          size: 28,
+    );
+  }
+
+  void _showPhotoSourceDialog() {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Add Product Photo',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt,
+                    color: AppTheme.primaryBlue,
+                  ),
+                ),
+                title: const Text('Take Photo'),
+                subtitle: const Text('Use your camera'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickPhoto(ImageSource.camera);
+                },
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.photo_library,
+                    color: AppTheme.primaryBlue,
+                  ),
+                ),
+                title: const Text('Choose from Gallery'),
+                subtitle: const Text('Select existing photos'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickPhoto(ImageSource.gallery);
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Future<void> _pickPhoto(ImageSource source) async {
+    try {
+      if (source == ImageSource.gallery) {
+        // For gallery, allow multiple selection
+        final List<XFile> pickedFiles = await _picker.pickMultiImage(
+          maxWidth: 1200,
+          maxHeight: 1200,
+          imageQuality: 85,
+        );
+
+        if (pickedFiles.isNotEmpty) {
+          final remainingSlots = 5 - _selectedPhotos.length;
+          final filesToAdd = pickedFiles.take(remainingSlots).toList();
+
+          setState(() {
+            _selectedPhotos.addAll(filesToAdd.map((xFile) => File(xFile.path)));
+          });
+
+          if (pickedFiles.length > remainingSlots) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Only added $remainingSlots photos (max 5 total)',
+                  ),
+                  backgroundColor: AppTheme.warning,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          }
+        }
+      } else {
+        // For camera, pick single image
+        final XFile? pickedFile = await _picker.pickImage(
+          source: source,
+          maxWidth: 1200,
+          maxHeight: 1200,
+          imageQuality: 85,
+        );
+
+        if (pickedFile != null) {
+          setState(() {
+            _selectedPhotos.add(File(pickedFile.path));
+          });
+        }
+      }
+      HapticFeedback.lightImpact();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to pick image: ${e.toString()}'),
+            backgroundColor: AppTheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 }

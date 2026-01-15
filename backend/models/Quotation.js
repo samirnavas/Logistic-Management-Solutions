@@ -128,6 +128,18 @@ const quotationSchema = new mongoose.Schema({
         default: '',
     },
 
+    // --- Product Photos (Cloudinary URLs) ---
+    productPhotos: {
+        type: [String],
+        default: [],
+        validate: {
+            validator: function (v) {
+                return v.length <= 5;
+            },
+            message: 'Maximum 5 product photos allowed',
+        },
+    },
+
     // --- Financial Details ---
     items: {
         type: [lineItemSchema],

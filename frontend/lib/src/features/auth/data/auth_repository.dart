@@ -141,6 +141,27 @@ class AuthRepository extends _$AuthRepository {
     }
   }
 
+  /// Refresh user data from server (e.g., after updating avatar)
+  Future<void> refreshUser() async {
+    final currentUser = state.valueOrNull;
+    if (currentUser == null) return;
+
+    try {
+      final response = await _apiService.getRequest(
+        '/api/users/${currentUser.id}',
+      );
+
+      final updatedUser = _parseUser(response);
+      await _saveUser(updatedUser);
+
+      // Update state
+      state = AsyncValue.data(updatedUser);
+    } catch (e) {
+      // Don't change state to error, just log and continue
+      debugPrint('Failed to refresh user: $e');
+    }
+  }
+
   Future<void> _saveUser(User user) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_userKey, user.toJson());

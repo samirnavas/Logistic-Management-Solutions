@@ -8,6 +8,7 @@ class User {
   final String country;
   final String customerCode;
   final String location;
+  final String avatarUrl;
 
   const User({
     required this.id,
@@ -17,7 +18,31 @@ class User {
     required this.country,
     this.location = '',
     this.customerCode = '',
+    this.avatarUrl = '',
   });
+
+  /// Create a copy of this User with modified fields
+  User copyWith({
+    String? id,
+    String? email,
+    String? fullName,
+    String? phone,
+    String? country,
+    String? location,
+    String? customerCode,
+    String? avatarUrl,
+  }) {
+    return User(
+      id: id ?? this.id,
+      email: email ?? this.email,
+      fullName: fullName ?? this.fullName,
+      phone: phone ?? this.phone,
+      country: country ?? this.country,
+      location: location ?? this.location,
+      customerCode: customerCode ?? this.customerCode,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -28,6 +53,7 @@ class User {
       'country': country,
       'location': location,
       'customerCode': customerCode,
+      'avatarUrl': avatarUrl,
     };
   }
 
@@ -40,6 +66,7 @@ class User {
       country: map['country'] ?? '',
       location: map['location'] ?? '',
       customerCode: map['customerCode'] ?? '',
+      avatarUrl: map['avatarUrl'] ?? '',
     );
   }
 
@@ -56,7 +83,8 @@ class User {
         other.email == email &&
         other.fullName == fullName &&
         other.phone == phone &&
-        other.country == country;
+        other.country == country &&
+        other.avatarUrl == avatarUrl;
   }
 
   @override
@@ -66,6 +94,7 @@ class User {
         fullName.hashCode ^
         phone.hashCode ^
         country.hashCode ^
-        location.hashCode;
+        location.hashCode ^
+        avatarUrl.hashCode;
   }
 }

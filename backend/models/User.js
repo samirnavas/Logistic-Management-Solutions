@@ -33,6 +33,7 @@ const userSchema = new mongoose.Schema({
     phone: { type: String, default: '' },
     country: { type: String, default: '' },
     location: { type: String, default: '' },
+    avatarUrl: { type: String, default: '' },
     role: {
         type: String,
         enum: ['client', 'manager', 'admin'],

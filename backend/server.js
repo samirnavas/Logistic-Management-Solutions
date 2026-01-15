@@ -16,6 +16,7 @@ const userRoutes = require('./routes/userRoutes');
 const shipmentRoutes = require('./routes/shipmentRoutes');
 const quotationRoutes = require('./routes/quotationRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 
 // Connect to Database
 connectDB();
@@ -46,6 +47,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/shipments', shipmentRoutes);
 app.use('/api/quotations', quotationRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // ============================================
 // Health Check & Base Route
@@ -60,6 +62,7 @@ app.get('/', (req, res) => {
             shipments: '/api/shipments',
             quotations: '/api/quotations',
             notifications: '/api/notifications',
+            upload: '/api/upload',
         }
     });
 });
