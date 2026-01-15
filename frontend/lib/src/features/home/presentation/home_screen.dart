@@ -194,7 +194,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     child: InkWell(
                                       onTap: () {
                                         HapticFeedback.lightImpact();
-                                        context.push('/shipments');
+                                        context.go('/shipment');
                                       },
                                       borderRadius: BorderRadius.circular(20),
                                       child: Padding(

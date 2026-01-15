@@ -70,6 +70,11 @@ const addressSchema = new mongoose.Schema({
         required: [true, 'ZIP/Postal code is required'],
         trim: true,
     },
+    addressType: {
+        type: String,
+        trim: true,
+        default: '',
+    },
 }, { _id: false });
 
 // ============================================

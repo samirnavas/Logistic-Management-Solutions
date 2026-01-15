@@ -10,33 +10,40 @@ class ScaffoldWithNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: (int index) => _onTap(context, index),
-        destinations: const <NavigationDestination>[
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.request_quote_outlined),
-            selectedIcon: Icon(Icons.request_quote),
-            label: 'Quotation',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.local_shipping_outlined),
-            selectedIcon: Icon(Icons.local_shipping),
-            label: 'Shipment',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+    return PopScope(
+      canPop: navigationShell.currentIndex == 0,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        _onTap(context, 0);
+      },
+      child: Scaffold(
+        body: navigationShell,
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: navigationShell.currentIndex,
+          onDestinationSelected: (int index) => _onTap(context, index),
+          destinations: const <NavigationDestination>[
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.request_quote_outlined),
+              selectedIcon: Icon(Icons.request_quote),
+              label: 'Quotation',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.local_shipping_outlined),
+              selectedIcon: Icon(Icons.local_shipping),
+              label: 'Shipment',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: 'Profile',
+            ),
+          ],
+        ),
       ),
     );
   }

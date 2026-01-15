@@ -22,6 +22,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _acceptTerms = false;
+  String _countryCode = '+91';
 
   Future<void> _signup() async {
     if (_formKey.currentState!.validate()) {
@@ -44,7 +45,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             .register(
               fullName: _nameController.text,
               email: _emailController.text,
-              phone: _phoneController.text,
+              phone: '$_countryCode ${_phoneController.text}',
               country: _countryController.text,
               location: _locationController.text,
               password: _passwordController.text,
@@ -129,14 +130,72 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       value == null || value.isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _phoneController,
-                  decoration: const InputDecoration(
-                    labelText: 'Mobile Number',
-                    prefixIcon: Icon(Icons.phone_outlined),
-                  ),
-                  validator: (value) =>
-                      value == null || value.isEmpty ? 'Required' : null,
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 120,
+                      child: DropdownButtonFormField<String>(
+                        value: _countryCode,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Code',
+                          prefixIcon: Icon(Icons.public, size: 20),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: '+1',
+                            child: Text(
+                              '🇺🇸 +1',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: '+91',
+                            child: Text(
+                              '🇮🇳 +91',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: '+971',
+                            child: Text(
+                              '🇦🇪 +971',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: '+974',
+                            child: Text(
+                              '🇶🇦 +974',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: '+973',
+                            child: Text(
+                              '🇧🇭 +973',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) setState(() => _countryCode = val);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _phoneController,
+                        decoration: const InputDecoration(
+                          labelText: 'Mobile Number',
+                          prefixIcon: Icon(Icons.phone_outlined),
+                        ),
+                        validator: (value) =>
+                            value == null || value.isEmpty ? 'Required' : null,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 TextFormField(

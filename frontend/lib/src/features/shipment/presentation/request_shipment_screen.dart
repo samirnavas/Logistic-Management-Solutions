@@ -41,6 +41,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
   final _stateController = TextEditingController();
   final _countryController = TextEditingController();
   final _zipController = TextEditingController();
+  final _addressTypeController = TextEditingController();
   final _notesController = TextEditingController();
 
   // Photo state
@@ -61,6 +62,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
     _stateController.dispose();
     _countryController.dispose();
     _zipController.dispose();
+    _addressTypeController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -293,6 +295,18 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                             ),
                             const SizedBox(height: 24),
 
+                            const SizedBox(height: 16),
+                            _buildTextField(
+                              hint:
+                                  'Address Type (e.g. Home, Office, Warehouse)',
+                              controller: _addressTypeController,
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                  ? 'Address Type is required'
+                                  : null,
+                            ),
+                            const SizedBox(height: 24),
+
                             // 6. Notes
                             _buildSectionTitle('Add Notes'),
                             const SizedBox(height: 16),
@@ -426,6 +440,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
         'state': _stateController.text,
         'country': _countryController.text,
         'zip': _zipController.text,
+        'addressType': _addressTypeController.text,
       };
 
       final destinationAddress = {
@@ -743,11 +758,51 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                   ],
                 ),
               ),
+              const PopupMenuItem(
+                value: '+971',
+                child: Row(
+                  children: [
+                    Text('🇦🇪', style: TextStyle(fontSize: 20)),
+                    SizedBox(width: 8),
+                    Text('+971'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: '+974',
+                child: Row(
+                  children: [
+                    Text('🇶🇦', style: TextStyle(fontSize: 20)),
+                    SizedBox(width: 8),
+                    Text('+974'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: '+973',
+                child: Row(
+                  children: [
+                    Text('🇧🇭', style: TextStyle(fontSize: 20)),
+                    SizedBox(width: 8),
+                    Text('+973'),
+                  ],
+                ),
+              ),
             ],
             child: Row(
               children: [
                 Text(
-                  _countryCode == '+1' ? '🇺🇸' : '🇮🇳',
+                  _countryCode == '+1'
+                      ? '🇺🇸'
+                      : _countryCode == '+91'
+                      ? '🇮🇳'
+                      : _countryCode == '+971'
+                      ? '🇦🇪'
+                      : _countryCode == '+974'
+                      ? '🇶🇦'
+                      : _countryCode == '+973'
+                      ? '🇧🇭'
+                      : '🇮🇳',
                   style: const TextStyle(fontSize: 20),
                 ),
                 const SizedBox(width: 4),
