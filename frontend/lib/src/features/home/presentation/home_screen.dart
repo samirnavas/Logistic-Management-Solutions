@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:shimmer/shimmer.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -44,10 +45,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: RefreshIndicator(
               onRefresh: () async {
                 HapticFeedback.lightImpact();
-                ref.invalidate(dashboardStatsProvider);
-                ref.invalidate(shipmentListProvider);
-                // Wait a bit to simulate refresh if needed, but invalidating triggers reload
-                await Future.delayed(const Duration(milliseconds: 500));
+                // Actually await the refresh of both providers
+                await Future.wait([
+                  ref.refresh(dashboardStatsProvider.future),
+                  ref.refresh(shipmentListProvider.future),
+                ]);
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -56,161 +58,233 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     SizedBox(
                       height: MediaQuery.of(context).padding.top + 70,
                     ), // Dynamic top margin
-                    Container(
-                      width: double.infinity,
-                      decoration: const BoxDecoration(
-                        color: AppTheme.surface,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(30),
-                          topRight: Radius.circular(30),
-                        ),
-                      ),
-                      padding: EdgeInsets.fromLTRB(
-                        MediaQuery.of(context).size.width < 380 ? 16 : 20,
-                        30,
-                        MediaQuery.of(context).size.width < 380 ? 16 : 20,
-                        100,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Greeting
-                          Text(
-                                'Hello, ${user?.fullName ?? 'Guest'}!',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.displayMedium,
-                              )
-                              .animate()
-                              .fadeIn(duration: 500.ms)
-                              .slideX(begin: -0.2, end: 0),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Track, manage, and review all your shipments in one place.',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: AppTheme.textGrey,
-                                  height: 1.5,
-                                ),
-                          ).animate().fadeIn(delay: 100.ms, duration: 500.ms),
-                          const SizedBox(height: 24),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Dynamic horizontal padding based on available width
+                        final horizontalPadding = constraints.maxWidth < 360
+                            ? 16.0
+                            : constraints.maxWidth < 600
+                            ? 20.0
+                            : 24.0;
 
-                          // Customer Code Card
-                          if (user != null)
-                            _buildCustomerCodeCard(
-                                  context,
-                                  user.customerCode.isNotEmpty
-                                      ? user.customerCode
-                                      : 'N/A',
-                                )
-                                .animate()
-                                .fadeIn(delay: 200.ms, duration: 500.ms)
-                                .scale(),
-
-                          const SizedBox(height: 16),
-
-                          const SizedBox(height: 16),
-
-                          // Status Overview
-                          Text(
-                            'Status Overview',
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ).animate().fadeIn(delay: 400.ms),
-                          const SizedBox(height: 16),
-
-                          statsAsync.when(
-                            data: (stats) => _buildStatusGrid(context, stats),
-                            loading: () => const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                            error: (e, s) => _buildErrorState(
-                              context,
-                              'Failed to load status',
-                              () {
-                                ref.invalidate(dashboardStatsProvider);
-                              },
+                        return Container(
+                          width: double.infinity,
+                          decoration: const BoxDecoration(
+                            color: AppTheme.surface,
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(30),
+                              topRight: Radius.circular(30),
                             ),
                           ),
-
-                          const SizedBox(height: 32),
-
-                          // Recent Shipments
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          padding: EdgeInsets.fromLTRB(
+                            horizontalPadding,
+                            30,
+                            horizontalPadding,
+                            100,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Recent Shipments',
-                                style: Theme.of(context).textTheme.titleLarge,
+                              // Greeting with shimmer loading state
+                              authState.when(
+                                data: (userData) =>
+                                    Text(
+                                          'Hello, ${userData?.fullName ?? 'Guest'}!',
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.displayMedium,
+                                        )
+                                        .animate()
+                                        .fadeIn(duration: 500.ms)
+                                        .slideX(begin: -0.2, end: 0),
+                                loading: () => Shimmer.fromColors(
+                                  baseColor: Colors.grey[300]!,
+                                  highlightColor: Colors.grey[100]!,
+                                  child: Container(
+                                    width: 200,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                ),
+                                error: (_, __) => Text(
+                                  'Hello, Guest!',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.displayMedium,
+                                ),
                               ),
-                              TextButton(
-                                onPressed: () {
-                                  HapticFeedback.lightImpact();
-                                },
-                                child: Text(
-                                  'View All >',
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(
-                                        color: AppTheme.primaryBlue,
-                                        fontWeight: FontWeight.w600,
+                              const SizedBox(height: 8),
+                              Text(
+                                'Track, manage, and review all your shipments in one place.',
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: AppTheme.textGrey,
+                                      height: 1.5,
+                                    ),
+                              ).animate().fadeIn(
+                                delay: 100.ms,
+                                duration: 500.ms,
+                              ),
+                              const SizedBox(height: 24),
+
+                              // Customer Code Card
+                              if (user != null)
+                                _buildCustomerCodeCard(
+                                      context,
+                                      user.customerCode.isNotEmpty
+                                          ? user.customerCode
+                                          : 'N/A',
+                                    )
+                                    .animate()
+                                    .fadeIn(delay: 200.ms, duration: 500.ms)
+                                    .scale(),
+
+                              const SizedBox(height: 16),
+
+                              const SizedBox(height: 16),
+
+                              // Status Overview
+                              Text(
+                                'Status Overview',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ).animate().fadeIn(delay: 400.ms),
+                              const SizedBox(height: 16),
+
+                              statsAsync.when(
+                                data: (stats) =>
+                                    _buildStatusGrid(context, stats),
+                                loading: () => const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                                error: (e, s) => _buildErrorState(
+                                  context,
+                                  'Failed to load status',
+                                  () {
+                                    ref.invalidate(dashboardStatsProvider);
+                                  },
+                                ),
+                              ),
+
+                              const SizedBox(height: 32),
+
+                              // Recent Shipments
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      'Recent Shipments',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleLarge,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Material(
+                                    color: AppTheme.primaryBlue.withValues(
+                                      alpha: 0.1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: InkWell(
+                                      onTap: () {
+                                        HapticFeedback.lightImpact();
+                                        context.push('/shipments');
+                                      },
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 8,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              'View All',
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.copyWith(
+                                                    color: AppTheme.primaryBlue,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            const Icon(
+                                              Icons.arrow_forward_ios,
+                                              size: 12,
+                                              color: AppTheme.primaryBlue,
+                                            ),
+                                          ],
+                                        ),
                                       ),
+                                    ),
+                                  ),
+                                ],
+                              ).animate().fadeIn(delay: 600.ms),
+                              const SizedBox(height: 8),
+
+                              shipmentsAsync.when(
+                                data: (shipments) {
+                                  if (shipments.isEmpty) {
+                                    return _buildEmptyShipmentsState(context);
+                                  }
+                                  final recent = shipments.take(2).toList();
+                                  return ListView.builder(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    itemCount: recent.length,
+                                    itemBuilder: (context, index) {
+                                      final s = recent[index];
+                                      return ShipmentCard(
+                                            shipmentId: s.trackingNumber,
+                                            boxId:
+                                                '${s.packageCount} Box${s.packageCount != 1 ? 'es' : ''}',
+                                            status: s.status,
+                                            type: s.mode,
+                                            product:
+                                                '${s.origin} → ${s.destination}',
+                                            date:
+                                                '${s.estimatedDelivery.day} ${_getMonthName(s.estimatedDelivery.month)} ${s.estimatedDelivery.year}',
+                                            onTrack: () {
+                                              HapticFeedback.lightImpact();
+                                              context.push(
+                                                '/tracking/${s.trackingNumber}',
+                                              );
+                                            },
+                                            onViewDetails: () {
+                                              HapticFeedback.lightImpact();
+                                            },
+                                          )
+                                          .animate()
+                                          .fadeIn(
+                                            delay: (700 + (index * 100)).ms,
+                                          )
+                                          .slideY(begin: 0.2, end: 0);
+                                    },
+                                  );
+                                },
+                                loading: () => _buildShipmentSkeletonLoader(),
+                                error: (e, s) => _buildErrorState(
+                                  context,
+                                  'Failed to load shipments',
+                                  () {
+                                    ref.invalidate(shipmentListProvider);
+                                  },
                                 ),
                               ),
                             ],
-                          ).animate().fadeIn(delay: 600.ms),
-                          const SizedBox(height: 8),
-
-                          shipmentsAsync.when(
-                            data: (shipments) {
-                              if (shipments.isEmpty) {
-                                return const Text("No recent shipments");
-                              }
-                              final recent = shipments.take(2).toList();
-                              return ListView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: recent.length,
-                                itemBuilder: (context, index) {
-                                  final s = recent[index];
-                                  return ShipmentCard(
-                                        shipmentId: s.trackingNumber,
-                                        boxId:
-                                            '${s.packageCount} Box${s.packageCount != 1 ? 'es' : ''}',
-                                        status: s.status,
-                                        type: s.mode,
-                                        product:
-                                            '${s.origin} → ${s.destination}',
-                                        date:
-                                            '${s.estimatedDelivery.day} ${_getMonthName(s.estimatedDelivery.month)} ${s.estimatedDelivery.year}',
-                                        onTrack: () {
-                                          HapticFeedback.lightImpact();
-                                          context.push(
-                                            '/tracking/${s.trackingNumber}',
-                                          );
-                                        },
-                                        onViewDetails: () {
-                                          HapticFeedback.lightImpact();
-                                        },
-                                      )
-                                      .animate()
-                                      .fadeIn(delay: (700 + (index * 100)).ms)
-                                      .slideY(begin: 0.2, end: 0);
-                                },
-                              );
-                            },
-                            loading: () => const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                            error: (e, s) => _buildErrorState(
-                              context,
-                              'Failed to load shipments',
-                              () {
-                                ref.invalidate(shipmentListProvider);
-                              },
-                            ),
                           ),
-                        ],
-                      ),
-                    ),
+                        ); // Close Container
+                      }, // Close builder
+                    ), // Close LayoutBuilder
                   ],
                 ),
               ),
@@ -418,16 +492,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildStatusGrid(BuildContext context, DashboardStats stats) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Responsive grid: 2 columns on small screens, 3 on larger
-        final crossAxisCount = constraints.maxWidth < 350 ? 2 : 3;
-        final aspectRatio = constraints.maxWidth < 350 ? 1.0 : 0.82;
+        // Responsive grid configuration: 3 columns × 2 rows layout preferred
+        final int crossAxisCount;
+        final double aspectRatio;
+        final double spacing;
+
+        if (constraints.maxWidth < 240) {
+          // Very narrow screens: fallback to 2 columns
+          crossAxisCount = 2;
+          aspectRatio = 1.1;
+          spacing = 6.0;
+        } else if (constraints.maxWidth < 320) {
+          // Small screens: 3 columns, compact
+          crossAxisCount = 3;
+          aspectRatio = 0.9;
+          spacing = 6.0;
+        } else if (constraints.maxWidth < 400) {
+          // Normal phones: 3 columns
+          crossAxisCount = 3;
+          aspectRatio = 1.0;
+          spacing = 8.0;
+        } else if (constraints.maxWidth < 600) {
+          // Larger phones: 3 columns with more space
+          crossAxisCount = 3;
+          aspectRatio = 1.1;
+          spacing = 10.0;
+        } else {
+          // Tablets and large screens: 3 columns with generous spacing
+          crossAxisCount = 3;
+          aspectRatio = 1.2;
+          spacing = 14.0;
+        }
 
         return GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
+          crossAxisSpacing: spacing,
+          mainAxisSpacing: spacing,
           childAspectRatio: aspectRatio,
           children: [
             _buildStatusItem(
@@ -435,48 +537,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               'Requests',
               '${stats.requests}',
               Icons.assignment_outlined,
-              AppTheme.primaryBlue.withValues(alpha: 0.1),
-              AppTheme.primaryBlue,
+              AppTheme.statusRequests.withValues(alpha: 0.1),
+              AppTheme.statusRequests,
             ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2, end: 0),
             _buildStatusItem(
               context,
               'Shipped',
               '${stats.shipped}',
               Icons.local_shipping_outlined,
-              Colors.indigo.withValues(alpha: 0.1),
-              Colors.indigo,
+              AppTheme.statusShipped.withValues(alpha: 0.1),
+              AppTheme.statusShipped,
             ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
             _buildStatusItem(
               context,
               'Delivered',
               '${stats.delivered}',
               Icons.check_circle_outlined,
-              Colors.green.withValues(alpha: 0.1),
-              Colors.green,
+              AppTheme.statusDelivered.withValues(alpha: 0.1),
+              AppTheme.statusDelivered,
             ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2, end: 0),
             _buildStatusItem(
               context,
               'Cleared',
               '${stats.cleared}',
               Icons.verified_user_outlined,
-              Colors.teal.withValues(alpha: 0.1),
-              Colors.teal,
+              AppTheme.statusCleared.withValues(alpha: 0.1),
+              AppTheme.statusCleared,
             ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
             _buildStatusItem(
               context,
               'Dispatch',
               '${stats.dispatch}',
               Icons.send_outlined,
-              Colors.orange.withValues(alpha: 0.1),
-              Colors.orange,
+              AppTheme.statusDispatch.withValues(alpha: 0.1),
+              AppTheme.statusDispatch,
             ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.2, end: 0),
             _buildStatusItem(
               context,
               'Waiting',
               '${stats.waiting}',
               Icons.access_time,
-              Colors.red.withValues(alpha: 0.1),
-              Colors.red,
+              AppTheme.statusWaiting.withValues(alpha: 0.1),
+              AppTheme.statusWaiting,
             ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2, end: 0),
           ],
         );
@@ -579,5 +681,174 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
     );
+  }
+
+  /// Builds a shimmer skeleton loader that mimics the shape of ShipmentCards
+  Widget _buildShipmentSkeletonLoader() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Column(
+        children: List.generate(2, (index) => _buildShipmentCardSkeleton()),
+      ),
+    );
+  }
+
+  /// Single shipment card skeleton
+  Widget _buildShipmentCardSkeleton() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top row: ID and Status badge
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                width: 120,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              Container(
+                width: 80,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Middle row: Route info
+          Container(
+            width: double.infinity,
+            height: 14,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: 150,
+            height: 14,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Bottom row: Actions
+          Row(
+            children: [
+              Container(
+                width: 80,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                width: 100,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds a proper empty state widget when there are no shipments
+  Widget _buildEmptyShipmentsState(BuildContext context) {
+    return Center(
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+            decoration: BoxDecoration(
+              color: AppTheme.background,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppTheme.textGrey.withValues(alpha: 0.2),
+                width: 1,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.local_shipping_outlined,
+                    size: 40,
+                    color: AppTheme.primaryBlue,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'No Shipments Yet',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textDark,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Your recent shipments will appear here.\nCreate a new request to get started!',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textGrey,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    context.push('/request-shipment');
+                  },
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Create Request'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.primaryBlue,
+                    side: const BorderSide(color: AppTheme.primaryBlue),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ), // Close Container
+        )
+        .animate()
+        .fadeIn(duration: 500.ms)
+        .scale(begin: const Offset(0.95, 0.95)); // Close Center
   }
 }

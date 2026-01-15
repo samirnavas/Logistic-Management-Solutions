@@ -31,7 +31,242 @@ class ProfileScreen extends ConsumerWidget {
     return BlueBackgroundScaffold(
       body: Stack(
         children: [
-          // 1. Custom App Bar
+          // 1. Scrollable Content (FIRST in stack - at bottom)
+          Positioned.fill(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                HapticFeedback.lightImpact();
+                await ref.refresh(authRepositoryProvider.future);
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    SizedBox(height: MediaQuery.of(context).padding.top + 70),
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: isDarkMode ? AppTheme.darkSurface : Colors.white,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(30),
+                          topRight: Radius.circular(30),
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 30,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _ProfileHeader(user: user),
+                          const SizedBox(height: 30),
+
+                          // Account Section
+                          _ProfileMenu(
+                            title: 'Account',
+                            tiles: [
+                              ListTile(
+                                leading: const Icon(Icons.person_outline),
+                                title: const Text('Edit Profile'),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  if (user != null) {
+                                    showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      shape: const RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(20),
+                                        ),
+                                      ),
+                                      builder: (context) =>
+                                          _EditProfileSheet(user: user),
+                                    );
+                                  }
+                                },
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.location_on_outlined),
+                                title: const Text('Saved Addresses'),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const SavedAddressesScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.lock_outline),
+                                title: const Text('Change Password'),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                },
+                              ),
+                            ],
+                          ),
+
+                          // Settings Section
+                          _ProfileMenu(
+                            title: 'Settings',
+                            tiles: [
+                              ListTile(
+                                leading: const Icon(
+                                  Icons.notifications_outlined,
+                                ),
+                                title: const Text('Notifications'),
+                                trailing: Switch(
+                                  value: notificationsEnabled,
+                                  onChanged: (val) {
+                                    HapticFeedback.lightImpact();
+                                    ref
+                                        .read(settingsProvider)
+                                        .toggleNotifications(val);
+                                  },
+                                  activeTrackColor: AppTheme.primaryBlue
+                                      .withValues(alpha: 0.5),
+                                  activeThumbColor: AppTheme.primaryBlue,
+                                ),
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.language_outlined),
+                                title: const Text('Language'),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                },
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.dark_mode_outlined),
+                                title: const Text('Dark Mode'),
+                                trailing: Switch(
+                                  value: isDarkMode,
+                                  onChanged: (val) {
+                                    HapticFeedback.lightImpact();
+                                    ref
+                                        .read(settingsProvider)
+                                        .toggleDarkMode(val);
+                                  },
+                                  activeTrackColor: AppTheme.primaryBlue
+                                      .withValues(alpha: 0.5),
+                                  activeThumbColor: AppTheme.primaryBlue,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          // Support Section
+                          _ProfileMenu(
+                            title: 'Support',
+                            tiles: [
+                              ListTile(
+                                leading: const Icon(Icons.help_outline),
+                                title: const Text('Help Center'),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                },
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.privacy_tip_outlined),
+                                title: const Text('Privacy Policy'),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                },
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.description_outlined),
+                                title: const Text('Terms & Conditions'),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                },
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // Logout Button
+                          ListTile(
+                                leading: const Icon(
+                                  Icons.logout,
+                                  color: Colors.red,
+                                ),
+                                title: Text(
+                                  'Logout',
+                                  style: Theme.of(context).textTheme.bodyLarge
+                                      ?.copyWith(color: Colors.red),
+                                ),
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Logout'),
+                                      content: const Text(
+                                        'Are you sure you want to logout?',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.pop(
+                                              context,
+                                            ); // Close dialog
+                                            ref
+                                                .read(
+                                                  authRepositoryProvider
+                                                      .notifier,
+                                                )
+                                                .signOut();
+                                            context.go('/login');
+                                          },
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: Colors.red,
+                                          ),
+                                          child: const Text('Logout'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              )
+                              .animate()
+                              .fadeIn(delay: 600.ms)
+                              .slideX(begin: 0.1, end: 0),
+
+                          const SizedBox(height: 24),
+                          Center(
+                            child: Text(
+                              'Version 1.0.0',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: Colors.grey[400]),
+                            ),
+                          ),
+
+                          const SizedBox(height: 100),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // 2. Custom App Bar (LAST in stack - on top for touch events)
           Positioned(
             top: 0,
             left: 0,
@@ -70,230 +305,6 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-              ),
-            ),
-          ),
-
-          // 2. Scrollable Content
-          Positioned.fill(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  SizedBox(height: MediaQuery.of(context).padding.top + 70),
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: isDarkMode ? AppTheme.darkSurface : Colors.white,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(30),
-                        topRight: Radius.circular(30),
-                      ),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 30,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _ProfileHeader(user: user),
-                        const SizedBox(height: 30),
-
-                        // Account Section
-                        _ProfileMenu(
-                          title: 'Account',
-                          tiles: [
-                            ListTile(
-                              leading: const Icon(Icons.person_outline),
-                              title: const Text('Edit Profile'),
-                              trailing: const Icon(Icons.chevron_right),
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                                if (user != null) {
-                                  showModalBottomSheet(
-                                    context: context,
-                                    isScrollControlled: true,
-                                    shape: const RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.vertical(
-                                        top: Radius.circular(20),
-                                      ),
-                                    ),
-                                    builder: (context) =>
-                                        _EditProfileSheet(user: user),
-                                  );
-                                }
-                              },
-                            ),
-                            ListTile(
-                              leading: const Icon(Icons.location_on_outlined),
-                              title: const Text('Saved Addresses'),
-                              trailing: const Icon(Icons.chevron_right),
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const SavedAddressesScreen(),
-                                  ),
-                                );
-                              },
-                            ),
-                            ListTile(
-                              leading: const Icon(Icons.lock_outline),
-                              title: const Text('Change Password'),
-                              trailing: const Icon(Icons.chevron_right),
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                              },
-                            ),
-                          ],
-                        ),
-
-                        // Settings Section
-                        _ProfileMenu(
-                          title: 'Settings',
-                          tiles: [
-                            ListTile(
-                              leading: const Icon(Icons.notifications_outlined),
-                              title: const Text('Notifications'),
-                              trailing: Switch(
-                                value: notificationsEnabled,
-                                onChanged: (val) {
-                                  HapticFeedback.lightImpact();
-                                  ref
-                                      .read(settingsProvider)
-                                      .toggleNotifications(val);
-                                },
-                                activeTrackColor: AppTheme.primaryBlue
-                                    .withValues(alpha: 0.5),
-                                activeThumbColor: AppTheme.primaryBlue,
-                              ),
-                            ),
-                            ListTile(
-                              leading: const Icon(Icons.language_outlined),
-                              title: const Text('Language'),
-                              trailing: const Icon(Icons.chevron_right),
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                              },
-                            ),
-                            ListTile(
-                              leading: const Icon(Icons.dark_mode_outlined),
-                              title: const Text('Dark Mode'),
-                              trailing: Switch(
-                                value: isDarkMode,
-                                onChanged: (val) {
-                                  HapticFeedback.lightImpact();
-                                  ref
-                                      .read(settingsProvider)
-                                      .toggleDarkMode(val);
-                                },
-                                activeTrackColor: AppTheme.primaryBlue
-                                    .withValues(alpha: 0.5),
-                                activeThumbColor: AppTheme.primaryBlue,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        // Support Section
-                        _ProfileMenu(
-                          title: 'Support',
-                          tiles: [
-                            ListTile(
-                              leading: const Icon(Icons.help_outline),
-                              title: const Text('Help Center'),
-                              trailing: const Icon(Icons.chevron_right),
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                              },
-                            ),
-                            ListTile(
-                              leading: const Icon(Icons.privacy_tip_outlined),
-                              title: const Text('Privacy Policy'),
-                              trailing: const Icon(Icons.chevron_right),
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                              },
-                            ),
-                            ListTile(
-                              leading: const Icon(Icons.description_outlined),
-                              title: const Text('Terms & Conditions'),
-                              trailing: const Icon(Icons.chevron_right),
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                              },
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        // Logout Button
-                        ListTile(
-                              leading: const Icon(
-                                Icons.logout,
-                                color: Colors.red,
-                              ),
-                              title: Text(
-                                'Logout',
-                                style: Theme.of(context).textTheme.bodyLarge
-                                    ?.copyWith(color: Colors.red),
-                              ),
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('Logout'),
-                                    content: const Text(
-                                      'Are you sure you want to logout?',
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context),
-                                        child: const Text('Cancel'),
-                                      ),
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.pop(
-                                            context,
-                                          ); // Close dialog
-                                          ref
-                                              .read(
-                                                authRepositoryProvider.notifier,
-                                              )
-                                              .signOut();
-                                          context.go('/login');
-                                        },
-                                        style: TextButton.styleFrom(
-                                          foregroundColor: Colors.red,
-                                        ),
-                                        child: const Text('Logout'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            )
-                            .animate()
-                            .fadeIn(delay: 600.ms)
-                            .slideX(begin: 0.1, end: 0),
-
-                        const SizedBox(height: 24),
-                        Center(
-                          child: Text(
-                            'Version 1.0.0',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: Colors.grey[400]),
-                          ),
-                        ),
-
-                        const SizedBox(height: 100),
-                      ],
-                    ),
-                  ),
-                ],
               ),
             ),
           ),

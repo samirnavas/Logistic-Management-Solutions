@@ -1,4 +1,5 @@
 import 'package:bb_logistics/src/core/theme/theme.dart';
+import 'package:bb_logistics/src/core/errors/user_error.dart';
 import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,8 +38,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         }
       } catch (e) {
         if (mounted) {
+          String errorMessage;
+          if (e is UserError) {
+            errorMessage = e.friendlyMessage;
+          } else {
+            errorMessage = 'An unexpected error occurred. Please try again.';
+          }
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red.shade700,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
           );
         }
       } finally {

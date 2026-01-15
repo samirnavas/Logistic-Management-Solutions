@@ -17,8 +17,69 @@ class QuotationScreen extends ConsumerStatefulWidget {
   ConsumerState<QuotationScreen> createState() => _QuotationScreenState();
 }
 
+/// Sort options for quotations
+enum QuotationSortOption {
+  dateNewest('Date (Newest)', Icons.calendar_today_outlined),
+  dateOldest('Date (Oldest)', Icons.calendar_today_outlined),
+  statusProgress('Status', Icons.flag_outlined),
+  amountHigh('Amount (High to Low)', Icons.trending_up),
+  amountLow('Amount (Low to High)', Icons.trending_down);
+
+  final String label;
+  final IconData icon;
+  const QuotationSortOption(this.label, this.icon);
+}
+
 class _QuotationScreenState extends ConsumerState<QuotationScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  QuotationSortOption _selectedSort = QuotationSortOption.dateNewest;
+
+  /// Sort quotations based on selected option
+  List<Quotation> _sortQuotations(List<Quotation> quotations) {
+    final sorted = List<Quotation>.from(quotations);
+
+    switch (_selectedSort) {
+      case QuotationSortOption.dateNewest:
+        sorted.sort((a, b) => b.createdDate.compareTo(a.createdDate));
+        break;
+      case QuotationSortOption.dateOldest:
+        sorted.sort((a, b) => a.createdDate.compareTo(b.createdDate));
+        break;
+      case QuotationSortOption.statusProgress:
+        // Sort by status workflow order
+        sorted.sort(
+          (a, b) =>
+              _getStatusOrder(a.status).compareTo(_getStatusOrder(b.status)),
+        );
+        break;
+      case QuotationSortOption.amountHigh:
+        sorted.sort((a, b) => b.totalAmount.compareTo(a.totalAmount));
+        break;
+      case QuotationSortOption.amountLow:
+        sorted.sort((a, b) => a.totalAmount.compareTo(b.totalAmount));
+        break;
+    }
+
+    return sorted;
+  }
+
+  /// Get order number for status (for sorting)
+  int _getStatusOrder(QuotationStatus status) {
+    switch (status) {
+      case QuotationStatus.requestSent:
+        return 0;
+      case QuotationStatus.costCalculated:
+        return 1;
+      case QuotationStatus.readyForPickup:
+        return 2;
+      case QuotationStatus.shipped:
+        return 3;
+      case QuotationStatus.delivered:
+        return 4;
+      case QuotationStatus.rejected:
+        return 5;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,113 +92,127 @@ class _QuotationScreenState extends ConsumerState<QuotationScreen> {
         children: [
           // 1. Scrollable Content (MOVED FIRST to be at bottom of stack)
           Positioned.fill(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: MediaQuery.of(context).padding.top + 70,
-                  ), // Dynamic top margin
-                  Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(30),
-                        topRight: Radius.circular(30),
+            child: RefreshIndicator(
+              onRefresh: () async {
+                HapticFeedback.lightImpact();
+                await ref.refresh(quotationsProvider.future);
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: MediaQuery.of(context).padding.top + 70,
+                    ), // Dynamic top margin
+                    Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(30),
+                          topRight: Radius.circular(30),
+                        ),
+                      ),
+                      padding: EdgeInsets.fromLTRB(
+                        MediaQuery.of(context).size.width < 380 ? 16 : 20,
+                        30,
+                        MediaQuery.of(context).size.width < 380 ? 16 : 20,
+                        20,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Title and Filter
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Quotation',
+                                style: Theme.of(context).textTheme.displaySmall,
+                              ),
+                              _buildSortDropdown(context),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // List Content
+                          quotationsAsync.when(
+                            data: (quotations) {
+                              if (quotations.isEmpty) {
+                                return Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 40,
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.description_outlined,
+                                          size: 80,
+                                          color: AppTheme.textGrey.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          'No quotations yet',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyLarge
+                                              ?.copyWith(
+                                                color: AppTheme.textGrey,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              // Apply sorting
+                              final sortedQuotations = _sortQuotations(
+                                quotations,
+                              );
+
+                              return ListView.separated(
+                                physics: const NeverScrollableScrollPhysics(),
+                                shrinkWrap: true,
+                                padding: EdgeInsets.zero,
+                                itemCount: sortedQuotations.length,
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(height: 12),
+                                itemBuilder: (context, index) {
+                                  final quotation = sortedQuotations[index];
+                                  return _QuotationCard(quotation: quotation)
+                                      .animate()
+                                      .fadeIn(delay: (100 * index).ms)
+                                      .slideX();
+                                },
+                              );
+                            },
+                            loading: () => const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(40.0),
+                                child: CircularProgressIndicator(),
+                              ),
+                            ),
+                            error: (error, stack) => _buildErrorState(
+                              context,
+                              'Error loading quotations',
+                              () {
+                                ref.invalidate(quotationsProvider);
+                              },
+                            ),
+                          ),
+                          // Extra bottom padding for safe area
+                          const SizedBox(height: 80),
+                        ],
                       ),
                     ),
-                    padding: EdgeInsets.fromLTRB(
-                      MediaQuery.of(context).size.width < 380 ? 16 : 20,
-                      30,
-                      MediaQuery.of(context).size.width < 380 ? 16 : 20,
-                      20,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Title and Filter
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Quotation',
-                              style: Theme.of(context).textTheme.displaySmall,
-                            ),
-                            _buildSortDropdown(context),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        // List Content
-                        quotationsAsync.when(
-                          data: (quotations) {
-                            if (quotations.isEmpty) {
-                              return Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 40,
-                                  ),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.description_outlined,
-                                        size: 80,
-                                        color: AppTheme.textGrey.withValues(
-                                          alpha: 0.5,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        'No quotations yet',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyLarge
-                                            ?.copyWith(
-                                              color: AppTheme.textGrey,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }
-                            return ListView.separated(
-                              physics: const NeverScrollableScrollPhysics(),
-                              shrinkWrap: true,
-                              padding: EdgeInsets.zero,
-                              itemCount: quotations.length,
-                              separatorBuilder: (context, index) =>
-                                  const SizedBox(height: 12),
-                              itemBuilder: (context, index) {
-                                final quotation = quotations[index];
-                                return _QuotationCard(quotation: quotation)
-                                    .animate()
-                                    .fadeIn(delay: (100 * index).ms)
-                                    .slideX();
-                              },
-                            );
-                          },
-                          loading: () => const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(40.0),
-                              child: CircularProgressIndicator(),
-                            ),
-                          ),
-                          error: (error, stack) => _buildErrorState(
-                            context,
-                            'Error loading quotations',
-                            () {
-                              ref.invalidate(quotationsProvider);
-                            },
-                          ),
-                        ),
-                        // Extra bottom padding for safe area
-                        const SizedBox(height: 80),
-                      ],
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -232,30 +307,71 @@ class _QuotationScreenState extends ConsumerState<QuotationScreen> {
 
   // Helper method for Sort Dropdown
   Widget _buildSortDropdown(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppTheme.background,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.calendar_today_outlined,
-            size: 16,
-            color: Colors.grey[600],
+    return PopupMenuButton<QuotationSortOption>(
+      onSelected: (option) {
+        HapticFeedback.lightImpact();
+        setState(() {
+          _selectedSort = option;
+        });
+      },
+      offset: const Offset(0, 40),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      itemBuilder: (context) => QuotationSortOption.values.map((option) {
+        final isSelected = option == _selectedSort;
+        return PopupMenuItem<QuotationSortOption>(
+          value: option,
+          child: Row(
+            children: [
+              Icon(
+                option.icon,
+                size: 18,
+                color: isSelected ? AppTheme.primaryBlue : Colors.grey[600],
+              ),
+              const SizedBox(width: 12),
+              Text(
+                option.label,
+                style: TextStyle(
+                  color: isSelected ? AppTheme.primaryBlue : Colors.grey[800],
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+              if (isSelected) ...[
+                const Spacer(),
+                const Icon(Icons.check, size: 18, color: AppTheme.primaryBlue),
+              ],
+            ],
           ),
-          const SizedBox(width: 8),
-          Text(
-            'Date',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: Colors.grey[800]),
+        );
+      }).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppTheme.background,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: AppTheme.primaryBlue.withValues(alpha: 0.2),
           ),
-          const SizedBox(width: 4),
-          Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.grey[600]),
-        ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(_selectedSort.icon, size: 16, color: AppTheme.primaryBlue),
+            const SizedBox(width: 8),
+            Text(
+              _selectedSort.label.split(' ').first, // Show just the first word
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.primaryBlue,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.keyboard_arrow_down,
+              size: 18,
+              color: AppTheme.primaryBlue,
+            ),
+          ],
+        ),
       ),
     );
   }

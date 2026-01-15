@@ -19,6 +19,14 @@ class AppTheme {
   static const Color warning = Color(0xFFFDC107);
   static const Color error = Color(0xFFDB4437);
 
+  // Status Palette (for dashboard status grid)
+  static const Color statusRequests = Color(0xFF0055A7); // Primary Blue
+  static const Color statusShipped = Color(0xFF5C6BC0); // Indigo shade
+  static const Color statusDelivered = Color(0xFF43A047); // Green shade
+  static const Color statusCleared = Color(0xFF00897B); // Teal shade
+  static const Color statusDispatch = Color(0xFFFB8C00); // Orange shade
+  static const Color statusWaiting = Color(0xFFE53935); // Red shade
+
   // Neutrals
   static const Color background = Color(0xFFF5F5F5);
   static const Color surface = Colors.white;

@@ -14,8 +14,11 @@ exports.getDashboardStats = async (req, res) => {
 
 
 
-        // 1. Requests - Total count of shipments
-        const requests = await Shipment.countDocuments({ clientId: userId });
+        // 1. Requests - Count of quotations with status 'request_sent'
+        const requests = await Quotation.countDocuments({
+            clientId: userId,
+            status: 'request_sent'
+        });
 
         // 2. Shipped - Status 'In Transit'
         const shipped = await Shipment.countDocuments({
