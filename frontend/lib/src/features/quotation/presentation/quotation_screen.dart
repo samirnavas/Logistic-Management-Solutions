@@ -95,6 +95,7 @@ class _QuotationScreenState extends ConsumerState<QuotationScreen> {
             child: RefreshIndicator(
               onRefresh: () async {
                 HapticFeedback.lightImpact();
+                // ignore: unused_result
                 await ref.refresh(quotationsProvider.future);
               },
               child: SingleChildScrollView(

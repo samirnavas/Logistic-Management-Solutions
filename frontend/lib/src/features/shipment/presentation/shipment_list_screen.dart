@@ -34,6 +34,7 @@ class _ShipmentListScreenState extends ConsumerState<ShipmentListScreen> {
             child: RefreshIndicator(
               onRefresh: () async {
                 HapticFeedback.lightImpact();
+                // ignore: unused_result
                 await ref.refresh(shipmentListProvider.future);
               },
               child: SingleChildScrollView(

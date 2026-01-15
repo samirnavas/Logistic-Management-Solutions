@@ -36,6 +36,7 @@ class ProfileScreen extends ConsumerWidget {
             child: RefreshIndicator(
               onRefresh: () async {
                 HapticFeedback.lightImpact();
+                // ignore: unused_result
                 await ref.refresh(authRepositoryProvider.future);
               },
               child: SingleChildScrollView(
@@ -777,7 +778,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                               location: _locationController.text.trim(),
                             );
 
-                        if (mounted) {
+                        if (mounted && context.mounted) {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -788,7 +789,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                           );
                         }
                       } catch (e) {
-                        if (mounted) {
+                        if (mounted && context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
