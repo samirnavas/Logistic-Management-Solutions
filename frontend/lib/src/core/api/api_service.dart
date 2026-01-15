@@ -134,5 +134,43 @@ class ApiService {
       if (e is Exception) rethrow;
       throw Exception('Connection Failed: $e');
     }
+  } // Added missing closing brace for getRequest
+
+  Future<dynamic> deleteRequest(String endpoint) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+    String? token = await _storage.read(key: 'jwt_token');
+
+    try {
+      final response = await http.delete(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        try {
+          final errorBody = jsonDecode(response.body);
+          throw Exception(
+            errorBody['message'] ??
+                errorBody['msg'] ??
+                'Server Error: ${response.statusCode}',
+          );
+        } catch (e) {
+          if (e is Exception && e.toString().contains('Server Error')) {
+            rethrow;
+          }
+          throw Exception(
+            'Failed to delete data: ${response.statusCode} - ${response.body}',
+          );
+        }
+      }
+    } catch (e) {
+      if (e is Exception) rethrow; // Pass up our custom exceptions
+      throw Exception('Connection Failed: $e');
+    }
   }
 }

@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Shipment = require('../models/Shipment');
 const Quotation = require('../models/Quotation');
+const mongoose = require('mongoose');
 
 // ============================================
 // Get User Dashboard Stats
@@ -151,23 +152,55 @@ exports.updateAddress = async (req, res) => {
 exports.deleteAddress = async (req, res) => {
     try {
         const { userId, addressId } = req.params;
+        console.log(`[DELETE] Request to delete address ${addressId} for user ${userId}`);
 
-        const user = await User.findById(userId);
+        // Validate IDs
+        if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(addressId)) {
+            return res.status(400).json({ message: 'Invalid ID format' });
+        }
+
+        // 1. Perform the pull operation atomicallly
+        const user = await User.findByIdAndUpdate(
+            userId,
+            {
+                $pull: { savedAddresses: { _id: new mongoose.Types.ObjectId(addressId) } }
+            },
+            { new: true }
+        );
 
         if (!user) {
+            console.log('[DELETE] User not found');
             return res.status(404).json({ message: 'User not found' });
         }
 
-        await user.removeAddress(addressId);
+        // 2. Optional: Ensure default address logic (Wrapped in its own try-catch to prevent 500 on entire request)
+        try {
+            if (user.savedAddresses && user.savedAddresses.length > 0) {
+                const hasDefault = user.savedAddresses.some(addr => addr.isDefault);
+                if (!hasDefault) {
+                    // If no default exists, make the first one default
+                    user.savedAddresses[0].isDefault = true;
+                    await user.save({ validateBeforeSave: false }); // Skip validation for this fixup
+                }
+            }
+        } catch (innerError) {
+            console.warn('[DELETE] Warning: Failed to reassign default address, but deletion succeeded.', innerError);
+        }
 
+        console.log('[DELETE] Success');
         res.json({
             message: 'Address deleted successfully',
             addresses: user.savedAddresses,
-            defaultAddress: user.getDefaultAddress(),
+            defaultAddress: user.savedAddresses.find(a => a.isDefault) || null,
         });
+
     } catch (error) {
-        console.error('Delete Address Error:', error);
-        res.status(400).json({ message: 'Failed to delete address', error: error.message });
+        console.error('[DELETE] Critical Error:', error);
+        res.status(500).json({
+            message: 'Failed to delete address',
+            error: error.message,
+            stack: error.stack
+        });
     }
 };
 

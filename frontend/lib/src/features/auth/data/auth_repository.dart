@@ -100,6 +100,47 @@ class AuthRepository extends _$AuthRepository {
     }
   }
 
+  Future<void> updateProfile({
+    String? fullName,
+    String? phone,
+    String? country,
+    String? location,
+  }) async {
+    final currentUser = state.valueOrNull;
+    if (currentUser == null) return;
+
+    try {
+      final updates = <String, dynamic>{};
+      if (fullName != null) updates['fullName'] = fullName;
+      if (phone != null) updates['phone'] = phone;
+      if (country != null) updates['country'] = country;
+      if (location != null) updates['location'] = location;
+
+      if (updates.isEmpty) return;
+
+      // Optimistic update (optional, but let's stick to source of truth)
+      // or just wait for server response.
+
+      final response = await _apiService.putRequest(
+        '/api/users/${currentUser.id}',
+        updates,
+      );
+
+      final updatedUser = _parseUser(response);
+      await _saveUser(updatedUser);
+
+      // Update state
+      state = AsyncValue.data(updatedUser);
+    } catch (e) {
+      // If we assume the state is still valid, we might not want to set title to error,
+      // but maybe just rethrow so the UI can handle the toast.
+      // However, setting state to error might replace the user object with error.
+      // Better to keep the user data and just rethrow for UI feedback.
+      // state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
   Future<void> _saveUser(User user) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_userKey, user.toJson());

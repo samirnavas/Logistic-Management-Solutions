@@ -124,11 +124,12 @@ class _QuotationScreenState extends ConsumerState<QuotationScreen> {
                               child: CircularProgressIndicator(),
                             ),
                           ),
-                          error: (error, stack) => const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(20.0),
-                              child: Text('Error loading quotations'),
-                            ),
+                          error: (error, stack) => _buildErrorState(
+                            context,
+                            'Error loading quotations',
+                            () {
+                              ref.invalidate(quotationsProvider);
+                            },
                           ),
                         ),
                         // Extra bottom padding for safe area
@@ -187,6 +188,44 @@ class _QuotationScreenState extends ConsumerState<QuotationScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(
+    BuildContext context,
+    String message,
+    VoidCallback onRetry,
+  ) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, color: Colors.grey[400], size: 40),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppTheme.textGrey),
+            ),
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                onRetry();
+              },
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Retry'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.primaryBlue,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

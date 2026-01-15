@@ -51,6 +51,8 @@ exports.register = async (req, res) => {
             fullName,
             email,
             phone: phone || '',
+            country: country || '',
+            location: location || '',
             password, // Will be hashed by pre-save hook
             role: role || 'client',
             savedAddresses,

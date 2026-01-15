@@ -3,6 +3,7 @@ import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
 import 'package:bb_logistics/src/features/auth/domain/user.dart';
+import 'package:bb_logistics/src/features/profile/presentation/saved_addresses_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -125,6 +126,12 @@ class ProfileScreen extends ConsumerWidget {
                               trailing: const Icon(Icons.chevron_right),
                               onTap: () {
                                 HapticFeedback.lightImpact();
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const SavedAddressesScreen(),
+                                  ),
+                                );
                               },
                             ),
                             ListTile(
@@ -439,20 +446,21 @@ class _ProfileMenu extends StatelessWidget {
   }
 }
 
-class _EditProfileSheet extends StatefulWidget {
+class _EditProfileSheet extends ConsumerStatefulWidget {
   final User user;
 
   const _EditProfileSheet({required this.user});
 
   @override
-  State<_EditProfileSheet> createState() => _EditProfileSheetState();
+  ConsumerState<_EditProfileSheet> createState() => _EditProfileSheetState();
 }
 
-class _EditProfileSheetState extends State<_EditProfileSheet> {
+class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
   late TextEditingController _countryController;
   late TextEditingController _locationController;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -540,19 +548,58 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                // Return data to console for now
-                final updatedData = {
-                  'fullName': _nameController.text.trim(),
-                  'phone': _phoneController.text.trim(),
-                  'country': _countryController.text.trim(),
-                  'location': _locationController.text.trim(),
-                };
-                debugPrint('Updated Profile Data: $updatedData');
-                Navigator.pop(context);
-              },
-              child: const Text('Save Changes'),
+              onPressed: _isLoading
+                  ? null
+                  : () async {
+                      HapticFeedback.mediumImpact();
+                      setState(() => _isLoading = true);
+
+                      try {
+                        await ref
+                            .read(authRepositoryProvider.notifier)
+                            .updateProfile(
+                              fullName: _nameController.text.trim(),
+                              phone: _phoneController.text.trim(),
+                              country: _countryController.text.trim(),
+                              location: _locationController.text.trim(),
+                            );
+
+                        if (mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Profile updated successfully'),
+                              backgroundColor: AppTheme.success,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Failed to update: ${e.toString().replaceAll('Exception:', '').trim()}',
+                              ),
+                              backgroundColor: AppTheme.error,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      } finally {
+                        if (mounted) setState(() => _isLoading = false);
+                      }
+                    },
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text('Save Changes'),
             ),
           ),
           const SizedBox(height: 30),

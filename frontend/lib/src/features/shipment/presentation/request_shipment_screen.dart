@@ -473,12 +473,14 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
       // Dismiss loading
       if (mounted) Navigator.of(context).pop();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to create request: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create request: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

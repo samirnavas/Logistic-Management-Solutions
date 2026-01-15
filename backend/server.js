@@ -29,8 +29,11 @@ app.use(express.json({ limit: '10mb' })); // Increased limit for photo uploads
 // Request logging middleware
 app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-    if (req.method !== 'GET') {
-        console.log('Body:', JSON.stringify(req.body, null, 2).substring(0, 500));
+    if (req.method !== 'GET' && req.body && Object.keys(req.body).length > 0) {
+        const bodyStr = JSON.stringify(req.body, null, 2);
+        if (bodyStr) {
+            console.log('Body:', bodyStr.substring(0, 500));
+        }
     }
     next();
 });
@@ -74,9 +77,11 @@ app.get('/api/health', (req, res) => {
 // ============================================
 app.use((err, req, res, next) => {
     console.error('Unhandled Error:', err);
+    console.error('Stack:', err.stack);
     res.status(500).json({
         message: 'Internal server error',
-        error: process.env.NODE_ENV === 'development' ? err.message : undefined,
+        error: err.message,
+        stack: err.stack,
     });
 });
 
