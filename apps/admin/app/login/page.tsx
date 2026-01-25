@@ -88,119 +88,149 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex min-h-screen bg-background">
+        <div className="flex min-h-screen bg-white">
             {/* Left Side - Image/Hero */}
-            <div className="hidden lg:flex flex-1 relative bg-muted items-center justify-center overflow-hidden">
-                <div className="absolute inset-0 bg-black/30 z-10 flex flex-col justify-end p-12 text-white">
-                    <div className="mb-4">
-                        <h1 className="text-4xl font-bold leading-tight drop-shadow-lg">Manage Requests.<br />Send Quotations.<br />Deliver Faster.</h1>
-                    </div>
+            <div className="hidden lg:flex lg:w-1/2 relative bg-zinc-900 overflow-hidden">
+                <Image
+                    src="/login_side.png"
+                    alt="Logistics Dashboard"
+                    fill
+                    className="object-cover opacity-80"
+                    priority
+                />
+
+                {/* Gradient Overlay for better text readability */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
+
+                <div className="absolute bottom-0 left-0 w-full p-20 z-20">
+                    <h1 className="text-5xl font-bold text-white leading-[1.15] drop-shadow-sm">
+                        Manage Requests.<br />
+                        Send Quotations.<br />
+                        Deliver Faster.
+                    </h1>
                 </div>
-                <div className="absolute inset-0 z-0 bg-cover bg-center" style={{
-                    backgroundImage: 'url("/login_side.png")',
-                }} />
             </div>
 
             {/* Right Side - Form */}
-            <div className="flex-1 flex flex-col justify-center items-center p-8 max-w-full lg:max-w-xl">
-                <div className="w-full max-w-sm space-y-8">
-                    <div className="text-center">
-                        <div className="flex justify-center mb-6">
-                            <Image
-                                src="/bb_logo.png"
-                                alt="B&B International"
-                                width={400}
-                                height={160}
-                                className="w-auto h-50 object-contain"
-                                priority
-                            />
-                        </div>
-                        <h2 className="mt-6 text-2xl font-semibold tracking-tight text-gray-900">{isRegistering ? 'Create Admin Account' : 'Log In'}</h2>
+            <div className="flex-1 w-full flex flex-col justify-center items-center p-8 lg:p-24 bg-white">
+                <div className="w-full max-w-[420px] space-y-8">
+                    {/* Logo */}
+                    <div className="flex justify-center mb-10">
+                        <Image
+                            src="/bb_logo.png"
+                            alt="B&B International"
+                            width={180}
+                            height={80}
+                            className="w-auto h-24 object-contain"
+                            priority
+                        />
                     </div>
 
-                    {error && <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md border border-red-200">{error}</div>}
+                    <div className="space-y-6">
+                        <h2 className="text-3xl font-medium text-slate-700">
+                            {isRegistering ? 'Create Account' : 'Log In'}
+                        </h2>
 
-                    <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-                        {isRegistering && (
-                            <>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="fullName">Full Name</label>
-                                    <input
-                                        id="fullName"
-                                        type="text"
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                        placeholder="John Doe"
-                                        value={params.fullName}
-                                        onChange={handleChange}
-                                        required
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium leading-none" htmlFor="phone">Phone Number</label>
-                                    <input
-                                        id="phone"
-                                        type="tel"
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                        placeholder="+1 234 567 890"
-                                        value={params.phone}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-                            </>
+                        {error && (
+                            <div className="p-4 text-sm text-red-600 bg-red-50 rounded-xl border border-red-100">
+                                {error}
+                            </div>
                         )}
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none" htmlFor="email">{isRegistering ? 'Email Address' : 'User Name / Email'}</label>
-                            <input
-                                id="email"
-                                type="email"
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                placeholder="email@example.com"
-                                value={params.email}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
+                        <form onSubmit={handleSubmit} className="space-y-5">
+                            {isRegistering && (
+                                <>
+                                    <div className="space-y-1.5">
+                                        <label className="text-sm font-medium text-gray-500 ml-1" htmlFor="fullName">Full Name</label>
+                                        <input
+                                            id="fullName"
+                                            type="text"
+                                            className="w-full bg-gray-100 border-none rounded-xl px-5 py-3.5 text-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all outline-none"
+                                            placeholder="John Doe"
+                                            value={params.fullName}
+                                            onChange={handleChange}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-sm font-medium text-gray-500 ml-1" htmlFor="phone">Phone Number</label>
+                                        <input
+                                            id="phone"
+                                            type="tel"
+                                            className="w-full bg-gray-100 border-none rounded-xl px-5 py-3.5 text-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all outline-none"
+                                            placeholder="+1 234 567 890"
+                                            value={params.phone}
+                                            onChange={handleChange}
+                                        />
+                                    </div>
+                                </>
+                            )}
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none" htmlFor="password">Password</label>
-                            <input
-                                id="password"
-                                type="password"
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                placeholder="Password"
-                                value={params.password}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-
-                        {isRegistering && (
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium leading-none" htmlFor="confirmPassword">Confirm Password</label>
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-medium text-gray-500 ml-1" htmlFor="email">
+                                    {isRegistering ? 'Email Address' : 'User Name'}
+                                </label>
                                 <input
-                                    id="confirmPassword"
-                                    type="password"
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                    placeholder="Confirm Password"
-                                    value={params.confirmPassword}
+                                    id="email"
+                                    type="email"
+                                    className="w-full bg-gray-100 border-none rounded-xl px-5 py-3.5 text-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all outline-none"
+                                    placeholder={isRegistering ? "email@example.com" : "User Given Name"}
+                                    value={params.email}
                                     onChange={handleChange}
                                     required
                                 />
                             </div>
-                        )}
 
-                        <button type="submit" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={loading}>
-                            {loading ? 'Processing...' : (isRegistering ? 'Register' : 'Sign In')}
-                        </button>
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-medium text-gray-500 ml-1" htmlFor="password">Password</label>
+                                <input
+                                    id="password"
+                                    type="password"
+                                    className="w-full bg-gray-100 border-none rounded-xl px-5 py-3.5 text-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all outline-none"
+                                    placeholder="Password"
+                                    value={params.password}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </div>
 
-                        <div className="text-center text-sm text-muted-foreground mt-4">
-                            {isRegistering ? 'Already have an account?' : "Don't have an account?"}
-                            <span className="ml-1 font-semibold text-primary cursor-pointer hover:underline" onClick={() => { setIsRegistering(!isRegistering); setError(''); }}>
-                                {isRegistering ? ' Login' : ' Create Account'}
-                            </span>
-                        </div>
-                    </form>
+                            {isRegistering && (
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-medium text-gray-500 ml-1" htmlFor="confirmPassword">Confirm Password</label>
+                                    <input
+                                        id="confirmPassword"
+                                        type="password"
+                                        className="w-full bg-gray-100 border-none rounded-xl px-5 py-3.5 text-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all outline-none"
+                                        placeholder="Confirm Password"
+                                        value={params.confirmPassword}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </div>
+                            )}
+
+                            <div className="pt-2">
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full bg-[#0055A5] hover:bg-[#004485] text-white font-semibold py-3.5 rounded-full transition-all shadow-sm active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                                >
+                                    {loading ? 'Processing...' : (isRegistering ? 'Register' : 'Sign In')}
+                                </button>
+                            </div>
+
+                            <div className="text-center text-sm text-gray-500 mt-6">
+                                {isRegistering ? 'Already have an account?' : "Don't have an account?"}
+                                <button
+                                    type="button"
+                                    className="ml-1.5 text-[#0055A5] font-semibold hover:underline outline-none"
+                                    onClick={() => { setIsRegistering(!isRegistering); setError(''); }}
+                                >
+                                    {isRegistering ? 'Login' : 'Create Account'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>

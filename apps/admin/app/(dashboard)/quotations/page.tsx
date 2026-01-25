@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import RequestDetailsModal from '../../components/RequestDetailsModal';
 
 export default function QuotationsPage() {
     const [quotations, setQuotations] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchQuotations = async () => {
@@ -71,7 +72,12 @@ export default function QuotationsPage() {
                                         </td>
                                         <td className="px-6 py-4 text-zinc-500">{new Date(q.createdAt).toLocaleDateString()}</td>
                                         <td className="px-6 py-4">
-                                            <Link href={`/quotations/${q._id}`} className="text-gray-400 hover:text-sky-700 transition-colors">View Details</Link>
+                                            <button
+                                                onClick={() => setSelectedRequestId(q._id)}
+                                                className="text-gray-400 hover:text-sky-700 transition-colors"
+                                            >
+                                                View Details
+                                            </button>
                                         </td>
                                     </tr>
                                 ))
@@ -80,6 +86,13 @@ export default function QuotationsPage() {
                     </table>
                 </div>
             </div>
+
+            {selectedRequestId && (
+                <RequestDetailsModal
+                    requestId={selectedRequestId}
+                    onClose={() => setSelectedRequestId(null)}
+                />
+            )}
         </div>
     );
 }

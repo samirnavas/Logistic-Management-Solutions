@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+
+import RequestDetailsModal from '../../components/RequestDetailsModal';
 
 export default function RequestsPage() {
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchRequests = async () => {
@@ -29,6 +31,8 @@ export default function RequestsPage() {
         };
         fetchRequests();
     }, []);
+
+
 
     return (
         <div className="flex flex-col gap-6">
@@ -61,7 +65,7 @@ export default function RequestsPage() {
                                 <tr><td colSpan={13} className="px-6 py-8 text-center text-zinc-500">No new requests found.</td></tr>
                             ) : (
                                 requests.map((req, index) => (
-                                    <tr key={req._id} className="hover:bg-gray-50 transition-colors text-zinc-800/80">
+                                    <tr key={req.id} className="hover:bg-gray-50 transition-colors text-zinc-800/80">
                                         <td className="px-6 py-4">#{String(index + 1).padStart(3, '0')}</td>
                                         <td className="px-6 py-4">{req.clientId?.fullName || 'N/A'}</td>
                                         <td className="px-6 py-4">{req.origin?.city || 'N/A'}</td>
@@ -75,11 +79,12 @@ export default function RequestsPage() {
                                         <td className="px-6 py-4">{req.validUntil ? new Date(req.validUntil).toLocaleDateString() : 'N/A'}</td>
                                         <td className="px-6 py-4 text-sky-700 font-medium">New</td>
                                         <td className="px-6 py-4">
-                                            <Link href={`/requests/${req._id}`}>
-                                                <div className="bg-white border border-gray-100 px-4 py-1.5 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer text-xs font-normal text-zinc-800">
-                                                    View
-                                                </div>
-                                            </Link>
+                                            <button
+                                                onClick={() => setSelectedRequestId(req.id)}
+                                                className="bg-white border border-gray-100 px-4 py-1.5 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer text-xs font-normal text-zinc-800"
+                                            >
+                                                View
+                                            </button>
                                         </td>
                                     </tr>
                                 ))
@@ -98,6 +103,16 @@ export default function RequestsPage() {
                     <button className="w-8 h-8 rounded-md hover:bg-gray-100 text-zinc-500 flex items-center justify-center text-sm">68</button>
                 </div>
             </div>
+
+            {selectedRequestId && (
+                <RequestDetailsModal
+                    requestId={selectedRequestId}
+                    onClose={() => setSelectedRequestId(null)}
+                    onStatusChange={() => {
+                        window.location.reload();
+                    }}
+                />
+            )}
         </div>
     );
 }

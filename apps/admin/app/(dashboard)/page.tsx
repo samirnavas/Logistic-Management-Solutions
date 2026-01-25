@@ -5,9 +5,9 @@ import Link from 'next/link';
 import {
     Hourglass,
     CheckCircle,
-    MoreHorizontal,
     ChevronDown,
 } from 'lucide-react';
+import RequestDetailsModal from '../components/RequestDetailsModal';
 
 export default function DashboardPage() {
     const [quotations, setQuotations] = useState<any[]>([]);
@@ -19,25 +19,14 @@ export default function DashboardPage() {
         acceptedQuotations: 0,
     });
     const [loading, setLoading] = useState(true);
-    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-    const menuRef = useRef<HTMLDivElement>(null);
+    const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 8; // Matching screenshot roughly
 
     // Close menu when clicking outside
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-                setOpenMenuId(null);
-            }
-        }
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, []);
+
 
     useEffect(() => {
         const fetchData = async () => {
@@ -258,7 +247,7 @@ export default function DashboardPage() {
                                 </tr>
                             ) : (
                                 paginatedQuotations.map((row, index) => (
-                                    <tr key={row._id || index} className="border-b border-gray-50 hover:bg-gray-50 transition-colors group">
+                                    <tr key={row.id || index} className="border-b border-gray-50 hover:bg-gray-50 transition-colors group">
                                         <td className="px-4 py-4 text-slate-400">
                                             #{String((currentPage - 1) * itemsPerPage + index + 1).padStart(3, '0')}
                                         </td>
@@ -281,33 +270,12 @@ export default function DashboardPage() {
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    setOpenMenuId(openMenuId === row._id ? null : row._id);
+                                                    setSelectedRequestId(row.id);
                                                 }}
-                                                className="text-gray-300 hover:text-blue-600 p-1 rounded-full transition-colors"
+                                                className="text-gray-400 hover:text-blue-600 px-3 py-1 rounded-md text-sm transition-colors border border-transparent hover:border-gray-200 hover:bg-white"
                                             >
-                                                <MoreHorizontal size={18} />
+                                                View
                                             </button>
-
-                                            {/* Dropdown Menu */}
-                                            {openMenuId === row._id && (
-                                                <div
-                                                    ref={menuRef}
-                                                    className="absolute right-8 top-8 z-50 w-32 bg-white rounded-lg shadow-lg border border-gray-100 py-1 animate-in fade-in zoom-in duration-200"
-                                                >
-                                                    <Link
-                                                        href={`/${row.status === 'request_sent' ? 'requests' : 'quotations'}/${row._id}`}
-                                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600"
-                                                    >
-                                                        View
-                                                    </Link>
-                                                    <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
-                                                        Edit
-                                                    </button>
-                                                    <button className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            )}
                                         </td>
                                     </tr>
                                 ))
@@ -338,6 +306,20 @@ export default function DashboardPage() {
                     </div>
                 )}
             </div>
+
+            {/* Request Details Modal */}
+            {selectedRequestId && (
+                <RequestDetailsModal
+                    requestId={selectedRequestId}
+                    onClose={() => setSelectedRequestId(null)}
+                    onStatusChange={() => {
+                        // Refresh data logic could be moved to a reusable function if needed, 
+                        // but effectively checking/re-fetching or relying on optimistic updates is key.
+                        // For now, simpler to just close. The user can manually refresh or we can trigger a refetch.
+                        window.location.reload();
+                    }}
+                />
+            )}
         </div>
     );
 }
