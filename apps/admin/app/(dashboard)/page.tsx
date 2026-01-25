@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
     Hourglass,
@@ -8,10 +8,11 @@ import {
     ChevronDown,
 } from 'lucide-react';
 import RequestDetailsModal from '../components/RequestDetailsModal';
+import { Quotation, QuotationStats } from '../../types';
 
 export default function DashboardPage() {
-    const [quotations, setQuotations] = useState<any[]>([]);
-    const [stats, setStats] = useState({
+    const [quotations, setQuotations] = useState<Quotation[]>([]);
+    const [stats, setStats] = useState<QuotationStats>({
         totalRequests: 0,
         pendingRequests: 0,
         totalQuotations: 0,
@@ -21,58 +22,81 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
+    // Filter State
+    const [statusFilter, setStatusFilter] = useState<string>('');
+    const [showStatusMenu, setShowStatusMenu] = useState(false);
+
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 8; // Matching screenshot roughly
+    const [totalPages, setTotalPages] = useState(1);
+    const itemsPerPage = 8;
 
-    // Close menu when clicking outside
+    const fetchData = useCallback(async (page: number, status: string = '') => {
+        try {
+            setLoading(true);
+            const token = localStorage.getItem('token');
+            const headers = { 'Authorization': `Bearer ${token}` };
 
+            // Build query params
+            const params = new URLSearchParams({
+                page: page.toString(),
+                limit: itemsPerPage.toString(),
+            });
+
+            if (status) {
+                params.append('status', status);
+            }
+
+            // Fetch Quotations with Pagination
+            const resQuotations = await fetch(`/api/quotations?${params.toString()}`, { headers });
+            if (resQuotations.ok) {
+                const data = await resQuotations.json();
+                setQuotations(data.quotations || []);
+                setTotalPages(data.totalPages || 1);
+                setCurrentPage(data.currentPage || 1);
+            }
+
+            // Fetch Stats (Only need to fetch once or on refresh)
+            // Note: Stats usually reflect global state, checking if they should be filtered too?
+            // Usually stats are top-level summaries, so maybe keep them unfiltered or based on separate logic.
+            // For now, keeping them as is (global stats).
+            const resStats = await fetch('/api/quotations/stats', { headers });
+            if (resStats.ok) {
+                const statsData = await resStats.json();
+                setStats(statsData);
+            }
+
+        } catch (error) {
+            console.error("Failed to fetch data", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [itemsPerPage]);
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch('/api/quotations', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                if (res.ok) {
-                    const responseData = await res.json();
-                    const data = responseData.quotations || [];
+        fetchData(currentPage, statusFilter);
+    }, [fetchData, currentPage, statusFilter]);
 
-                    setQuotations(data);
+    // Handle Page Change
+    const handlePageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+            // useEffect will trigger fetch
+        }
+    };
 
-                    // Calculate stats logic
-                    const totalReq = data.length;
-                    const pendingReq = data.filter((q: any) => q.status === 'request_sent').length;
-                    const totalQuot = data.filter((q: any) => q.status !== 'request_sent').length;
-                    const pendingQuot = data.filter((q: any) =>
-                        ['cost_calculated', 'Pending Approval', 'Sent'].includes(q.status)
-                    ).length;
-                    const acceptedQuot = data.filter((q: any) =>
-                        ['Accepted', 'ready_for_pickup', 'shipped', 'delivered'].includes(q.status)
-                    ).length;
+    const handleStatusSelect = (status: string) => {
+        setStatusFilter(status);
+        setCurrentPage(1); // Reset to page 1 on filter change
+        setShowStatusMenu(false);
+    };
 
-                    setStats({
-                        totalRequests: totalReq,
-                        pendingRequests: pendingReq,
-                        totalQuotations: totalQuot,
-                        pendingQuotations: pendingQuot,
-                        acceptedQuotations: acceptedQuot
-                    });
-                }
-            } catch (error) {
-                console.error("Failed to fetch data", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+    const clearFilters = () => {
+        setStatusFilter('');
+        setCurrentPage(1);
+    };
 
-        fetchData();
-    }, []);
-
-    const formatDate = (dateString: string) => {
+    const formatDate = (dateString: string | Date | undefined) => {
         if (!dateString) return '-';
         return new Date(dateString).toLocaleDateString('en-GB', {
             day: '2-digit',
@@ -84,8 +108,8 @@ export default function DashboardPage() {
     const getStatusStyle = (status: string) => {
         const s = status?.toLowerCase() || '';
         if (s === 'new' || s === 'request_sent') return 'text-blue-600 font-medium';
-        if (s === 'pending' || s === 'cost_calculated' || s === 'sent') return 'text-orange-500 font-medium';
-        if (s === 'accepted' || s === 'ready_for_pickup') return 'text-green-600 font-medium';
+        if (s === 'pending' || s === 'cost_calculated' || s === 'sent' || s === 'pending approval') return 'text-orange-500 font-medium';
+        if (s === 'accepted' || s === 'ready_for_pickup' || s === 'approved') return 'text-green-600 font-medium';
         if (s === 'rejected') return 'text-red-600 font-medium';
         return 'text-gray-600';
     };
@@ -94,17 +118,12 @@ export default function DashboardPage() {
         const s = status?.toLowerCase() || '';
         if (s === 'request_sent') return 'New';
         if (s === 'cost_calculated') return 'Pending';
+        if (s === 'pending approval') return 'Pending';
         if (s === 'ready_for_pickup') return 'Accepted';
         if (s === 'sent') return 'Pending';
+        if (s === 'approved') return 'Approved';
         return status;
     };
-
-    // Client-side Pagination Logic
-    const totalPages = Math.ceil(quotations.length / itemsPerPage);
-    const paginatedQuotations = quotations.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    );
 
     // Generate page numbers to display
     const getPageNumbers = () => {
@@ -113,8 +132,6 @@ export default function DashboardPage() {
         if (totalPages <= 7) {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
         } else {
-            // Logic to show ranges like 1 2 3 ... 67 68
-            // Simplified for now: Show current, prev, next, first, last
             if (currentPage <= 4) {
                 pages.push(1, 2, 3, 4, 5, '...', totalPages);
             } else if (currentPage >= totalPages - 3) {
@@ -127,7 +144,7 @@ export default function DashboardPage() {
     };
 
     return (
-        <div className="flex flex-col gap-8 pb-10">
+        <div className="flex flex-col gap-8 pb-10" onClick={() => setShowStatusMenu(false)}>
             {/* Header */}
             <div className="flex justify-between items-end">
                 <h1 className="text-3xl font-semibold text-zinc-800">Dashboard</h1>
@@ -201,7 +218,15 @@ export default function DashboardPage() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
 
                 {/* Filters */}
-                <div className="flex justify-end gap-4 mb-6">
+                <div className="flex justify-end gap-4 mb-6 relative">
+                    {statusFilter && (
+                        <button
+                            onClick={clearFilters}
+                            className="text-sm text-red-500 hover:text-red-700 font-medium"
+                        >
+                            Clear Filters
+                        </button>
+                    )}
                     <button className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors">
                         <span className="opacity-70">Date</span>
                         <ChevronDown size={14} />
@@ -210,10 +235,43 @@ export default function DashboardPage() {
                         <span className="opacity-70">Delivery Type</span>
                         <ChevronDown size={14} />
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors">
-                        <span className="opacity-70">Status</span>
-                        <ChevronDown size={14} />
-                    </button>
+
+                    <div className="relative">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowStatusMenu(!showStatusMenu);
+                            }}
+                            className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm transition-colors ${statusFilter ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}
+                        >
+                            <span className="opacity-70">{statusFilter ? getStatusLabel(statusFilter) : 'Status'}</span>
+                            <ChevronDown size={14} />
+                        </button>
+
+                        {/* Status Dropdown */}
+                        {showStatusMenu && (
+                            <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
+                                <button
+                                    onClick={() => handleStatusSelect('request_sent')}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                >
+                                    New
+                                </button>
+                                <button
+                                    onClick={() => handleStatusSelect('cost_calculated')}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                >
+                                    Pending
+                                </button>
+                                <button
+                                    onClick={() => handleStatusSelect('ready_for_pickup')}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                >
+                                    Accepted
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Table */}
@@ -241,23 +299,31 @@ export default function DashboardPage() {
                                 <tr>
                                     <td colSpan={13} className="px-4 py-8 text-center text-slate-400">Loading data...</td>
                                 </tr>
-                            ) : paginatedQuotations.length === 0 ? (
+                            ) : quotations.length === 0 ? (
                                 <tr>
                                     <td colSpan={13} className="px-4 py-8 text-center text-slate-400">No records found</td>
                                 </tr>
                             ) : (
-                                paginatedQuotations.map((row, index) => (
-                                    <tr key={row.id || index} className="border-b border-gray-50 hover:bg-gray-50 transition-colors group">
+                                quotations.map((row, index) => (
+                                    <tr key={row._id || row.id || index} className="border-b border-gray-50 hover:bg-gray-50 transition-colors group">
                                         <td className="px-4 py-4 text-slate-400">
                                             #{String((currentPage - 1) * itemsPerPage + index + 1).padStart(3, '0')}
                                         </td>
-                                        <td className="px-4 py-4 font-medium text-slate-700">{row.clientId?.fullName || 'Unknown'}</td>
+                                        <td className="px-4 py-4 font-medium text-slate-700">
+                                            {typeof row.clientId === 'object' && row.clientId !== null && 'fullName' in row.clientId
+                                                ? (row.clientId as any).fullName
+                                                : 'Unknown'}
+                                        </td>
                                         <td className="px-4 py-4 text-slate-500">{row.origin?.city || '-'}</td>
-                                        <td className="px-4 py-4 text-slate-500 text-xs">{row.origin?.phone || row.clientId?.phone || '-'}</td>
+                                        <td className="px-4 py-4 text-slate-500 text-xs text-nowrap">
+                                            {typeof row.clientId === 'object' && row.clientId !== null && 'phone' in row.clientId
+                                                ? (row.clientId as any).phone
+                                                : row.origin?.phone || '-'}
+                                        </td>
                                         <td className="px-4 py-4 text-slate-500 text-xs">{row.serviceType || 'Standard'}</td>
-                                        <td className="px-4 py-4 text-center">{row.items?.reduce((a: number, b: any) => a + (b.quantity || 0), 0) || 0}</td>
-                                        <td className="px-4 py-4 text-center">{row.cbm || '-'}</td>
-                                        <td className="px-4 py-4 text-center">{row.weight || '-'}</td>
+                                        <td className="px-4 py-4 text-center">{row.items?.reduce((a, b) => a + (b.quantity || 0), 0) || 0}</td>
+                                        <td className="px-4 py-4 text-center">{'-'}</td>
+                                        <td className="px-4 py-4 text-center">{'-'}</td>
                                         <td className="px-4 py-4 text-slate-500">{row.destination?.city || '-'}</td>
                                         <td className="px-4 py-4 text-xs">{row.quotationId?.split('-').pop() || row.quotationNumber?.slice(-6) || 'N/A'}</td>
                                         <td className="px-4 py-4 text-xs whitespace-nowrap">{row.validUntil ? formatDate(row.validUntil) : '-'}</td>
@@ -270,7 +336,7 @@ export default function DashboardPage() {
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    setSelectedRequestId(row.id);
+                                                    setSelectedRequestId(row._id || row.id);
                                                 }}
                                                 className="text-gray-400 hover:text-blue-600 px-3 py-1 rounded-md text-sm transition-colors border border-transparent hover:border-gray-200 hover:bg-white"
                                             >
@@ -291,7 +357,7 @@ export default function DashboardPage() {
                             <button
                                 key={idx}
                                 disabled={page === '...'}
-                                onClick={() => typeof page === 'number' && setCurrentPage(page)}
+                                onClick={() => typeof page === 'number' && handlePageChange(page)}
                                 className={`w-8 h-8 flex items-center justify-center rounded text-sm transition-colors
                                     ${page === currentPage
                                         ? 'bg-blue-700 text-white font-medium'
@@ -313,10 +379,8 @@ export default function DashboardPage() {
                     requestId={selectedRequestId}
                     onClose={() => setSelectedRequestId(null)}
                     onStatusChange={() => {
-                        // Refresh data logic could be moved to a reusable function if needed, 
-                        // but effectively checking/re-fetching or relying on optimistic updates is key.
-                        // For now, simpler to just close. The user can manually refresh or we can trigger a refetch.
-                        window.location.reload();
+                        fetchData(currentPage, statusFilter);
+                        setSelectedRequestId(null);
                     }}
                 />
             )}

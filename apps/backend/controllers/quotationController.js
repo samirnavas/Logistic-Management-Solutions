@@ -6,7 +6,7 @@ const Notification = require('../models/Notification');
 // ============================================
 exports.getAllQuotations = async (req, res) => {
     try {
-        const { status, page = 1, limit = 20 } = req.query;
+        const { status, page = 1, limit = 10 } = req.query;
         const skip = (page - 1) * limit;
 
         const query = {};
@@ -26,13 +26,9 @@ exports.getAllQuotations = async (req, res) => {
 
         res.json({
             quotations,
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                total,
-                totalPages: Math.ceil(total / limit),
-                hasMore: skip + quotations.length < total,
-            }
+            totalCount: total,
+            totalPages: Math.ceil(total / limit),
+            currentPage: parseInt(page)
         });
     } catch (error) {
         console.error('Get All Quotations Error:', error);
@@ -452,5 +448,52 @@ exports.confirmAddress = async (req, res) => {
     } catch (error) {
         console.error('Confirm Address Error:', error);
         res.status(500).json({ message: 'Failed to confirm address', error: error.message });
+    }
+};
+
+// ============================================
+// Get Quotation Stats
+// ============================================
+exports.getQuotationStats = async (req, res) => {
+    try {
+        const stats = await Quotation.aggregate([
+            {
+                $facet: {
+                    totalRequests: [
+                        { $count: "count" }
+                    ],
+                    pendingRequests: [
+                        { $match: { status: 'request_sent' } },
+                        { $count: "count" }
+                    ],
+                    totalQuotations: [
+                        { $match: { status: { $ne: 'request_sent' } } },
+                        { $count: "count" }
+                    ],
+                    pendingQuotations: [
+                        { $match: { status: { $in: ['cost_calculated', 'Pending Approval', 'Sent'] } } },
+                        { $count: "count" }
+                    ],
+                    acceptedQuotations: [
+                        { $match: { status: { $in: ['Accepted', 'ready_for_pickup', 'shipped', 'delivered'] } } },
+                        { $count: "count" }
+                    ]
+                }
+            },
+            {
+                $project: {
+                    totalRequests: { $ifNull: [{ $arrayElemAt: ["$totalRequests.count", 0] }, 0] },
+                    pendingRequests: { $ifNull: [{ $arrayElemAt: ["$pendingRequests.count", 0] }, 0] },
+                    totalQuotations: { $ifNull: [{ $arrayElemAt: ["$totalQuotations.count", 0] }, 0] },
+                    pendingQuotations: { $ifNull: [{ $arrayElemAt: ["$pendingQuotations.count", 0] }, 0] },
+                    acceptedQuotations: { $ifNull: [{ $arrayElemAt: ["$acceptedQuotations.count", 0] }, 0] }
+                }
+            }
+        ]);
+
+        res.json(stats[0]);
+    } catch (error) {
+        console.error('Get Quotation Stats Error:', error);
+        res.status(500).json({ message: 'Failed to fetch quotation statistics', error: error.message });
     }
 };

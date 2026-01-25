@@ -14,6 +14,9 @@ router.post('/', protect, quotationController.createQuotation);
 // Get all quotations (manager view)
 router.get('/', quotationController.getAllQuotations);
 
+// Get quotation stats
+router.get('/stats', quotationController.getQuotationStats);
+
 // Update quotation
 router.put('/:id', quotationController.updateQuotation);
 
