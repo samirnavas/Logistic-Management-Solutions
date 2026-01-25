@@ -12,7 +12,8 @@ import {
     Settings,
     Search,
     Bell,
-    Menu
+    Menu,
+    BarChart3
 } from 'lucide-react';
 
 const MENU_ITEMS = [
@@ -21,6 +22,8 @@ const MENU_ITEMS = [
     { name: 'Quotations', path: '/quotations', icon: Package },
     { name: 'Deliveries', path: '/deliveries', icon: Truck },
     { name: 'Customers', path: '/users', icon: Users },
+    { name: 'Reports', path: '/reports', icon: BarChart3 },
+    { name: 'Settings & Roles', path: '/settings', icon: Settings },
 ];
 
 export default function DashboardLayout({
@@ -73,8 +76,8 @@ export default function DashboardLayout({
                                 key={item.path}
                                 href={item.path}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                                        ? 'bg-sky-700 text-white shadow-md shadow-sky-700/20'
-                                        : 'text-zinc-500 hover:bg-gray-50 hover:text-zinc-800'
+                                    ? 'bg-sky-700 text-white shadow-md shadow-sky-700/20'
+                                    : 'text-zinc-500 hover:bg-gray-50 hover:text-zinc-800'
                                     }`}
                             >
                                 <Icon size={20} />

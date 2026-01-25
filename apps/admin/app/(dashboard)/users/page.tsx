@@ -1,21 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import styles from '../dashboard.module.css';
 
 export default function UsersPage() {
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // In a real app, I'd need an admin endpoint to list users.
-        // The backend route: router.get('/', protect, authorize('admin'), userController.getAllUsers);
-        // This seems to exist in userRoutes.js? 
-        // Wait, let me check userRoutes.js content again or assume standard REST.
-        // I read `server.js` which mounts `app.use('/api/users', userRoutes);`
-        // I didn't read `userRoutes.js` content fully?
-        // Let's assume GET /api/users lists users if admin.
-
         const fetchUsers = async () => {
             try {
                 const token = localStorage.getItem('token');
@@ -38,50 +29,50 @@ export default function UsersPage() {
     }, []);
 
     const toggleStatus = async (userId: string, currentStatus: boolean) => {
-        // Implementation depends on backend support for updates.
-        // Assuming PUT /api/users/:id or PATCH /api/users/:id/status
-        // I'll leave as placeholder or try standard update.
+        // Implementation placeholder
         alert("Toggle status functionality would go here.");
     };
 
     return (
-        <div className={styles.pageContainer}>
-            <h1 className={styles.title}>Customer Management</h1>
+        <div className="flex flex-col gap-8">
+            <h1 className="text-2xl font-semibold text-zinc-800">Customers</h1>
 
-            <div className={styles.tableSection}>
-                <div className={styles.tableWrapper}>
-                    <table className={styles.table}>
-                        <thead>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm text-gray-600">
+                        <thead className="bg-gray-50 text-xs uppercase font-semibold text-gray-500">
                             <tr>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Code</th>
-                                <th>Role</th>
-                                <th>Status</th>
-                                <th>Joined Date</th>
-                                <th>Action</th>
+                                <th className="px-6 py-4">Name</th>
+                                <th className="px-6 py-4">Email</th>
+                                <th className="px-6 py-4">Code</th>
+                                <th className="px-6 py-4">Status</th>
+                                <th className="px-6 py-4">Joined Date</th>
+                                <th className="px-6 py-4">Action</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-gray-100">
                             {loading ? (
-                                <tr><td colSpan={7}>Loading...</td></tr>
+                                <tr><td colSpan={6} className="px-6 py-8 text-center text-zinc-500">Loading...</td></tr>
                             ) : users.length === 0 ? (
-                                <tr><td colSpan={7}>No users found.</td></tr>
+                                <tr><td colSpan={6} className="px-6 py-8 text-center text-zinc-500">No users found.</td></tr>
                             ) : (
                                 users.map((user) => (
-                                    <tr key={user._id}>
-                                        <td>{user.fullName}</td>
-                                        <td>{user.email}</td>
-                                        <td>{user.customerCode || 'N/A'}</td>
-                                        <td>{user.role}</td>
-                                        <td>
-                                            <span className={`${styles.statusBadge} ${user.isActive ? styles.statusAccepted : styles.statusRejected}`}>
+                                    <tr key={user._id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4 text-zinc-800 font-medium">{user.fullName}</td>
+                                        <td className="px-6 py-4">{user.email}</td>
+                                        <td className="px-6 py-4 font-mono text-xs">{user.customerCode || 'N/A'}</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-3 py-1 rounded-full text-xs font-medium 
+                                                ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                                 {user.isActive ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
-                                        <td>{new Date(user.createdAt).toLocaleDateString()}</td>
-                                        <td>
-                                            <button className={styles.actionBtn} onClick={() => toggleStatus(user._id, user.isActive)}>
+                                        <td className="px-6 py-4 text-zinc-500">{new Date(user.createdAt).toLocaleDateString()}</td>
+                                        <td className="px-6 py-4">
+                                            <button
+                                                className="text-sky-700 hover:underline text-sm font-medium"
+                                                onClick={() => toggleStatus(user._id, user.isActive)}
+                                            >
                                                 {user.isActive ? 'Deactivate' : 'Activate'}
                                             </button>
                                         </td>
