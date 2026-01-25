@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, useState, use } from 'react'; // Added 'use'
+import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
-import styles from './request-details.module.css';
 
 export default function RequestDetailsPage({ params }: { params: Promise<{ id: string }> }) {
-    const resolvedParams = use(params); // Unwrap params
+    const resolvedParams = use(params);
     const { id } = resolvedParams;
     const [request, setRequest] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -15,7 +14,7 @@ export default function RequestDetailsPage({ params }: { params: Promise<{ id: s
     // Quotation Form State
     const [quoteData, setQuoteData] = useState({
         price: '',
-        taxRate: '10', // Default 10%
+        taxRate: '10',
         notes: '',
         validUntil: ''
     });
@@ -44,23 +43,16 @@ export default function RequestDetailsPage({ params }: { params: Promise<{ id: s
         e.preventDefault();
         try {
             const token = localStorage.getItem('token');
-            // We are updating the existing quotation (which was in 'request_sent' status)
-            // to add price and change status to 'Approved' (since Manager creates it, it's effectively approved/sent)
-
             const payload = {
                 items: [{
                     description: 'Freight Charges',
                     amount: Number(quoteData.price)
                 }],
                 taxRate: Number(quoteData.taxRate),
-                validUntil: quoteData.validUntil || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default 7 days
+                validUntil: quoteData.validUntil || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
                 internalNotes: quoteData.notes,
-                // Status should be updated by backend or explicitly set
-                // The endpoint PUT /:id updates it.
-                // We also need to approve it.
             };
 
-            // 1. Update the quotation details
             const updateRes = await fetch(`/api/quotations/${id}`, {
                 method: 'PUT',
                 headers: {
@@ -72,15 +64,13 @@ export default function RequestDetailsPage({ params }: { params: Promise<{ id: s
 
             if (!updateRes.ok) throw new Error('Failed to update quotation details');
 
-            // 2. Approve it (this sets status to 'Approved')
             const approveRes = await fetch(`/api/quotations/${id}/approve`, {
-                method: 'PATCH', // It's PATCH in routes
+                method: 'PATCH',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
             if (!approveRes.ok) throw new Error('Failed to approve quotation');
 
-            // 3. Send it (sets status to 'Sent')
             const sendRes = await fetch(`/api/quotations/${id}/send`, {
                 method: 'PATCH',
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -97,122 +87,191 @@ export default function RequestDetailsPage({ params }: { params: Promise<{ id: s
         }
     };
 
-    if (loading) return <div className="p-8">Loading...</div>;
-    if (!request) return <div className="p-8">Request not found</div>;
+    if (loading) return <div className="p-8 text-center text-zinc-500">Loading details...</div>;
+    if (!request) return <div className="p-8 text-center text-zinc-500">Request not found</div>;
 
     return (
-        <div className={styles.detailsContainer}>
-            <div className={styles.header}>
-                <div>
-                    <span className={styles.label}>Request ID</span>
-                    <h1>{request.quotationId}</h1>
-                </div>
-                <div className={styles.statusTag}>{request.status}</div>
-            </div>
+        <div className="flex justify-center items-start min-h-screen p-8 bg-neutral-100">
+            {/* Main Card mimicking the Modal Design */}
+            <div className="w-[893px] bg-white rounded-lg shadow-sm relative p-8">
 
-            <div className={styles.section}>
-                <h2 className={styles.sectionTitle}>Customer Information</h2>
-                <div className={styles.grid}>
-                    <div className={styles.field}>
-                        <span className={styles.label}>Name</span>
-                        <div className={styles.value}>{request.clientId?.fullName}</div>
-                    </div>
-                    <div className={styles.field}>
-                        <span className={styles.label}>Email</span>
-                        <div className={styles.value}>{request.clientId?.email}</div>
-                    </div>
-                    <div className={styles.field}>
-                        <span className={styles.label}>Customer Code</span>
-                        <div className={styles.value}>{request.clientId?.customerCode || 'N/A'}</div>
+                {/* Close/Back Button (Optional standard UI practice) */}
+                <button onClick={() => router.back()} className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600">
+                    ✕
+                </button>
+
+                {/* Header Section */}
+                <div className="flex justify-between items-start mb-8">
+                    <h1 className="text-xl font-medium text-zinc-800">Request Detail</h1>
+                    <div className="flex gap-4">
+                        <div className="bg-slate-200 px-4 py-1.5 rounded-2xl text-sky-700 text-sm font-medium">
+                            ID : {request.quotationId}
+                        </div>
+                        <div className="bg-slate-200 px-4 py-1.5 rounded-2xl text-sky-700 text-sm font-medium">
+                            Status : {request.status === 'request_sent' ? 'New' : request.status}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div className={styles.section}>
-                <h2 className={styles.sectionTitle}>Delivery Details</h2>
-                <div className={styles.grid}>
-                    <div className={styles.field}>
-                        <span className={styles.label}>Origin</span>
-                        <div className={styles.value}>{request.origin?.city}, {request.origin?.country}</div>
+                <div className="flex gap-8">
+                    {/* Left Column: Customer Info */}
+                    <div className="flex-1 bg-white rounded-lg shadow-[3px_3px_12px_0px_rgba(0,0,0,0.15)] p-6 h-96 relative">
+                        <h2 className="text-lg font-medium text-zinc-800 mb-6">Customer Information</h2>
+
+                        <div className="space-y-4">
+                            <div className="flex justify-between">
+                                <span className="text-zinc-500 text-sm">Name</span>
+                                <span className="text-zinc-800 text-sm font-medium">{request.clientId?.fullName}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-zinc-500 text-sm">Email</span>
+                                <span className="text-zinc-800 text-sm font-medium">{request.clientId?.email}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-zinc-500 text-sm">Mobile Number</span>
+                                <span className="text-zinc-800 text-sm font-medium">{request.clientId?.phone || request.origin?.phone || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between items-start">
+                                <span className="text-zinc-500 text-sm">Address</span>
+                                <span className="text-zinc-800 text-sm font-medium text-right max-w-[150px]">
+                                    {request.origin?.addressLine || '123, Street Name'},<br />
+                                    {request.origin?.city}, {request.origin?.state}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-zinc-500 text-sm">Location</span>
+                                <span className="text-zinc-800 text-sm font-medium">{request.origin?.city}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div className={styles.field}>
-                        <span className={styles.label}>Destination</span>
-                        <div className={styles.value}>{request.destination?.city}, {request.destination?.country}</div>
-                    </div>
-                    <div className={styles.field}>
-                        <span className={styles.label}>Cargo Type</span>
-                        <div className={styles.value}>{request.cargoType}</div>
-                    </div>
-                    <div className={styles.field}>
-                        <span className={styles.label}>Service Type</span>
-                        <div className={styles.value}>{request.serviceType}</div>
+
+                    {/* Right Column: Product & Delivery Details */}
+                    <div className="flex-1 bg-white rounded-lg shadow-[3px_3px_12px_0px_rgba(0,0,0,0.15)] p-6 h-96 overflow-y-auto">
+                        <h2 className="text-lg font-medium text-zinc-800 mb-6">Product & Delivery Details</h2>
+
+                        <div className="space-y-4">
+                            {/* Images Row */}
+                            {request.productPhotos?.length > 0 && (
+                                <div className="flex gap-4 mb-4">
+                                    {request.productPhotos.map((photo: string, i: number) => (
+                                        <img key={i} src={photo} alt="Product" className="w-16 h-16 rounded-lg object-cover" />
+                                    ))}
+                                </div>
+                            )}
+
+                            <div className="flex justify-between">
+                                <span className="text-zinc-500 text-sm">Product Name</span>
+                                <span className="text-zinc-800 text-sm font-medium">{request.cargoType}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-zinc-500 text-sm">Number of Boxes</span>
+                                <span className="text-zinc-800 text-sm font-medium">
+                                    {request.items?.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0) || 0}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-zinc-500 text-sm">Packaging Type</span>
+                                <span className="text-zinc-800 text-sm font-medium">Secure Box</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-zinc-500 text-sm">Pickup Location</span>
+                                <span className="text-zinc-800 text-sm font-medium">{request.origin?.city}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-zinc-500 text-sm">Delivery Location</span>
+                                <span className="text-zinc-800 text-sm font-medium">{request.destination?.city}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-zinc-500 text-sm">Mode</span>
+                                <span className="text-zinc-800 text-sm font-medium">{request.serviceType}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-zinc-500 text-sm">Expected Delivery Timeline</span>
+                                <span className="text-zinc-800 text-sm font-medium">3-4 Business Days</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-zinc-500 text-sm">Special Instructions</span>
+                                <span className="text-zinc-800 text-sm font-medium text-right">{request.specialInstructions || 'None'}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                {/* Photos */}
-                {request.productPhotos?.length > 0 && (
-                    <div className={styles.photos}>
-                        {request.productPhotos.map((photo: string, index: number) => (
-                            <div key={index} className={styles.photo} style={{ backgroundImage: `url(${photo})` }} />
-                        ))}
-                    </div>
-                )}
+
+                {/* Footer Buttons */}
+                <div className="mt-8 flex justify-center gap-6">
+                    {request.status === 'request_sent' && (
+                        <button
+                            onClick={() => setShowQuoteForm(true)}
+                            className="bg-sky-700 text-white px-8 py-2.5 rounded-full text-sm font-normal hover:bg-sky-800 transition-colors"
+                        >
+                            Create Quotation
+                        </button>
+                    )}
+                    <button className="border border-sky-700 text-sky-700 px-8 py-2.5 rounded-full text-sm font-normal hover:bg-sky-50 transition-colors">
+                        Add Internal Notes
+                    </button>
+                </div>
             </div>
 
-            <div className={styles.actions}>
-                <button className={styles.btnSecondary} onClick={() => router.back()}>Back</button>
-                {request.status === 'request_sent' && (
-                    <button className={styles.btnPrimary} onClick={() => setShowQuoteForm(true)}>Create Quotation</button>
-                )}
-            </div>
-
-            {/* Quotation Modal */}
+            {/* Quotation Form Modal (Overlay) */}
             {showQuoteForm && (
-                <div className={styles.modalOverlay}>
-                    <div className={styles.modalContent}>
-                        <h2 className={styles.sectionTitle}>Create Quotation</h2>
-                        <form onSubmit={handleCreateQuotation}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Base Price (Freight)</label>
+                <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+                    <div className="bg-white rounded-xl w-[500px] p-8 shadow-xl">
+                        <h2 className="text-xl font-semibold mb-6 text-zinc-800">Generate Quotation</h2>
+                        <form onSubmit={handleCreateQuotation} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Freight Charges (Price)</label>
                                 <input
                                     type="number"
-                                    className={styles.input}
                                     required
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-700/20 outline-none"
                                     value={quoteData.price}
                                     onChange={(e) => setQuoteData({ ...quoteData, price: e.target.value })}
                                 />
                             </div>
-                            <div className={styles.row}>
-                                <div className={styles.formGroup} style={{ flex: 1 }}>
-                                    <label className={styles.label}>Tax Rate (%)</label>
+                            <div className="flex gap-4">
+                                <div className="flex-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate (%)</label>
                                     <input
                                         type="number"
-                                        className={styles.input}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-700/20 outline-none"
                                         value={quoteData.taxRate}
                                         onChange={(e) => setQuoteData({ ...quoteData, taxRate: e.target.value })}
                                     />
                                 </div>
-                                <div className={styles.formGroup} style={{ flex: 1 }}>
-                                    <label className={styles.label}>Valid Until</label>
+                                <div className="flex-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Valid Until</label>
                                     <input
                                         type="date"
-                                        className={styles.input}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-700/20 outline-none"
                                         value={quoteData.validUntil}
                                         onChange={(e) => setQuoteData({ ...quoteData, validUntil: e.target.value })}
                                     />
                                 </div>
                             </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Internal Notes</label>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Internal Notes</label>
                                 <textarea
-                                    className={styles.input}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-700/20 outline-none"
                                     rows={3}
                                     value={quoteData.notes}
                                     onChange={(e) => setQuoteData({ ...quoteData, notes: e.target.value })}
                                 />
                             </div>
-                            <div className={styles.actions}>
-                                <button type="button" className={styles.btnSecondary} onClick={() => setShowQuoteForm(false)}>Cancel</button>
-                                <button type="submit" className={styles.btnPrimary}>Send Quotation</button>
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button
+                                    type="button"
+                                    className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+                                    onClick={() => setShowQuoteForm(false)}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 text-sm bg-sky-700 text-white rounded-lg hover:bg-sky-800"
+                                >
+                                    Send Quotation
+                                </button>
                             </div>
                         </form>
                     </div>
