@@ -91,13 +91,13 @@ export default function LoginPage() {
         <div className="flex min-h-screen bg-background">
             {/* Left Side - Image/Hero */}
             <div className="hidden lg:flex flex-1 relative bg-muted items-center justify-center overflow-hidden">
-                <div className="absolute inset-0 bg-black/50 z-10 flex flex-col justify-end p-12 text-white">
+                <div className="absolute inset-0 bg-black/30 z-10 flex flex-col justify-end p-12 text-white">
                     <div className="mb-4">
-                        <h1 className="text-5xl font-bold leading-tight">Manage Requests.<br />Send Quotations.<br />Deliver Faster.</h1>
+                        <h1 className="text-4xl font-bold leading-tight drop-shadow-lg">Manage Requests.<br />Send Quotations.<br />Deliver Faster.</h1>
                     </div>
                 </div>
                 <div className="absolute inset-0 z-0 bg-cover bg-center" style={{
-                    backgroundImage: 'url("https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=2070&auto=format&fit=crop")',
+                    backgroundImage: 'url("/login_side.png")',
                 }} />
             </div>
 
@@ -105,7 +105,16 @@ export default function LoginPage() {
             <div className="flex-1 flex flex-col justify-center items-center p-8 max-w-full lg:max-w-xl">
                 <div className="w-full max-w-sm space-y-8">
                     <div className="text-center">
-                        <h2 className="text-3xl font-bold text-primary">B&B<br /><span className="text-sm text-emerald-500">INTERNATIONAL</span></h2>
+                        <div className="flex justify-center mb-6">
+                            <Image
+                                src="/bb_logo.png"
+                                alt="B&B International"
+                                width={400}
+                                height={160}
+                                className="w-auto h-50 object-contain"
+                                priority
+                            />
+                        </div>
                         <h2 className="mt-6 text-2xl font-semibold tracking-tight text-gray-900">{isRegistering ? 'Create Admin Account' : 'Log In'}</h2>
                     </div>
 
