@@ -3,34 +3,24 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import styles from './dashboard-layout.module.css';
-
-// Generic Icon Component
-const Icon = ({ path }: { path: string }) => (
-    <svg className={styles.icon} viewBox="0 0 24 24">
-        <path d={path} />
-    </svg>
-);
-
-const Icons = {
-    Dashboard: "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10",
-    Requests: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8",
-    Quotations: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
-    Deliveries: "M1 3h15v13H1z M16 8h4l3 3v5h-7V8z M5.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z M18.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z",
-    Users: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75",
-    Settings: "M12.22 2h-.44a2 2 0 0 1-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73v.18a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
-    Search: "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M21 21l-4.35-4.35",
-    Bell: "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0"
-};
+import {
+    LayoutDashboard,
+    FileText,
+    Package,
+    Truck,
+    Users,
+    Settings,
+    Search,
+    Bell,
+    Menu
+} from 'lucide-react';
 
 const MENU_ITEMS = [
-    { name: 'Dashboard', path: '/', icon: Icons.Dashboard },
-    { name: 'Quotation Requests', path: '/requests', icon: Icons.Requests },
-    { name: 'Quotations', path: '/quotations', icon: Icons.Quotations },
-    { name: 'Deliveries', path: '/deliveries', icon: Icons.Deliveries }, // Might need to be 'Shipments'
-    { name: 'Customers', path: '/users', icon: Icons.Users },
-    // { name: 'Reports', path: '/reports', icon: Icons.Requests }, 
-    // { name: 'Settings', path: '/settings', icon: Icons.Settings },
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { name: 'Quotation Requests', path: '/requests', icon: FileText },
+    { name: 'Quotations', path: '/quotations', icon: Package },
+    { name: 'Deliveries', path: '/deliveries', icon: Truck },
+    { name: 'Customers', path: '/users', icon: Users },
 ];
 
 export default function DashboardLayout({
@@ -59,64 +49,70 @@ export default function DashboardLayout({
         }
     }, [router]);
 
-    if (!user) return null; // Or generic loading spinner
+    // Determine Page Title
+    const currentItem = MENU_ITEMS.find(item => item.path === pathname) ||
+        MENU_ITEMS.find(item => item.path !== '/' && pathname.startsWith(item.path));
+    const pageTitle = currentItem ? currentItem.name : 'Dashboard';
+
+    if (!user) return null;
 
     return (
-        <div className={styles.container}>
-            {/* Sidebar */}
-            <aside className={styles.sidebar}>
-                <div className={styles.logo}>
-                    <div>
-                        <h2>B&B</h2>
-                        <span>INTERNATIONAL</span>
-                    </div>
+        <div className="flex h-screen bg-neutral-100 font-sans text-slate-800">
+            {/* --- Sidebar --- */}
+            <aside className="w-64 bg-white flex-shrink-0 border-r border-gray-200 hidden md:flex flex-col">
+                <div className="h-20 flex items-center px-8 border-b border-gray-100">
+                    <span className="text-xl font-bold text-sky-700">LOGISTICS</span>
                 </div>
 
-                <nav className={styles.nav}>
+                <nav className="flex-1 px-4 py-6 space-y-2">
                     {MENU_ITEMS.map((item) => {
                         const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
+                        const Icon = item.icon;
                         return (
                             <Link
                                 key={item.path}
                                 href={item.path}
-                                className={`${styles.navItem} ${isActive ? styles.activeNavItem : ''}`}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
+                                        ? 'bg-sky-700 text-white shadow-md shadow-sky-700/20'
+                                        : 'text-zinc-500 hover:bg-gray-50 hover:text-zinc-800'
+                                    }`}
                             >
-                                <Icon path={item.icon} />
-                                <span>{item.name}</span>
+                                <Icon size={20} />
+                                <span className="text-sm font-medium">{item.name}</span>
                             </Link>
                         );
                     })}
                 </nav>
             </aside>
 
-            {/* Main Content */}
-            <div className={styles.mainWrapper}>
+            {/* --- Main Content --- */}
+            <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Header */}
-                <header className={styles.header}>
-                    <div className={styles.searchBar}>
-                        <Icon path={Icons.Search} />
-                        <input
-                            type="text"
-                            placeholder="Search here..."
-                            className={styles.searchInput}
-                        />
-                    </div>
-
-                    <div className={styles.headerActions}>
-                        <button title="Notifications">
-                            <Icon path={Icons.Bell} />
-                        </button>
-                        <div className={styles.userProfile}>
-                            <div className={styles.avatar}>
-                                {user.fullName.charAt(0).toUpperCase()}
+                <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-8">
+                    <h1 className="text-2xl font-semibold text-zinc-800">{pageTitle}</h1>
+                    <div className="flex items-center gap-4">
+                        {/* Search Placeholder */}
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Search here..."
+                                className="pl-4 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-700/20"
+                            />
+                            <div className="absolute right-3 top-2.5 text-gray-400">
+                                <Search size={16} />
                             </div>
-                            {/* Could show name, dropdown, etc */}
+                        </div>
+                        <button className="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100">
+                            <Bell size={20} />
+                        </button>
+                        <div className="w-10 h-10 bg-sky-100 rounded-full flex items-center justify-center text-sky-700 font-bold border border-sky-200">
+                            {user?.fullName?.charAt(0).toUpperCase() || 'U'}
                         </div>
                     </div>
                 </header>
 
-                {/* Page Content */}
-                <main className={styles.content}>
+                {/* Content Area */}
+                <main className="flex-1 overflow-y-auto p-8">
                     {children}
                 </main>
             </div>

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import styles from '../dashboard.module.css'; // Reusing dashboard styles for consistency
 
 export default function RequestsPage() {
     const [requests, setRequests] = useState<any[]>([]);
@@ -33,43 +32,43 @@ export default function RequestsPage() {
     }, []);
 
     return (
-        <div className={styles.pageContainer}>
-            <h1 className={styles.title}>Quotation Requests</h1>
+        <div className="flex flex-col gap-8">
+            <h1 className="text-2xl font-semibold text-foreground">Quotation Requests</h1>
 
-            <div className={styles.tableSection}>
-                <div className={styles.tableWrapper}>
-                    <table className={styles.table}>
-                        <thead>
+            <div className="bg-card rounded-lg shadow-sm border overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead className="bg-muted/50 text-muted-foreground">
                             <tr>
-                                <th>SI No.</th>
-                                <th>Name</th>
-                                <th>Location</th>
-                                <th>Destination</th>
-                                <th>Request #</th>
-                                <th>Date</th>
-                                <th>Status</th>
-                                <th>Action</th>
+                                <th className="px-4 py-3 text-left font-medium">SI No.</th>
+                                <th className="px-4 py-3 text-left font-medium">Name</th>
+                                <th className="px-4 py-3 text-left font-medium">Location</th>
+                                <th className="px-4 py-3 text-left font-medium">Destination</th>
+                                <th className="px-4 py-3 text-left font-medium">Request #</th>
+                                <th className="px-4 py-3 text-left font-medium">Date</th>
+                                <th className="px-4 py-3 text-left font-medium">Status</th>
+                                <th className="px-4 py-3 text-left font-medium">Action</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y">
                             {loading ? (
-                                <tr><td colSpan={8}>Loading...</td></tr>
+                                <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>
                             ) : requests.length === 0 ? (
-                                <tr><td colSpan={8}>No new requests found.</td></tr>
+                                <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">No new requests found.</td></tr>
                             ) : (
                                 requests.map((req, index) => (
-                                    <tr key={req._id}>
-                                        <td>#{String(index + 1).padStart(3, '0')}</td>
-                                        <td>{req.clientId?.fullName}</td>
-                                        <td>{req.origin?.city}</td>
-                                        <td>{req.destination?.city}</td>
-                                        <td>{req.quotationId}</td>
-                                        <td>{new Date(req.createdAt).toLocaleDateString()}</td>
-                                        <td>
-                                            <span className={`${styles.statusBadge} ${styles.statusNew}`}>New</span>
+                                    <tr key={req._id} className="hover:bg-muted/50 transition-colors">
+                                        <td className="px-4 py-3">#{String(index + 1).padStart(3, '0')}</td>
+                                        <td className="px-4 py-3 text-foreground">{req.clientId?.fullName}</td>
+                                        <td className="px-4 py-3 text-foreground">{req.origin?.city}</td>
+                                        <td className="px-4 py-3 text-foreground">{req.destination?.city}</td>
+                                        <td className="px-4 py-3">{req.quotationId}</td>
+                                        <td className="px-4 py-3 text-muted-foreground">{new Date(req.createdAt).toLocaleDateString()}</td>
+                                        <td className="px-4 py-3">
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-100 text-sky-800">New</span>
                                         </td>
-                                        <td>
-                                            <Link href={`/requests/${req._id}`} className={styles.actionBtn}>View</Link>
+                                        <td className="px-4 py-3">
+                                            <Link href={`/requests/${req._id}`} className="text-primary font-medium hover:text-primary/80 text-sm">View</Link>
                                         </td>
                                     </tr>
                                 ))

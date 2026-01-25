@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import styles from '../dashboard.module.css';
 
 export default function QuotationsPage() {
     const [quotations, setQuotations] = useState<any[]>([]);
@@ -33,46 +32,47 @@ export default function QuotationsPage() {
     }, []);
 
     return (
-        <div className={styles.pageContainer}>
-            <h1 className={styles.title}>All Quotations</h1>
+        <div className="flex flex-col gap-8">
+            <h1 className="text-2xl font-semibold text-foreground">All Quotations</h1>
 
-            <div className={styles.tableSection}>
-                <div className={styles.tableWrapper}>
-                    <table className={styles.table}>
-                        <thead>
+            <div className="bg-card rounded-lg shadow-sm border overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead className="bg-muted/50 text-muted-foreground">
                             <tr>
-                                <th>ID</th>
-                                <th>Client</th>
-                                <th>Destination</th>
-                                <th>Total Amount</th>
-                                <th>Status</th>
-                                <th>Date</th>
-                                <th>Action</th>
+                                <th className="px-4 py-3 text-left font-medium">ID</th>
+                                <th className="px-4 py-3 text-left font-medium">Client</th>
+                                <th className="px-4 py-3 text-left font-medium">Destination</th>
+                                <th className="px-4 py-3 text-left font-medium">Total Amount</th>
+                                <th className="px-4 py-3 text-left font-medium">Status</th>
+                                <th className="px-4 py-3 text-left font-medium">Date</th>
+                                <th className="px-4 py-3 text-left font-medium">Action</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y">
                             {loading ? (
-                                <tr><td colSpan={7}>Loading...</td></tr>
+                                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>
                             ) : quotations.length === 0 ? (
-                                <tr><td colSpan={7}>No quotations found.</td></tr>
+                                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No quotations found.</td></tr>
                             ) : (
                                 quotations.map((q) => (
-                                    <tr key={q._id}>
-                                        <td>{q.quotationId}</td>
-                                        <td>{q.clientId?.fullName}</td>
-                                        <td>{q.destination?.city}</td>
-                                        <td>{q.currency} {q.totalAmount?.toLocaleString()}</td>
-                                        <td>
-                                            <span className={`${styles.statusBadge} ${q.status === 'Accepted' ? styles.statusAccepted :
-                                                q.status === 'Rejected' ? styles.statusRejected :
-                                                    styles.statusPending
+                                    <tr key={q._id} className="hover:bg-muted/50 transition-colors">
+                                        <td className="px-4 py-3">{q.quotationId}</td>
+                                        <td className="px-4 py-3 text-foreground">{q.clientId?.fullName}</td>
+                                        <td className="px-4 py-3 text-foreground">{q.destination?.city}</td>
+                                        <td className="px-4 py-3 text-foreground">{q.currency} {q.totalAmount?.toLocaleString()}</td>
+                                        <td className="px-4 py-3">
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
+                                                ${q.status === 'Accepted' ? 'bg-green-100 text-green-800' :
+                                                    q.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                                                        'bg-amber-100 text-amber-800'
                                                 }`}>
                                                 {q.status}
                                             </span>
                                         </td>
-                                        <td>{new Date(q.createdAt).toLocaleDateString()}</td>
-                                        <td>
-                                            <Link href={`/quotations/${q._id}`} className={styles.actionBtn}>View Details</Link>
+                                        <td className="px-4 py-3 text-muted-foreground">{new Date(q.createdAt).toLocaleDateString()}</td>
+                                        <td className="px-4 py-3">
+                                            <Link href={`/quotations/${q._id}`} className="text-primary font-medium hover:text-primary/80 text-sm">View Details</Link>
                                         </td>
                                     </tr>
                                 ))

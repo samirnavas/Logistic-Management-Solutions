@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import styles from './login.module.css';
+import Image from 'next/image';
 
 export default function LoginPage() {
     const [isRegistering, setIsRegistering] = useState(false);
@@ -89,56 +89,50 @@ export default function LoginPage() {
     };
 
     return (
-        <div className={styles.container}>
+        <div className="flex min-h-screen bg-background">
             {/* Left Side - Image/Hero */}
-            <div className={styles.imageSection}>
-                <div className={styles.imageOverlay}>
-                    <div className={styles.heroText}>
-                        <h1>Manage Requests.<br />Send Quotations.<br />Deliver Faster.</h1>
+            <div className="hidden lg:flex flex-1 relative bg-muted items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 bg-black/50 z-10 flex flex-col justify-end p-12 text-white">
+                    <div className="mb-4">
+                        <h1 className="text-5xl font-bold leading-tight">Manage Requests.<br />Send Quotations.<br />Deliver Faster.</h1>
                     </div>
                 </div>
-                <div style={{
-                    position: 'absolute',
-                    inset: 0,
+                <div className="absolute inset-0 z-0 bg-cover bg-center" style={{
                     backgroundImage: 'url("https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=2070&auto=format&fit=crop")',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    zIndex: 1
                 }} />
             </div>
 
             {/* Right Side - Form */}
-            <div className={styles.formSection}>
-                <div className={styles.loginCard}>
-                    <div className={styles.logo}>
-                        <h2 style={{ color: '#0056b3', fontWeight: 'bold', fontSize: '1.5rem' }}>B&B<br /><span style={{ fontSize: '0.8rem', color: '#10b981' }}>INTERNATIONAL</span></h2>
+            <div className="flex-1 flex flex-col justify-center items-center p-8 max-w-full lg:max-w-xl">
+                <div className="w-full max-w-sm space-y-8">
+                    <div className="text-center">
+                        <h2 className="text-3xl font-bold text-primary">B&B<br /><span className="text-sm text-emerald-500">INTERNATIONAL</span></h2>
+                        <h2 className="mt-6 text-2xl font-semibold tracking-tight text-gray-900">{isRegistering ? 'Create Admin Account' : 'Log In'}</h2>
                     </div>
 
-                    <h2 className={styles.title}>{isRegistering ? 'Create Admin Account' : 'Log In'}</h2>
+                    {error && <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md border border-red-200">{error}</div>}
 
-                    {error && <div className={styles.error}>{error}</div>}
-
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit} className="mt-8 space-y-6">
                         {isRegistering && (
                             <>
-                                <div className={styles.formGroup}>
-                                    <label className={styles.label} htmlFor="fullName">Full Name</label>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="fullName">Full Name</label>
                                     <input
                                         id="fullName"
                                         type="text"
-                                        className={styles.input}
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                         placeholder="John Doe"
                                         value={params.fullName}
                                         onChange={handleChange}
                                         required
                                     />
                                 </div>
-                                <div className={styles.formGroup}>
-                                    <label className={styles.label} htmlFor="phone">Phone Number</label>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium leading-none" htmlFor="phone">Phone Number</label>
                                     <input
                                         id="phone"
                                         type="tel"
-                                        className={styles.input}
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                         placeholder="+1 234 567 890"
                                         value={params.phone}
                                         onChange={handleChange}
@@ -147,12 +141,12 @@ export default function LoginPage() {
                             </>
                         )}
 
-                        <div className={styles.formGroup}>
-                            <label className={styles.label} htmlFor="email">{isRegistering ? 'Email Address' : 'User Name / Email'}</label>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium leading-none" htmlFor="email">{isRegistering ? 'Email Address' : 'User Name / Email'}</label>
                             <input
                                 id="email"
                                 type="email"
-                                className={styles.input}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                 placeholder="email@example.com"
                                 value={params.email}
                                 onChange={handleChange}
@@ -160,12 +154,12 @@ export default function LoginPage() {
                             />
                         </div>
 
-                        <div className={styles.formGroup}>
-                            <label className={styles.label} htmlFor="password">Password</label>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium leading-none" htmlFor="password">Password</label>
                             <input
                                 id="password"
                                 type="password"
-                                className={styles.input}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                 placeholder="Password"
                                 value={params.password}
                                 onChange={handleChange}
@@ -174,12 +168,12 @@ export default function LoginPage() {
                         </div>
 
                         {isRegistering && (
-                            <div className={styles.formGroup}>
-                                <label className={styles.label} htmlFor="confirmPassword">Confirm Password</label>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium leading-none" htmlFor="confirmPassword">Confirm Password</label>
                                 <input
                                     id="confirmPassword"
                                     type="password"
-                                    className={styles.input}
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                     placeholder="Confirm Password"
                                     value={params.confirmPassword}
                                     onChange={handleChange}
@@ -188,13 +182,13 @@ export default function LoginPage() {
                             </div>
                         )}
 
-                        <button type="submit" className={styles.submitButton} disabled={loading}>
+                        <button type="submit" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={loading}>
                             {loading ? 'Processing...' : (isRegistering ? 'Register' : 'Sign In')}
                         </button>
 
-                        <div className={styles.toggleText}>
+                        <div className="text-center text-sm text-muted-foreground mt-4">
                             {isRegistering ? 'Already have an account?' : "Don't have an account?"}
-                            <span className={styles.toggleLink} onClick={() => { setIsRegistering(!isRegistering); setError(''); }}>
+                            <span className="ml-1 font-semibold text-primary cursor-pointer hover:underline" onClick={() => { setIsRegistering(!isRegistering); setError(''); }}>
                                 {isRegistering ? ' Login' : ' Create Account'}
                             </span>
                         </div>
