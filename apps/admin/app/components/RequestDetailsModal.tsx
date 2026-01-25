@@ -1,6 +1,6 @@
-'use client';
 
 import { useEffect, useState } from 'react';
+import { Trash2, Plus } from 'lucide-react';
 
 interface RequestDetailsModalProps {
     requestId: string;
@@ -14,12 +14,35 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
     const [showQuoteForm, setShowQuoteForm] = useState(false);
 
     // Quotation Form State
-    const [quoteData, setQuoteData] = useState({
-        price: '',
-        taxRate: '10',
-        notes: '',
-        validUntil: ''
-    });
+    const [items, setItems] = useState([{ description: '', quantity: 1, unitPrice: 0, amount: 0 }]);
+    const [taxRate, setTaxRate] = useState(10);
+    const [discount, setDiscount] = useState(0);
+    const [validUntil, setValidUntil] = useState('');
+    const [internalNotes, setInternalNotes] = useState('');
+
+    // Summary Calculations
+    const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
+    const taxAmount = (subtotal * taxRate) / 100;
+    const totalAmount = subtotal + taxAmount - discount;
+
+    const handleItemChange = (index: number, field: string, value: any) => {
+        const newItems: any = [...items];
+        newItems[index][field] = value;
+        if (field === 'quantity' || field === 'unitPrice') {
+            newItems[index].amount = (newItems[index].quantity || 0) * (newItems[index].unitPrice || 0);
+        }
+        setItems(newItems);
+    };
+
+    const addItem = () => {
+        setItems([...items, { description: '', quantity: 1, unitPrice: 0, amount: 0 }]);
+    };
+
+    const removeItem = (index: number) => {
+        if (items.length > 1) {
+            setItems(items.filter((_, i) => i !== index));
+        }
+    };
 
     useEffect(() => {
         const fetchRequest = async () => {
@@ -46,16 +69,20 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
         try {
             const token = localStorage.getItem('token');
             const payload = {
-                items: [{
-                    description: 'Freight Charges',
-                    amount: Number(quoteData.price)
-                }],
-                taxRate: Number(quoteData.taxRate),
-                validUntil: quoteData.validUntil || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-                internalNotes: quoteData.notes,
+                items: items.map(item => ({
+                    description: item.description,
+                    quantity: Number(item.quantity),
+                    unitPrice: Number(item.unitPrice),
+                    amount: Number(item.amount)
+                })),
+                taxRate: Number(taxRate),
+                discount: Number(discount),
+                validUntil: validUntil || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+                internalNotes: internalNotes,
+                status: 'cost_calculated' // Intermediate status before sending
             };
 
-            const updateRes = await fetch(`/api/quotations/${requestId}`, {
+            const updateRes = await fetch(`/api/quotations/${requestId}/update-price`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -86,7 +113,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
 
         } catch (err) {
             console.error(err);
-            alert('Error creating quotation');
+            alert('Error creating quotation: ' + err);
         }
     };
 
@@ -245,62 +272,162 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
 
             {/* Quotation Form Modal (Overlay) */}
             {showQuoteForm && (
-                <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-[60]">
-                    <div className="bg-white rounded-xl w-[500px] p-8 shadow-xl">
+                <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-[60] overflow-y-auto py-10">
+                    <div className="bg-white rounded-xl w-[900px] p-8 shadow-xl relative">
                         <h2 className="text-xl font-semibold mb-6 text-zinc-800">Generate Quotation</h2>
-                        <form onSubmit={handleCreateQuotation} className="space-y-4">
+
+                        <form onSubmit={handleCreateQuotation} className="space-y-6">
+
+                            {/* Line Items Section */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Freight Charges (Price)</label>
-                                <input
-                                    type="number"
-                                    required
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-700/20 outline-none"
-                                    value={quoteData.price}
-                                    onChange={(e) => setQuoteData({ ...quoteData, price: e.target.value })}
-                                />
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="flex-1">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate (%)</label>
-                                    <input
-                                        type="number"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-700/20 outline-none"
-                                        value={quoteData.taxRate}
-                                        onChange={(e) => setQuoteData({ ...quoteData, taxRate: e.target.value })}
-                                    />
+                                <div className="flex justify-between items-center mb-2">
+                                    <h3 className="text-sm font-medium text-gray-700">Line Items</h3>
+                                    <button
+                                        type="button"
+                                        onClick={addItem}
+                                        className="text-sky-700 text-sm flex items-center gap-1 hover:text-sky-800"
+                                    >
+                                        <Plus size={16} /> Add Item
+                                    </button>
                                 </div>
-                                <div className="flex-1">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Valid Until</label>
-                                    <input
-                                        type="date"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-700/20 outline-none"
-                                        value={quoteData.validUntil}
-                                        onChange={(e) => setQuoteData({ ...quoteData, validUntil: e.target.value })}
-                                    />
+                                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                                    {items.map((item, index) => (
+                                        <div key={index} className="flex gap-4 items-start bg-slate-50 p-3 rounded-lg">
+                                            <div className="flex-[3]">
+                                                <label className="text-xs text-zinc-500 block mb-1">Description</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                                    value={item.description}
+                                                    onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                                                    placeholder="Item description"
+                                                />
+                                            </div>
+                                            <div className="flex-1">
+                                                <label className="text-xs text-zinc-500 block mb-1">Qty</label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    required
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                                    value={item.quantity}
+                                                    onChange={(e) => handleItemChange(index, 'quantity', Number(e.target.value))}
+                                                />
+                                            </div>
+                                            <div className="flex-1">
+                                                <label className="text-xs text-zinc-500 block mb-1">Unit Price</label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    required
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                                    value={item.unitPrice}
+                                                    onChange={(e) => handleItemChange(index, 'unitPrice', Number(e.target.value))}
+                                                />
+                                            </div>
+                                            <div className="flex-1">
+                                                <label className="text-xs text-zinc-500 block mb-1">Amount</label>
+                                                <div className="w-full px-3 py-2 bg-gray-100 rounded-md text-sm font-medium text-right">
+                                                    {item.amount.toFixed(2)}
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeItem(index)}
+                                                className="mt-6 text-red-500 hover:text-red-700 p-1"
+                                                title="Remove Item"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Internal Notes</label>
-                                <textarea
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-700/20 outline-none"
-                                    rows={3}
-                                    value={quoteData.notes}
-                                    onChange={(e) => setQuoteData({ ...quoteData, notes: e.target.value })}
-                                />
+
+                            {/* Settings & Summary */}
+                            <div className="grid grid-cols-2 gap-8 border-t pt-6">
+                                {/* Left: Settings */}
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Internal Notes</label>
+                                        <textarea
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                            rows={3}
+                                            value={internalNotes}
+                                            onChange={(e) => setInternalNotes(e.target.value)}
+                                            placeholder="Notes for internal team..."
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Valid Until</label>
+                                            <input
+                                                type="date"
+                                                required
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                                value={validUntil}
+                                                onChange={(e) => setValidUntil(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Right: Summary */}
+                                <div className="bg-slate-50 p-6 rounded-lg space-y-3">
+                                    <h3 className="font-medium text-zinc-800 mb-2">Summary</h3>
+
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-zinc-600">Subtotal</span>
+                                        <span className="font-medium">{subtotal.toFixed(2)}</span>
+                                    </div>
+
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-zinc-600">Tax Rate (%)</span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            className="w-20 px-2 py-1 border border-gray-300 rounded text-right"
+                                            value={taxRate}
+                                            onChange={(e) => setTaxRate(Number(e.target.value))}
+                                        />
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-zinc-600">Tax Amount</span>
+                                        <span className="font-medium">{taxAmount.toFixed(2)}</span>
+                                    </div>
+
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-zinc-600">Discount</span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            className="w-20 px-2 py-1 border border-gray-300 rounded text-right"
+                                            value={discount}
+                                            onChange={(e) => setDiscount(Number(e.target.value))}
+                                        />
+                                    </div>
+
+                                    <div className="border-t border-gray-200 pt-3 flex justify-between items-center">
+                                        <span className="text-base font-bold text-zinc-800">Grand Total</span>
+                                        <span className="text-xl font-bold text-sky-700">{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="flex justify-end gap-3 mt-6">
+
+                            <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
                                 <button
                                     type="button"
-                                    className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+                                    className="px-6 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-full font-medium"
                                     onClick={() => setShowQuoteForm(false)}
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 text-sm bg-sky-700 text-white rounded-lg hover:bg-sky-800"
+                                    className="px-8 py-2.5 text-sm bg-sky-700 text-white rounded-full hover:bg-sky-800 font-medium shadow-lg shadow-sky-700/20"
                                 >
-                                    Send Quotation
+                                    Send Quote
                                 </button>
                             </div>
                         </form>

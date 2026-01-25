@@ -1,5 +1,6 @@
 const Quotation = require('../models/Quotation');
 const Notification = require('../models/Notification');
+const Shipment = require('../models/Shipment');
 
 // ============================================
 // Get all quotations (Manager view)
@@ -223,6 +224,44 @@ exports.updateQuotation = async (req, res) => {
 };
 
 // ============================================
+// Update Quote Price (Specialized Endpoint)
+// ============================================
+exports.updateQuotePrice = async (req, res) => {
+    try {
+        const { items, taxRate, discount, internalNotes, validUntil, status } = req.body;
+        const quotation = await Quotation.findById(req.params.id);
+
+        if (!quotation) {
+            return res.status(404).json({ message: 'Quotation not found' });
+        }
+
+        // Update fields
+        if (items) quotation.items = items;
+        if (taxRate !== undefined) quotation.taxRate = taxRate;
+        if (discount !== undefined) quotation.discount = discount;
+        if (internalNotes !== undefined) quotation.internalNotes = internalNotes;
+        if (validUntil !== undefined) quotation.validUntil = validUntil;
+
+        // Set status to 'cost_calculated' (intermediate) or whatever was passed
+        // This ensures the quotation is marked as processed but not yet "Approved" or "Sent" fully unless workflow dictates
+        quotation.status = status || 'cost_calculated';
+
+        // Recalculate totals
+        quotation.calculateTotals();
+
+        const updatedQuotation = await quotation.save();
+
+        res.json({
+            message: 'Quotation price updated successfully',
+            quotation: updatedQuotation,
+        });
+    } catch (error) {
+        console.error('Update Quote Price Error:', error);
+        res.status(400).json({ message: 'Failed to update quotation price', error: error.message });
+    }
+};
+
+// ============================================
 // Reject quotation (Manager)
 // ============================================
 exports.rejectQuotation = async (req, res) => {
@@ -323,11 +362,35 @@ exports.acceptByClient = async (req, res) => {
 
         await quotation.acceptByClient();
 
+        // Create Shipment automatically
+        const packageCount = quotation.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+
+        const newShipment = new Shipment({
+            quotationId: quotation._id,
+            clientId: quotation.clientId,
+            managerId: quotation.managerId,
+            origin: {
+                city: quotation.origin.city,
+                country: quotation.origin.country,
+                address: `${quotation.origin.addressLine}, ${quotation.origin.state || ''} ${quotation.origin.zip || ''}`.trim(),
+            },
+            destination: {
+                city: quotation.destination.city,
+                country: quotation.destination.country,
+                address: `${quotation.destination.addressLine}, ${quotation.destination.state || ''} ${quotation.destination.zip || ''}`.trim(),
+            },
+            packageCount: packageCount,
+            shippingCost: quotation.totalAmount,
+            status: 'Processing',
+        });
+
+        const savedShipment = await newShipment.save();
+
         // Notify manager
         await Notification.createNotification({
             recipientId: quotation.managerId,
             title: 'Quotation Accepted',
-            message: `client app has accepted quotation ${quotation.quotationNumber}`,
+            message: `client app has accepted quotation ${quotation.quotationNumber}. Shipment created: ${savedShipment.trackingNumber}`,
             type: 'success',
             category: 'quotation',
             relatedId: quotation._id,
@@ -335,8 +398,10 @@ exports.acceptByClient = async (req, res) => {
         });
 
         res.json({
-            message: 'Quotation accepted',
+            message: 'Quotation accepted and shipment created',
             quotation,
+            trackingNumber: savedShipment.trackingNumber,
+            shipmentId: savedShipment._id
         });
     } catch (error) {
         console.error('Accept By client app Error:', error);

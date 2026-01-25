@@ -20,6 +20,9 @@ router.get('/stats', quotationController.getQuotationStats);
 // Update quotation
 router.put('/:id', quotationController.updateQuotation);
 
+// Update quotation price (specialized)
+router.put('/:id/update-price', quotationController.updateQuotePrice);
+
 // Approve quotation (manager)
 router.patch('/:id/approve', quotationController.approveByManager);
 
