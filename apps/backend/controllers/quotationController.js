@@ -16,7 +16,7 @@ exports.getAllQuotations = async (req, res) => {
 
         const [quotations, total] = await Promise.all([
             Quotation.find(query)
-                .populate('client appId', 'fullName email customerCode')
+                .populate('clientId', 'fullName email customerCode')
                 .populate('managerId', 'fullName email')
                 .sort({ createdAt: -1 })
                 .skip(skip)
@@ -43,13 +43,13 @@ exports.getAllQuotations = async (req, res) => {
 // ============================================
 // Get quotations for a specific client app
 // ============================================
-exports.getclient appQuotations = async (req, res) => {
+exports.getClientQuotations = async (req, res) => {
     try {
-        const { client appId } = req.params;
+        const { clientId } = req.params;
         const { page = 1, limit = 20 } = req.query;
         const skip = (page - 1) * limit;
 
-        const query = { client appId };
+        const query = { clientId };
 
         const [quotations, total] = await Promise.all([
             Quotation.find(query)
@@ -82,7 +82,7 @@ exports.getclient appQuotations = async (req, res) => {
 exports.getQuotation = async (req, res) => {
     try {
         const quotation = await Quotation.findById(req.params.id)
-            .populate('client appId', 'fullName email customerCode phone')
+            .populate('clientId', 'fullName email customerCode phone')
             .populate('managerId', 'fullName email');
 
         if (!quotation) {
@@ -99,11 +99,11 @@ exports.getQuotation = async (req, res) => {
 // ============================================
 // Get quotation for client app (with visibility check)
 // ============================================
-exports.getclient appQuotation = async (req, res) => {
+exports.getClientQuotation = async (req, res) => {
     try {
-        const { id, client appId } = req.params;
+        const { id, clientId } = req.params;
 
-        const quotation = await Quotation.findOne({ _id: id, client appId })
+        const quotation = await Quotation.findOne({ _id: id, clientId })
             .populate('managerId', 'fullName email');
 
         if (!quotation) {
@@ -111,7 +111,7 @@ exports.getclient appQuotation = async (req, res) => {
         }
 
         // Return client app-safe version
-        res.json(quotation.toclient appJSON());
+        res.json(quotation.toClientJSON());
     } catch (error) {
         console.error('Get client app Quotation Error:', error);
         res.status(500).json({ message: 'Failed to fetch quotation', error: error.message });
@@ -144,7 +144,7 @@ exports.createQuotation = async (req, res) => {
         }
 
         const newQuotation = new Quotation({
-            client appId: userId,
+            clientId: userId,
             origin,
             destination,
             items, // Initial items from request
@@ -242,7 +242,7 @@ exports.rejectQuotation = async (req, res) => {
 
         // Notify client app
         await Notification.createNotification({
-            recipientId: quotation.client appId,
+            recipientId: quotation.clientId,
             title: 'Request Rejected',
             message: `Your request ${quotation.quotationNumber} has been rejected by the manager.`,
             type: 'error',
@@ -287,7 +287,7 @@ exports.approveByManager = async (req, res) => {
 // ============================================
 // Send quotation to client app
 // ============================================
-exports.sendToclient app = async (req, res) => {
+exports.sendToClient = async (req, res) => {
     try {
         const quotation = await Quotation.findById(req.params.id);
 
@@ -295,11 +295,11 @@ exports.sendToclient app = async (req, res) => {
             return res.status(404).json({ message: 'Quotation not found' });
         }
 
-        await quotation.sendToclient app();
+        await quotation.sendToClient();
 
         // Create notification for client app
         await Notification.createQuotationNotification(
-            quotation.client appId,
+            quotation.clientId,
             quotation,
             'sent'
         );
@@ -317,7 +317,7 @@ exports.sendToclient app = async (req, res) => {
 // ============================================
 // client app accepts quotation
 // ============================================
-exports.acceptByclient app = async (req, res) => {
+exports.acceptByClient = async (req, res) => {
     try {
         const quotation = await Quotation.findById(req.params.id);
 
@@ -325,7 +325,7 @@ exports.acceptByclient app = async (req, res) => {
             return res.status(404).json({ message: 'Quotation not found' });
         }
 
-        await quotation.acceptByclient app();
+        await quotation.acceptByClient();
 
         // Notify manager
         await Notification.createNotification({
@@ -351,7 +351,7 @@ exports.acceptByclient app = async (req, res) => {
 // ============================================
 // client app rejects quotation
 // ============================================
-exports.rejectByclient app = async (req, res) => {
+exports.rejectByClient = async (req, res) => {
     try {
         const { reason } = req.body;
         const quotation = await Quotation.findById(req.params.id);
@@ -360,7 +360,7 @@ exports.rejectByclient app = async (req, res) => {
             return res.status(404).json({ message: 'Quotation not found' });
         }
 
-        await quotation.rejectByclient app(reason);
+        await quotation.rejectByClient(reason);
 
         // Notify manager
         await Notification.createNotification({
@@ -421,9 +421,9 @@ exports.confirmAddress = async (req, res) => {
         quotation.status = 'ready_for_pickup';
 
         // Also mark as accepted if not already (legacy compatibility)
-        if (!quotation.isAcceptedByclient app) {
-            quotation.isAcceptedByclient app = true;
-            quotation.client appAcceptedAt = new Date();
+        if (!quotation.isAcceptedByClient) {
+            quotation.isAcceptedByClient = true;
+            quotation.clientAcceptedAt = new Date();
         }
 
         await quotation.save();

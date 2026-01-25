@@ -87,10 +87,10 @@ const quotationSchema = new mongoose.Schema({
         ref: 'User',
         index: true,
     },
-    client appId: {
+    clientId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: [true, 'client app ID is required'],
+        required: [true, 'client ID is required'],
         index: true,
     },
 
@@ -210,21 +210,21 @@ const quotationSchema = new mongoose.Schema({
     managerApprovedAt: {
         type: Date,
     },
-    isAcceptedByclient app: {
+    isAcceptedByClient: {
         type: Boolean,
         default: false,
     },
-    client appAcceptedAt: {
+    clientAcceptedAt: {
         type: Date,
     },
-    isRejectedByclient app: {
+    isRejectedByClient: {
         type: Boolean,
         default: false,
     },
-    client appRejectedAt: {
+    clientRejectedAt: {
         type: Date,
     },
-    client appRejectionReason: {
+    clientRejectionReason: {
         type: String,
         trim: true,
         default: '',
@@ -305,7 +305,7 @@ const quotationSchema = new mongoose.Schema({
 // Note: Single-field indexes are defined in field definitions
 // Only compound indexes defined here
 // quotationSchema.index({ requestId: 1, status: 1 });
-quotationSchema.index({ client appId: 1, status: 1 });
+quotationSchema.index({ clientId: 1, status: 1 });
 quotationSchema.index({ managerId: 1, createdAt: -1 });
 quotationSchema.index({ validUntil: 1 });
 quotationSchema.index({ isApprovedByManager: 1, status: 1 });
@@ -325,7 +325,7 @@ quotationSchema.virtual('isExpired').get(function () {
  * Check if quotation is visible to client app
  * client app only sees price if approved by manager
  */
-quotationSchema.virtual('isVisibleToclient app').get(function () {
+quotationSchema.virtual('isVisibleToClient').get(function () {
     return this.isApprovedByManager && ['Approved', 'Sent', 'Accepted', 'Rejected'].includes(this.status);
 });
 
@@ -400,37 +400,37 @@ quotationSchema.methods.approveByManager = async function () {
 };
 
 /**
- * Send quotation to client app
+ * Send quotation to client
  */
-quotationSchema.methods.sendToclient app = async function () {
+quotationSchema.methods.sendToClient = async function () {
     if (!this.isApprovedByManager) {
-        throw new Error('Quotation must be approved by manager before sending to client app');
+        throw new Error('Quotation must be approved by manager before sending to client');
     }
     this.status = 'Sent';
     return this.save();
 };
 
 /**
- * client app accepts quotation
+ * Client accepts quotation
  */
-quotationSchema.methods.acceptByclient app = async function () {
+quotationSchema.methods.acceptByClient = async function () {
     if (this.isExpired) {
         throw new Error('Cannot accept an expired quotation');
     }
-    this.isAcceptedByclient app = true;
-    this.client appAcceptedAt = new Date();
+    this.isAcceptedByClient = true;
+    this.clientAcceptedAt = new Date();
     this.status = 'Accepted';
     return this.save();
 };
 
 /**
- * client app rejects quotation
+ * Client rejects quotation
  * @param {string} reason - Rejection reason
  */
-quotationSchema.methods.rejectByclient app = async function (reason = '') {
-    this.isRejectedByclient app = true;
-    this.client appRejectedAt = new Date();
-    this.client appRejectionReason = reason;
+quotationSchema.methods.rejectByClient = async function (reason = '') {
+    this.isRejectedByClient = true;
+    this.clientRejectedAt = new Date();
+    this.clientRejectionReason = reason;
     this.status = 'Rejected';
     return this.save();
 };
@@ -444,10 +444,10 @@ quotationSchema.methods.canBeEdited = function () {
 };
 
 /**
- * Get client app-safe version (hides sensitive data if not approved)
+ * Get client-safe version (hides sensitive data if not approved)
  * @returns {Object}
  */
-quotationSchema.methods.toclient appJSON = function () {
+quotationSchema.methods.toClientJSON = function () {
     const obj = this.toJSON();
 
     if (!this.isApprovedByManager) {
@@ -478,13 +478,13 @@ quotationSchema.statics.findByRequest = function (requestId) {
 };
 
 /**
- * Find quotations visible to client app
- * @param {ObjectId} client appId - client app ID
+ * Find quotations visible to client
+ * @param {ObjectId} clientId - client ID
  * @returns {Promise<Quotation[]>}
  */
-quotationSchema.statics.findVisibleToclient app = function (client appId) {
+quotationSchema.statics.findVisibleToClient = function (clientId) {
     return this.find({
-        client appId,
+        clientId,
         isApprovedByManager: true,
         status: { $in: ['Approved', 'Sent', 'Accepted', 'Rejected'] }
     })
@@ -504,7 +504,7 @@ quotationSchema.statics.findPendingApproval = function (managerId = null) {
     }
     return this.find(query)
         .populate('requestId', 'requestNumber itemName')
-        .populate('client appId', 'fullName email customerCode')
+        .populate('clientId', 'fullName email customerCode')
         .sort({ createdAt: -1 });
 };
 

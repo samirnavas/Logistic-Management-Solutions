@@ -163,7 +163,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   context,
                                   'Failed to load status',
                                   () {
-                                    ref.invalidate(dashboardStatsProvider);
+                                    // ignore: unused_result
+                                    ref.refresh(dashboardStatsProvider);
                                   },
                                 ),
                               ),
@@ -276,7 +277,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   context,
                                   'Failed to load shipments',
                                   () {
-                                    ref.invalidate(shipmentListProvider);
+                                    // ignore: unused_result
+                                    ref.refresh(shipmentListProvider);
                                   },
                                 ),
                               ),

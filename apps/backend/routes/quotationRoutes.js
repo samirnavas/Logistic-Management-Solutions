@@ -21,7 +21,7 @@ router.put('/:id', quotationController.updateQuotation);
 router.patch('/:id/approve', quotationController.approveByManager);
 
 // Send quotation to client app
-router.patch('/:id/send', quotationController.sendToclient app);
+router.patch('/:id/send', quotationController.sendToClient);
 
 
 
@@ -29,17 +29,17 @@ router.patch('/:id/send', quotationController.sendToclient app);
 // client app Routes
 // ============================================
 
-// Get quotations for a specific client app
-router.get('/client app/:client appId', quotationController.getclient appQuotations);
+// Get quotations for a specific client
+router.get('/client/:clientId', quotationController.getClientQuotations);
 
-// Get single quotation for client app (with visibility check)
-router.get('/client app/:client appId/:id', quotationController.getclient appQuotation);
+// Get single quotation for client (with visibility check)
+router.get('/client/:clientId/:id', quotationController.getClientQuotation);
 
 // Accept quotation (client app)
-router.patch('/:id/accept', quotationController.acceptByclient app);
+router.patch('/:id/accept', quotationController.acceptByClient);
 
 // Reject quotation (client app)
-router.patch('/:id/reject', quotationController.rejectByclient app);
+router.patch('/:id/reject', quotationController.rejectByClient);
 
 // Confirm address and proceed (client app)
 router.put('/:id/confirm-address', quotationController.confirmAddress);

@@ -93,7 +93,8 @@ class _ShipmentListScreenState extends ConsumerState<ShipmentListScreen> {
                                 TextButton(
                                   onPressed: () {
                                     HapticFeedback.lightImpact();
-                                    ref.invalidate(shipmentListProvider);
+                                    // ignore: unused_result
+                                    ref.refresh(shipmentListProvider);
                                   },
                                   child: const Text('Try Again'),
                                 ),

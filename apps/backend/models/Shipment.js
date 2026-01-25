@@ -72,10 +72,10 @@ const shipmentSchema = new mongoose.Schema({
         ref: 'Quotation',
         index: true,
     },
-    client appId: {
+    clientId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: [true, 'client app ID is required'],
+        required: [true, 'client ID is required'],
         index: true,
     },
     managerId: {
@@ -328,7 +328,7 @@ const shipmentSchema = new mongoose.Schema({
 // Indexes for Performance
 // ============================================
 shipmentSchema.index({ trackingNumber: 1 }, { unique: true });
-shipmentSchema.index({ client appId: 1, status: 1 });
+shipmentSchema.index({ clientId: 1, status: 1 });
 shipmentSchema.index({ status: 1, createdAt: -1 });
 shipmentSchema.index({ estimatedDelivery: 1 });
 shipmentSchema.index({ 'origin.country': 1, 'destination.country': 1 });
@@ -500,29 +500,29 @@ shipmentSchema.methods.isOnTime = function () {
  */
 shipmentSchema.statics.findByTracking = function (trackingNumber) {
     return this.findOne({ trackingNumber: trackingNumber.toUpperCase() })
-        .populate('client appId', 'fullName email phone')
+        .populate('clientId', 'fullName email phone')
         .populate('quotationId', 'quotationNumber');
 };
 
 /**
  * Find active shipments for a client app
- * @param {ObjectId} client appId - client app ID
+ * @param {ObjectId} clientId - client app ID
  * @returns {Promise<Shipment[]>}
  */
-shipmentSchema.statics.findActiveByclient app = function (client appId) {
+shipmentSchema.statics.findActiveByClient = function (clientId) {
     return this.find({
-        client appId,
+        clientId,
         status: { $nin: ['Delivered', 'Returned', 'Cancelled'] }
     }).sort({ createdAt: -1 });
 };
 
 /**
  * Find all shipments for a client app
- * @param {ObjectId} client appId - client app ID
+ * @param {ObjectId} clientId - client app ID
  * @returns {Promise<Shipment[]>}
  */
-shipmentSchema.statics.findByclient app = function (client appId) {
-    return this.find({ client appId })
+shipmentSchema.statics.findByClient = function (clientId) {
+    return this.find({ clientId })
         .sort({ createdAt: -1 });
 };
 
@@ -541,18 +541,18 @@ shipmentSchema.statics.findRequiringAttention = function () {
             }
         ]
     })
-        .populate('client appId', 'fullName email')
+        .populate('clientId', 'fullName email')
         .sort({ estimatedDelivery: 1 });
 };
 
 /**
  * Get shipment statistics for a client app
- * @param {ObjectId} client appId - client app ID
+ * @param {ObjectId} clientId - client app ID
  * @returns {Promise<Object>}
  */
-shipmentSchema.statics.getclient appStats = async function (client appId) {
+shipmentSchema.statics.getClientStats = async function (clientId) {
     const stats = await this.aggregate([
-        { $match: { client appId: new mongoose.Types.ObjectId(client appId) } },
+        { $match: { clientId: new mongoose.Types.ObjectId(clientId) } },
         {
             $group: {
                 _id: '$status',

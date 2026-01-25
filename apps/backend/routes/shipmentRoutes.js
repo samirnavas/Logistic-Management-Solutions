@@ -6,14 +6,14 @@ const shipmentController = require('../controllers/shipmentController');
 // client app Routes
 // ============================================
 
-// Get shipments for a specific client app
-router.get('/client app/:client appId', shipmentController.getclient appShipments);
+// Get shipments for a specific client
+router.get('/client/:clientId', shipmentController.getClientShipments);
 
-// Get active shipments for a client app
-router.get('/client app/:client appId/active', shipmentController.getActiveShipments);
+// Get active shipments for a client
+router.get('/client/:clientId/active', shipmentController.getActiveShipments);
 
-// Get shipment statistics for a client app
-router.get('/client app/:client appId/stats', shipmentController.getclient appStats);
+// Get shipment statistics for a client
+router.get('/client/:clientId/stats', shipmentController.getClientStats);
 
 // ============================================
 // Tracking Routes

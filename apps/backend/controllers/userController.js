@@ -16,37 +16,37 @@ exports.getDashboardStats = async (req, res) => {
 
         // 1. Requests - Count of quotations with status 'request_sent'
         const requests = await Quotation.countDocuments({
-            client appId: userId,
+            clientId: userId,
             status: 'request_sent'
         });
 
         // 2. Shipped - Status 'In Transit'
         const shipped = await Shipment.countDocuments({
-            client appId: userId,
+            clientId: userId,
             status: { $regex: 'Transit', $options: 'i' } // Case insensitive match for 'In Transit'
         });
 
         // 3. Delivered - Status 'Delivered'
         const delivered = await Shipment.countDocuments({
-            client appId: userId,
+            clientId: userId,
             status: 'Delivered'
         });
 
         // 4. Cleared - Status 'Customs Cleared'
         const cleared = await Shipment.countDocuments({
-            client appId: userId,
+            clientId: userId,
             status: 'Customs Cleared'
         });
 
         // 5. Dispatch - Status 'Out for Delivery' or 'Picked Up'
         const dispatch = await Shipment.countDocuments({
-            client appId: userId,
+            clientId: userId,
             status: { $in: ['Out for Delivery', 'Picked Up', 'Arrived at Hub'] }
         });
 
         // 6. Waiting - Status 'Processing' or 'Customs'
         const waiting = await Shipment.countDocuments({
-            client appId: userId,
+            clientId: userId,
             status: { $in: ['Processing', 'Customs', 'Pending'] }
         });
 

@@ -14,7 +14,7 @@ exports.getShipments = async (req, res) => {
         }
 
         let shipmentsQuery = Shipment.find(query)
-            .populate('client appId', 'fullName email customerCode phone')
+            .populate('clientId', 'fullName email customerCode phone')
             .sort({ createdAt: -1 });
 
         // Apply pagination if page is specified
@@ -38,13 +38,13 @@ exports.getShipments = async (req, res) => {
 // ============================================
 // Get shipments for a specific client app
 // ============================================
-exports.getclient appShipments = async (req, res) => {
+exports.getClientShipments = async (req, res) => {
     try {
-        const { client appId } = req.params;
+        const { clientId } = req.params;
         const { status, page = 1, limit = 20 } = req.query;
         const skip = (page - 1) * limit;
 
-        const query = { client appId };
+        const query = { clientId };
         if (status) {
             query.status = status;
         }
@@ -78,9 +78,9 @@ exports.getclient appShipments = async (req, res) => {
 // ============================================
 exports.getActiveShipments = async (req, res) => {
     try {
-        const { client appId } = req.params;
+        const { clientId } = req.params;
 
-        const shipments = await Shipment.findActiveByclient app(client appId);
+        const shipments = await Shipment.findActiveByClient(clientId);
 
         res.json({ shipments });
     } catch (error) {
@@ -95,7 +95,7 @@ exports.getActiveShipments = async (req, res) => {
 exports.getShipment = async (req, res) => {
     try {
         const shipment = await Shipment.findById(req.params.id)
-            .populate('client appId', 'fullName email customerCode phone')
+            .populate('clientId', 'fullName email customerCode phone')
             .populate('requestId', 'requestNumber itemName');
 
         if (!shipment) {
@@ -135,7 +135,7 @@ exports.getShipmentsByStatus = async (req, res) => {
         const { status } = req.params;
 
         const shipments = await Shipment.find({ status })
-            .populate('client appId', 'fullName email customerCode')
+            .populate('clientId', 'fullName email customerCode')
             .sort({ createdAt: -1 });
 
         // Return plain array for backward compatibility
@@ -162,11 +162,11 @@ exports.getRequiringAttention = async (req, res) => {
 // ============================================
 // Get shipment statistics for a client app
 // ============================================
-exports.getclient appStats = async (req, res) => {
+exports.getClientStats = async (req, res) => {
     try {
-        const { client appId } = req.params;
+        const { clientId } = req.params;
 
-        const stats = await Shipment.getclient appStats(client appId);
+        const stats = await Shipment.getClientStats(clientId);
 
         res.json(stats);
     } catch (error) {
@@ -181,7 +181,7 @@ exports.getclient appStats = async (req, res) => {
 exports.createShipment = async (req, res) => {
     try {
         const {
-            client appId,
+            clientId,
             requestId,
             quotationId,
             managerId,
@@ -204,15 +204,15 @@ exports.createShipment = async (req, res) => {
         } = req.body;
 
         // Validate required fields
-        if (!client appId || !origin || !destination) {
+        if (!clientId || !origin || !destination) {
             return res.status(400).json({
                 message: 'Missing required fields',
-                required: ['client appId', 'origin', 'destination']
+                required: ['clientId', 'origin', 'destination']
             });
         }
 
         const newShipment = new Shipment({
-            client appId,
+            clientId,
             requestId,
             quotationId,
             managerId,
@@ -246,7 +246,7 @@ exports.createShipment = async (req, res) => {
 
         // Send notification to client app
         await Notification.createShipmentNotification(
-            client appId,
+            clientId,
             savedShipment,
             'Processing'
         );
@@ -266,7 +266,7 @@ exports.createShipment = async (req, res) => {
 // ============================================
 exports.updateStatus = async (req, res) => {
     try {
-        const { status, location, description, notifyclient app = true } = req.body;
+        const { status, location, description, notifyClient = true } = req.body;
 
         const shipment = await Shipment.findById(req.params.id);
 
@@ -278,9 +278,9 @@ exports.updateStatus = async (req, res) => {
         await shipment.updateStatus(status, location, description);
 
         // Send notification to client app
-        if (notifyclient app) {
+        if (notifyClient) {
             await Notification.createShipmentNotification(
-                shipment.client appId,
+                shipment.clientId,
                 shipment,
                 status
             );
@@ -313,7 +313,7 @@ exports.markPickedUp = async (req, res) => {
 
         // Send notification
         await Notification.createShipmentNotification(
-            shipment.client appId,
+            shipment.clientId,
             shipment,
             'Picked Up'
         );
@@ -345,7 +345,7 @@ exports.markDelivered = async (req, res) => {
 
         // Send notification
         await Notification.createShipmentNotification(
-            shipment.client appId,
+            shipment.clientId,
             shipment,
             'Delivered'
         );
@@ -381,7 +381,7 @@ exports.markException = async (req, res) => {
 
         // Send notification
         await Notification.createShipmentNotification(
-            shipment.client appId,
+            shipment.clientId,
             shipment,
             'Exception'
         );
