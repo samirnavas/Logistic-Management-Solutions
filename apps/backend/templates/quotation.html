@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 12px; color: #333; margin: 0; padding: 40px; }
+  .header { display: flex; justify-content: space-between; margin-bottom: 30px; align-items: flex-start; }
+  .header-left h1 { font-size: 24px; font-weight: bold; margin: 0 0 5px 0; color: #1a73e8; }
+  .header-left p { margin: 0; font-weight: bold; font-size: 14px; }
+  .header-right { text-align: right; }
+  .logo-text { font-size: 24px; font-weight: 900; color: #0056b3; line-height: 1; }
+  .logo-text span { color: #00a0dc; }
+  .sub-logo { font-size: 10px; color: #00a0dc; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;}
+
+  .info-section { display: flex; justify-content: space-between; margin-bottom: 30px; background-color: #f0f4f8; padding: 20px; border-radius: 8px; }
+  .info-left, .info-right { width: 48%; }
+  .info-title { font-weight: bold; color: #1a73e8; margin-bottom: 15px; text-transform: uppercase; font-size: 14px; }
+  .info-row { margin-bottom: 8px; line-height: 1.4; }
+  .label { font-weight: bold; color: #555; display: inline-block; width: 120px; }
+
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  th, td { border: 1px solid #e0e0e0; padding: 12px; text-align: left; vertical-align: middle; }
+  th { background-color: #eef6fc; color: #1a73e8; font-weight: bold; text-transform: uppercase; font-size: 11px; }
+  .image-cell img { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; }
+  tr:nth-child(even) { background-color: #fafafa; }
+  
+  .cost-breakdown { width: 45%; margin-left: auto; margin-top: 20px; }
+  .cost-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #eee; }
+  .cost-row:last-child { border-bottom: none; }
+  .total-row { display: flex; justify-content: space-between; padding: 15px 0; border-top: 2px solid #1a73e8; margin-top: 15px; font-weight: bold; font-size: 18px; color: #1a73e8; align-items: center; }
+  
+  .footer { margin-top: 50px; font-size: 9px; color: #666; line-height: 1.5; }
+  .terms-title { font-weight: bold; font-size: 12px; color: #1a73e8; margin-bottom: 10px; }
+  .term-item { margin-bottom: 4px; }
+
+  /* Utilities */
+  .text-right { text-align: right; }
+  .bold { font-weight: bold; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <h1>QUOTATION</h1>
+      <p>High Priority Shipment</p>
+    </div>
+    <div class="header-right">
+      <div class="logo-text">B&B <span>INTERNATIONAL</span></div>
+      <div class="sub-logo">Serving You Beyond Borders</div> 
+    </div>
+  </div>
+
+  <div class="info-section">
+    <div class="info-left">
+      <div class="info-title">TO:</div>
+      <div class="info-row"><strong>{{clientName}}</strong></div>
+      <div class="info-row">{{clientAddress}}</div>
+      <div class="info-row">{{clientPhone}}</div>
+    </div>
+    <div class="info-right">
+      <div class="info-row"><span class="label">Quotation #:</span> {{quotationId}}</div>
+      <div class="info-row"><span class="label">Quotation Date:</span> {{date}}</div>
+      <div class="info-row"><span class="label">Validity:</span> {{validityDate}}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Image</th>
+        <th>Category</th>
+        <th>Item Description</th>
+        <th>HS Code</th>
+        <th># Boxes</th>
+        <th class="text-right">Total Weight</th>
+        <th class="text-right">Total CBM</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each items}}
+      <tr>
+        <td>{{incrementIndex @index}}</td>
+        <td class="image-cell">
+            {{#if image}}
+            <img src="{{image}}" alt="Item">
+            {{else}}
+            <span>-</span>
+            {{/if}}
+        </td>
+        <td>{{category}}</td>
+        <td>{{description}}</td>
+        <td>{{hsCode}}</td>
+        <td>{{boxes}}</td>
+        <td class="text-right">{{weight}}</td>
+        <td class="text-right">{{cbm}}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  <div class="cost-breakdown">
+    <div class="cost-row"><span>Shipping Charge Per CBM</span> <span class="bold">{{currency}} {{shippingCharge}}</span></div>
+    <div class="cost-row"><span>Pickup Charges</span> <span class="bold">{{currency}} {{pickupCharge}}</span></div>
+    <div class="cost-row"><span>Packaging Charges</span> <span class="bold">{{currency}} {{packagingCharge}}</span></div>
+    <div class="cost-row"><span>Insurance Charges</span> <span class="bold">{{currency}} {{insuranceCharge}}</span></div>
+    <div class="cost-row"><span>Taxes (GST 18%)</span> <span class="bold">{{currency}} {{tax}}</span></div>
+    
+    <div class="total-row">
+      <span>Final Quoted Amount</span>
+      <span>{{currency}} {{totalAmount}}</span>
+    </div>
+    <div style="font-size: 11px; margin-top: 5px; color: #555;">Invoice Total (in words)<br><strong style="color: #000; font-size: 13px;">{{totalAmountInWords}}</strong></div>
+  </div>
+
+  <div class="footer">
+    <div class="terms-title">Terms & Conditions</div>
+    <ol>
+      <li class="term-item">All Rates Quoted Are Subject To Availability And Valid Until The Mentioned Expiry Date.</li>
+      <li class="term-item">The Quotation Is Based On The Details Provided By The Customer; Any Change In Weight, Dimensions, Or Destination May Affect Pricing.</li>
+      <li class="term-item">Delivery Timelines Are Estimates And May Vary Due To Transit Conditions, Weather, Or Regulatory Delays.</li>
+      <li class="term-item">Insurance Coverage Is Optional And Applicable Only If Explicitly Selected And Charged In The Quotation.</li>
+      <li class="term-item">If Insurance Is Opted For, Coverage Is Limited To The Declared Value Of The Goods And Subject To Insurer Terms.</li>
+      <li class="term-item">The Company Is Not Liable For Loss Or Damage To Goods Not Covered Under Insurance.</li>
+      <li class="term-item">Packaging Quality And Suitability Are The Responsibility Of The Shipper Unless Packaging Services Are Included.</li>
+      <li class="term-item">The Company Is Not Responsible For Delays Caused By Customs Clearance, Government Authorities, Or Force Majeure Events.</li>
+      <li class="term-item">Payment Must Be Made As Per The Agreed Payment Terms To Initiate Or Continue Shipment.</li>
+      <li class="term-item">Any Additional Charges Arising Due To Incorrect Information, Re-Routing, Or Special Handling Will Be Billed Separately.</li>
+    </ol>
+  </div>
+</body>
+</html>

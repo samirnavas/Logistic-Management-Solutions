@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class QuotationDetailScreen extends ConsumerStatefulWidget {
   final String quotationId;
@@ -93,7 +94,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: _buildAppBar(context),
+      appBar: _buildAppBar(context, quotationAsync.asData?.value),
       body: quotationAsync.when(
         data: (quotation) {
           if (quotation == null) {
@@ -107,7 +108,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
+  PreferredSizeWidget _buildAppBar(BuildContext context, Quotation? quotation) {
     return AppBar(
       title: const Text('Quotation Details'),
       backgroundColor: AppTheme.primaryBlue,
@@ -128,14 +129,31 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
         ),
         IconButton(
           icon: const Icon(Icons.download_outlined),
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Download coming soon...')),
-            );
-          },
+          onPressed: (quotation != null && quotation.pdfUrl != null)
+              ? () => _launchPdfUrl(context, quotation.pdfUrl!)
+              : null,
         ),
       ],
     );
+  }
+
+  Future<void> _launchPdfUrl(BuildContext context, String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Could not launch PDF')));
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error launching PDF: $e')));
+      }
+    }
   }
 
   Widget _buildNotFoundState(BuildContext context) {

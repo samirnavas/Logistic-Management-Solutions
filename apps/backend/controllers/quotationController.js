@@ -324,26 +324,135 @@ exports.approveByManager = async (req, res) => {
 // ============================================
 // Send quotation to client app
 // ============================================
+const { generateCustomPDF } = require('../utils/pdfGenerator');
+const { cloudinary } = require('../config/cloudinary');
+const stream = require('stream');
+
+// Helper to convert number to words (Basic implementation)
+const numberToWords = (num) => {
+    if (num === 0) return "Zero";
+    const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+    const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+    const regex = /^(\d{1,2})(\d{2})(\d{2})(\d{1})(\d{2})$/;
+    const getWords = (n) => {
+        if ((n = n.toString()).length > 9) return 'overflow';
+        n = ('000000000' + n).substr(-9);
+        return (n.match(regex) || []).slice(1).reduce((str, v, i) => {
+            if (parseFloat(v) === 0) return str;
+            return str + (a[Number(v)] || b[v[0]] + ' ' + a[v[1]]) + (['Crore ', 'Lakh ', 'Thousand ', 'Hundred ', ''][i]);
+        }, '');
+    }
+    return getWords(Math.floor(num)).trim() + " Only";
+};  // Note: This is a simplified Indian numbering system version based on "Rupees" in prompt sample. 
+// If international is needed, standard billion/million logic should be used. 
+// Given "Rupees" in the prompt image text ("Ninety Thousand... Rupees Only"), I will use a standard English approach but "Rupees" label is in the template.
+
+// ============================================
+// Send quotation to client app
+// ============================================
 exports.sendToClient = async (req, res) => {
     try {
-        const quotation = await Quotation.findById(req.params.id);
+        const quotation = await Quotation.findById(req.params.id)
+            .populate('clientId', 'fullName email customerCode phone')
+            .populate('managerId', 'fullName email');
 
         if (!quotation) {
             return res.status(404).json({ message: 'Quotation not found' });
         }
 
-        await quotation.sendToClient();
+        // 1. Prepare Data for PDF
+        // Filter items for the table (Goods) vs Charges
+        // Assuming 'Freight', 'Insurance', 'Packaging', 'Handling', 'Tax' are charges
+        const chargeCategories = ['freight', 'insurance', 'packaging', 'handling', 'tax'];
+
+        const goodsItems = quotation.items.filter(item => !chargeCategories.includes(item.category.toLowerCase()));
+
+        // Calculate charges from items or use specific fields if logic dictates
+        // The prompt says: "Cost Breakdown: ... Shipping Charge, Pickup, Packaging, Insurance, Taxes."
+        const getCharge = (cat) => quotation.items
+            .filter(i => i.category.toLowerCase() === cat)
+            .reduce((sum, i) => sum + (i.amount || 0), 0);
+
+        const shippingCharge = getCharge('freight');
+        const pickupCharge = getCharge('handling'); // Assuming handling maps to pickup or similar
+        const packagingCharge = getCharge('packaging');
+        const insuranceCharge = getCharge('insurance');
+
+        // Format Currency
+        const formatCurrency = (amount) => {
+            return amount.toLocaleString('en-IN', { maximumFractionDigits: 2 }); // Indian formatting as per sample
+        };
+
+        const pdfData = {
+            clientName: quotation.clientId.fullName,
+            clientAddress: `${quotation.destination.addressLine}, ${quotation.destination.city}`,
+            clientPhone: quotation.clientId.phone || quotation.destination.phone || '',
+            quotationId: quotation.quotationNumber,
+            date: new Date(quotation.createdAt).toLocaleDateString('en-GB'), // DD/MM/YYYY
+            validityDate: new Date(quotation.validUntil).toLocaleDateString('en-GB'),
+            items: goodsItems.map((item, index) => ({
+                index: index + 1,
+                image: item.images && item.images.length > 0 ? item.images[0] : null,
+                category: item.category,
+                description: item.description,
+                hsCode: '8320', // Placeholder or add field to model if needed. 
+                boxes: item.quantity,
+                weight: item.weight + ' kg',
+                cbm: item.packingVolume || 0
+            })),
+            currency: quotation.currency === 'USD' ? '$' : (quotation.currency === 'INR' ? '₹' : quotation.currency),
+            shippingCharge: formatCurrency(shippingCharge),
+            pickupCharge: formatCurrency(pickupCharge),
+            packagingCharge: formatCurrency(packagingCharge),
+            insuranceCharge: formatCurrency(insuranceCharge),
+            tax: formatCurrency(quotation.tax),
+            totalAmount: formatCurrency(quotation.totalAmount),
+            totalAmountInWords: numberToWords(quotation.totalAmount)
+        };
+
+        // 2. Generate PDF
+        const pdfBuffer = await generateCustomPDF(pdfData);
+
+        // 3. Upload to Cloudinary
+        const uploadResult = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                    resource_type: 'raw',
+                    folder: 'lms/quotations',
+                    format: 'pdf',
+                    public_id: `quotation_${quotation.quotationNumber}_${Date.now()}`
+                },
+                (error, result) => {
+                    if (error) {
+                        console.error('Cloudinary Upload Error:', error);
+                        reject(error);
+                    } else {
+                        resolve(result);
+                    }
+                }
+            );
+
+            const bufferStream = new stream.PassThrough();
+            bufferStream.end(pdfBuffer);
+            bufferStream.pipe(uploadStream);
+        });
+
+        // 4. Save URL and Update Status
+        quotation.pdfUrl = uploadResult.secure_url;
+        await quotation.sendToClient(); // This sets status='sent' and saves
 
         // Create notification for client app
         await Notification.createQuotationNotification(
-            quotation.clientId,
+            quotation.clientId._id, // Ensure ID is passed
             quotation,
             'sent'
         );
 
         res.json({
-            message: 'Quotation sent to client app',
+            message: 'Quotation generated, uploaded, and sent to client app',
             quotation,
+            pdfUrl: quotation.pdfUrl
         });
     } catch (error) {
         console.error('Send To client app Error:', error);
