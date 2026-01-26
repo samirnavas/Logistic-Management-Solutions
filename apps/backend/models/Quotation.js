@@ -35,18 +35,15 @@ const lineItemSchema = new mongoose.Schema({
 const addressSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: [true, 'Contact name is required'],
         trim: true,
         maxlength: [100, 'Name cannot exceed 100 characters'],
     },
     phone: {
         type: String,
-        required: [true, 'Contact phone is required'],
         trim: true,
     },
     addressLine: {
         type: String,
-        required: [true, 'Address line is required'],
         trim: true,
         maxlength: [200, 'Address line cannot exceed 200 characters'],
     },
@@ -67,7 +64,6 @@ const addressSchema = new mongoose.Schema({
     },
     zip: {
         type: String,
-        required: [true, 'ZIP/Postal code is required'],
         trim: true,
     },
     addressType: {
@@ -259,7 +255,7 @@ const quotationSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: {
-            values: ['request_sent', 'cost_calculated', 'rejected', 'ready_for_pickup', 'shipped', 'delivered'],
+            values: ['request_sent', 'approved', 'details_submitted', 'cost_calculated', 'rejected', 'ready_for_pickup', 'shipped', 'delivered', 'sent', 'accepted'],
             message: 'Invalid quotation status',
         },
         default: 'request_sent',
@@ -326,7 +322,7 @@ quotationSchema.virtual('isExpired').get(function () {
  * client app only sees price if approved by manager
  */
 quotationSchema.virtual('isVisibleToClient').get(function () {
-    return this.isApprovedByManager && ['Approved', 'Sent', 'Accepted', 'Rejected'].includes(this.status);
+    return this.isApprovedByManager && ['approved', 'sent', 'accepted', 'rejected'].includes(this.status);
 });
 
 /**
@@ -395,7 +391,7 @@ quotationSchema.methods.calculateTotals = function () {
 quotationSchema.methods.approveByManager = async function () {
     this.isApprovedByManager = true;
     this.managerApprovedAt = new Date();
-    this.status = 'Approved';
+    this.status = 'approved';
     return this.save();
 };
 
@@ -406,7 +402,7 @@ quotationSchema.methods.sendToClient = async function () {
     if (!this.isApprovedByManager) {
         throw new Error('Quotation must be approved by manager before sending to client');
     }
-    this.status = 'Sent';
+    this.status = 'sent';
     return this.save();
 };
 
@@ -419,7 +415,7 @@ quotationSchema.methods.acceptByClient = async function () {
     }
     this.isAcceptedByClient = true;
     this.clientAcceptedAt = new Date();
-    this.status = 'Accepted';
+    this.status = 'accepted';
     return this.save();
 };
 
@@ -431,7 +427,7 @@ quotationSchema.methods.rejectByClient = async function (reason = '') {
     this.isRejectedByClient = true;
     this.clientRejectedAt = new Date();
     this.clientRejectionReason = reason;
-    this.status = 'Rejected';
+    this.status = 'rejected';
     return this.save();
 };
 
@@ -450,7 +446,20 @@ quotationSchema.methods.canBeEdited = function () {
 quotationSchema.methods.toClientJSON = function () {
     const obj = this.toJSON();
 
-    if (!this.isApprovedByManager) {
+    // Define statuses where price should be visible regardless of isApprovedByManager flag
+    const priceVisibleStatuses = [
+        'cost_calculated',
+        'ready_for_pickup',
+        'shipped',
+        'delivered',
+        'Approved',
+        'Sent',
+        'Accepted'
+    ];
+
+    // Check if price should be hidden
+    // Hide if NOT approved by manager AND status is NOT in the visible list
+    if (!this.isApprovedByManager && !priceVisibleStatuses.includes(this.status)) {
         // Hide pricing details for unapproved quotations
         obj.items = [];
         obj.subtotal = null;

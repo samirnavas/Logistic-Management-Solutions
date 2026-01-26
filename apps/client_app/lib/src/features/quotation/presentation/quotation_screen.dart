@@ -68,16 +68,20 @@ class _QuotationScreenState extends ConsumerState<QuotationScreen> {
     switch (status) {
       case QuotationStatus.requestSent:
         return 0;
-      case QuotationStatus.costCalculated:
+      case QuotationStatus.approved:
         return 1;
-      case QuotationStatus.readyForPickup:
+      case QuotationStatus.detailsSubmitted:
         return 2;
-      case QuotationStatus.shipped:
+      case QuotationStatus.costCalculated:
         return 3;
-      case QuotationStatus.delivered:
+      case QuotationStatus.readyForPickup:
         return 4;
-      case QuotationStatus.rejected:
+      case QuotationStatus.shipped:
         return 5;
+      case QuotationStatus.delivered:
+        return 6;
+      case QuotationStatus.rejected:
+        return 7;
     }
   }
 
@@ -422,7 +426,11 @@ class _QuotationCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           onTap: () {
             HapticFeedback.lightImpact();
-            context.push('/quotations/${quotation.id}');
+            if (quotation.status == QuotationStatus.approved) {
+              context.push('/quotations/${quotation.id}/address');
+            } else {
+              context.push('/quotations/${quotation.id}');
+            }
           },
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -479,9 +487,19 @@ class _QuotationCard extends StatelessWidget {
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               _buildStatusChip(context),
-                              quotation.status == QuotationStatus.requestSent
+                              quotation.status == QuotationStatus.requestSent ||
+                                      quotation.status ==
+                                          QuotationStatus.approved ||
+                                      quotation.status ==
+                                          QuotationStatus.detailsSubmitted
                                   ? Text(
-                                      'Calculated upon approval',
+                                      quotation.status ==
+                                              QuotationStatus.approved
+                                          ? 'Action Required - Add Address'
+                                          : quotation.status ==
+                                                QuotationStatus.detailsSubmitted
+                                          ? 'Pending Price Calculation'
+                                          : 'Calculated upon approval',
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodyMedium
@@ -532,7 +550,11 @@ class _QuotationCard extends StatelessWidget {
     return TextButton(
       onPressed: () {
         HapticFeedback.lightImpact();
-        context.push('/quotations/${quotation.id}');
+        if (quotation.status == QuotationStatus.approved) {
+          context.push('/quotations/${quotation.id}/address');
+        } else {
+          context.push('/quotations/${quotation.id}');
+        }
       },
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -566,6 +588,10 @@ class _QuotationCard extends StatelessWidget {
         return AppTheme.success;
       case QuotationStatus.requestSent:
         return AppTheme.warning;
+      case QuotationStatus.approved:
+        return AppTheme.error; // Red to indicate action required
+      case QuotationStatus.detailsSubmitted:
+        return Colors.blueGrey;
       case QuotationStatus.rejected:
         return AppTheme.error;
       case QuotationStatus.readyForPickup:

@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "dev:admin": "npm run dev --workspace=@apps/admin",
+    "dev:backend": "npm run dev --workspace=@apps/backend",
     "start:backend": "npm run start --workspace=@apps/backend"
   }
 }

@@ -149,11 +149,14 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                 const data = await res.json();
                 setRequest(data);
 
-                // Auto-open quotation details if quotation has been created
-                if (data.status !== 'request_sent') {
+                // Auto-open quotation details ONLY if quotation has been processed (price calculated or further)
+                const processedStatuses = ['cost_calculated', 'sent', 'accepted', 'ready_for_pickup', 'shipped', 'delivered'];
+                if (processedStatuses.includes(data.status)) {
                     setShowQuoteForm(true);
                     setQuotationViewMode('view');
-                    // Populate form fields for potential editing
+                    populateFormFromQuotation(data);
+                } else if (data.status === 'details_submitted') {
+                    // Pre-fill form if details are submitted (e.g. addresses might have changed)
                     populateFormFromQuotation(data);
                 }
             }
@@ -376,6 +379,26 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
         }
     };
 
+    const handleApproveRequest = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`/api/quotations/${requestId}/approve`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!res.ok) throw new Error('Failed to approve request');
+
+            // Refetch to get updated data
+            await fetchRequest();
+            if (onStatusChange) onStatusChange();
+            alert('Request approved successfully!');
+        } catch (err: any) {
+            console.error(err);
+            alert('Error approving request: ' + err.message);
+        }
+    };
+
     if (loading) return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
             <div className="bg-white p-8 rounded-xl shadow-xl">Loading details...</div>
@@ -385,169 +408,222 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
     if (!request) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="w-[893px] bg-white rounded-lg shadow-2xl relative p-8 max-h-[95vh] overflow-y-auto">
-
-                {/* Close Button */}
-                <button onClick={onClose} className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600 p-2">
-                    ✕
-                </button>
-
-                {/* Header Section */}
-                <div className="flex justify-between items-start mb-8">
-                    <h1 className="text-xl font-medium text-zinc-800">Request Detail</h1>
-                    <div className="flex gap-4">
-                        <div className="bg-slate-200 px-4 py-1.5 rounded-2xl text-sky-700 text-sm font-medium">
-                            ID : {request.quotationId}
-                        </div>
-                        <div className="bg-slate-200 px-4 py-1.5 rounded-2xl text-sky-700 text-sm font-medium">
-                            Status : {request.status === 'request_sent' ? 'New' : request.status}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 sm:p-6" onClick={onClose}>
+            <div
+                className="bg-white rounded-xl shadow-2xl relative w-[95%] sm:w-full max-w-4xl h-[90vh] md:h-auto md:max-h-[90vh] flex flex-col overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Header Section (Fixed) */}
+                <div className="flex-none flex justify-between items-start p-6 border-b border-gray-100 bg-white z-10">
+                    <div>
+                        <h1 className="text-xl font-bold text-zinc-800 mb-2">Request Detail</h1>
+                        <div className="flex flex-wrap gap-2 text-sm">
+                            <span className="bg-slate-100 px-3 py-1 rounded-full text-zinc-600 font-medium border border-slate-200">
+                                ID: <span className="text-zinc-900">{request.quotationId}</span>
+                            </span>
+                            <span className={`px-3 py-1 rounded-full font-medium border ${request.status === 'request_sent' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                                request.status === 'cost_calculated' ? 'bg-orange-50 text-orange-700 border-orange-100' :
+                                    request.status === 'approved' ? 'bg-green-50 text-green-700 border-green-100' :
+                                        'bg-gray-50 text-gray-700 border-gray-100'
+                                }`}>
+                                {request.status === 'request_sent' ? 'New' :
+                                    request.status === 'cost_calculated' ? 'Pending' :
+                                        request.status === 'approved' ? 'Approved' : request.status}
+                            </span>
                         </div>
                     </div>
+                    {/* Close Button */}
+                    <button onClick={onClose} className="p-2 -mr-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors">
+                        <span className="sr-only">Close</span>
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
 
-                <div className="flex gap-8">
-                    {/* Left Column: Customer Info */}
-                    <div className="flex-1 bg-white rounded-lg shadow-[3px_3px_12px_0px_rgba(0,0,0,0.15)] p-6 min-h-[384px] relative">
-                        <h2 className="text-lg font-medium text-zinc-800 mb-6">Customer Information</h2>
+                {/* Body (Scrollable) */}
+                <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
+                    <div className="flex flex-col lg:flex-row gap-6">
+                        {/* Left Column: Customer Info */}
+                        <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-fit">
+                            <h2 className="text-lg font-semibold text-zinc-800 mb-6 flex items-center gap-2">
+                                <span className="w-1 h-6 bg-blue-600 rounded-full"></span>
+                                Customer Information
+                            </h2>
 
-                        <div className="space-y-4">
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Name</span>
-                                <span className="text-zinc-800 text-sm font-medium">{request.clientId?.fullName}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Email</span>
-                                <span className="text-zinc-800 text-sm font-medium">{request.clientId?.email}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Mobile Number</span>
-                                <span className="text-zinc-800 text-sm font-medium">{request.clientId?.phone || request.origin?.phone || 'N/A'}</span>
-                            </div>
-                            <div className="flex justify-between items-start">
-                                <span className="text-zinc-500 text-sm">Address</span>
-                                <span className="text-zinc-800 text-sm font-medium text-right max-w-[150px]">
-                                    {request.origin?.addressLine || '123, Street Name'},<br />
-                                    {request.origin?.city}, {request.origin?.state}
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Location</span>
-                                <span className="text-zinc-800 text-sm font-medium">{request.origin?.city}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Right Column: Product & Delivery Details */}
-                    <div className="flex-1 bg-white rounded-lg shadow-[3px_3px_12px_0px_rgba(0,0,0,0.15)] p-6 min-h-[384px] overflow-y-auto">
-                        <h2 className="text-lg font-medium text-zinc-800 mb-6">Product & Delivery Details</h2>
-
-                        <div className="space-y-4">
-                            {/* Images Row */}
-                            {request.productPhotos?.length > 0 && (
-                                <div className="flex gap-4 mb-4">
-                                    {request.productPhotos.map((photo: string, i: number) => (
-                                        <img key={i} src={photo} alt="Product" className="w-16 h-16 rounded-lg object-cover" />
-                                    ))}
+                            <div className="space-y-4">
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-gray-50 rounded-lg">
+                                    <span className="text-zinc-500 text-sm mb-1 sm:mb-0">Name</span>
+                                    <span className="text-zinc-900 text-sm font-semibold">{request.clientId?.fullName}</span>
                                 </div>
-                            )}
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-gray-50 rounded-lg">
+                                    <span className="text-zinc-500 text-sm mb-1 sm:mb-0">Email</span>
+                                    <span className="text-zinc-900 text-sm font-medium">{request.clientId?.email}</span>
+                                </div>
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-gray-50 rounded-lg">
+                                    <span className="text-zinc-500 text-sm mb-1 sm:mb-0">Mobile Number</span>
+                                    <span className="text-zinc-900 text-sm font-medium text-nowrap">{request.clientId?.phone || request.origin?.phone || 'N/A'}</span>
+                                </div>
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start p-3 bg-gray-50 rounded-lg">
+                                    <span className="text-zinc-500 text-sm mb-1 sm:mb-0">Address</span>
+                                    <span className="text-zinc-900 text-sm font-medium text-right max-w-[200px]">
+                                        {request.origin?.addressLine || '123, Street Name'},<br />
+                                        {request.origin?.city}, {request.origin?.state}
+                                    </span>
+                                </div>
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-gray-50 rounded-lg">
+                                    <span className="text-zinc-500 text-sm mb-1 sm:mb-0">Location</span>
+                                    <span className="text-zinc-900 text-sm font-medium">{request.origin?.city}</span>
+                                </div>
+                            </div>
+                        </div>
 
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Product Name</span>
-                                <span className="text-zinc-800 text-sm font-medium">{request.cargoType}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Number of Boxes</span>
-                                <span className="text-zinc-800 text-sm font-medium">
-                                    {request.items?.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0) || 0}
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Packaging Type</span>
-                                <span className="text-zinc-800 text-sm font-medium">Secure Box</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Pickup Location</span>
-                                <span className="text-zinc-800 text-sm font-medium">{request.origin?.city}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Delivery Location</span>
-                                <span className="text-zinc-800 text-sm font-medium">{request.destination?.city}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Mode</span>
-                                <span className="text-zinc-800 text-sm font-medium">{request.serviceType}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Expected Delivery Timeline</span>
-                                <span className="text-zinc-800 text-sm font-medium">3-4 Business Days</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Special Instructions</span>
-                                <span className="text-zinc-800 text-sm font-medium text-right">{request.specialInstructions || 'None'}</span>
+                        {/* Right Column: Product & Delivery Details */}
+                        <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-fit">
+                            <h2 className="text-lg font-semibold text-zinc-800 mb-6 flex items-center gap-2">
+                                <span className="w-1 h-6 bg-orange-500 rounded-full"></span>
+                                Product & Delivery Details
+                            </h2>
+
+                            <div className="space-y-4">
+                                {/* Images Row */}
+                                {request.productPhotos?.length > 0 && (
+                                    <div className="flex gap-3 mb-6 overflow-x-auto pb-2 scrollbar-thin">
+                                        {request.productPhotos.map((photo: string, i: number) => (
+                                            <div key={i} className="relative w-20 h-20 flex-shrink-0 border border-gray-200 rounded-lg overflow-hidden">
+                                                <img src={photo} alt="Product" className="w-full h-full object-cover" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="p-3 bg-gray-50 rounded-lg">
+                                        <div className="text-zinc-500 text-xs mb-1">Product Name</div>
+                                        <div className="text-zinc-900 text-sm font-medium">{request.cargoType}</div>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-lg">
+                                        <div className="text-zinc-500 text-xs mb-1">Number of Boxes</div>
+                                        <div className="text-zinc-900 text-sm font-medium">
+                                            {request.items?.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0) || 0}
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-lg">
+                                        <div className="text-zinc-500 text-xs mb-1">Pickup Location</div>
+                                        <div className="text-zinc-900 text-sm font-medium">{request.origin?.city}</div>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-lg">
+                                        <div className="text-zinc-500 text-xs mb-1">Delivery Location</div>
+                                        <div className="text-zinc-900 text-sm font-medium">{request.destination?.city}</div>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-lg">
+                                        <div className="text-zinc-500 text-xs mb-1">Mode</div>
+                                        <div className="text-zinc-900 text-sm font-medium">{request.serviceType}</div>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-lg">
+                                        <div className="text-zinc-500 text-xs mb-1">Expected Delivery</div>
+                                        <div className="text-zinc-900 text-sm font-medium">3-4 Business Days</div>
+                                    </div>
+                                </div>
+
+                                <div className="p-3 bg-gray-50 rounded-lg mt-4">
+                                    <div className="text-zinc-500 text-xs mb-1">Special Instructions</div>
+                                    <div className="text-zinc-900 text-sm">{request.specialInstructions || 'None'}</div>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    {/* Price Breakdown (for processed quotations) */}
+                    {request.totalAmount !== undefined && (
+                        <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h2 className="text-lg font-semibold text-zinc-800 mb-4 flex items-center gap-2">
+                                <span className="w-1 h-6 bg-green-600 rounded-full"></span>
+                                Price Breakdown
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="bg-sky-50 border border-sky-100 p-4 rounded-xl">
+                                    <span className="text-sky-600 text-sm block mb-1 font-medium">Total Amount</span>
+                                    <div className="text-2xl font-bold text-sky-800">
+                                        {request.currency || '₹'} {request.totalAmount?.toLocaleString()}
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50 border border-gray-100 p-4 rounded-xl">
+                                    <span className="text-zinc-500 text-sm block mb-1">Subtotal</span>
+                                    <div className="text-zinc-800 font-medium text-lg">{request.subtotal?.toLocaleString()}</div>
+                                </div>
+                                <div className="bg-gray-50 border border-gray-100 p-4 rounded-xl">
+                                    <span className="text-zinc-500 text-sm block mb-1">Tax ({request.taxRate}%)</span>
+                                    <div className="text-zinc-800 font-medium text-lg">{request.tax?.toLocaleString()}</div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                {/* Price Breakdown (for processed quotations) */}
-                {request.totalAmount !== undefined && (
-                    <div className="mt-8 border-t border-gray-100 pt-6">
-                        <h2 className="text-lg font-medium text-zinc-800 mb-4">Price Breakdown</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="bg-slate-50 p-4 rounded-lg">
-                                <span className="text-zinc-500 text-sm block mb-1">Total Amount</span>
-                                <div className="text-2xl font-bold text-sky-700">
-                                    {request.currency || 'Amount'} {request.totalAmount?.toLocaleString()}
-                                </div>
-                            </div>
-                            <div className="bg-slate-50 p-4 rounded-lg">
-                                <span className="text-zinc-500 text-sm block mb-1">Subtotal</span>
-                                <div className="text-zinc-800 font-medium">{request.subtotal}</div>
-                            </div>
-                            <div className="bg-slate-50 p-4 rounded-lg">
-                                <span className="text-zinc-500 text-sm block mb-1">Tax ({request.taxRate}%)</span>
-                                <div className="text-zinc-800 font-medium">{request.tax}</div>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                {/* Footer Buttons (Fixed) */}
+                <div className="flex-none p-6 border-t border-gray-100 bg-white flex flex-col sm:flex-row justify-end gap-3 z-10">
+                    <button className="order-1 sm:order-none w-full sm:w-auto border border-gray-300 text-gray-700 px-6 py-2.5 rounded-full text-sm font-medium hover:bg-gray-50 transition-colors">
+                        Add Internal Notes
+                    </button>
 
-                {/* Footer Buttons */}
-                <div className="mt-8 flex justify-center gap-6">
-                    {request.status === 'request_sent' ? (
+                    {request.status === 'request_sent' && (
+                        <button
+                            onClick={handleApproveRequest}
+                            className="w-full sm:w-auto bg-sky-700 text-white px-8 py-2.5 rounded-full text-sm font-medium hover:bg-sky-800 transition-colors shadow-sm shadow-sky-700/20"
+                        >
+                            Approve Request
+                        </button>
+                    )}
+
+                    {request.status === 'approved' && (
+                        <div className="w-full sm:w-auto bg-yellow-50 text-yellow-800 px-6 py-2.5 rounded-lg border border-yellow-200 flex items-center justify-center shadow-sm">
+                            <span className="mr-2">⏳</span>
+                            <span className="font-medium text-sm">Waiting for client to provide details</span>
+                        </div>
+                    )}
+
+                    {request.status === 'details_submitted' && (
                         <button
                             onClick={() => {
                                 setShowQuoteForm(true);
                                 setQuotationViewMode('create');
                             }}
-                            className="bg-sky-700 text-white px-8 py-2.5 rounded-full text-sm font-normal hover:bg-sky-800 transition-colors"
+                            className="w-full sm:w-auto bg-green-600 text-white px-8 py-2.5 rounded-full text-sm font-medium hover:bg-green-700 transition-colors shadow-sm shadow-green-600/20"
                         >
-                            Create Quotation
+                            Calculate Price
                         </button>
-                    ) : (
+                    )}
+
+                    {['cost_calculated', 'sent', 'accepted', 'ready_for_pickup', 'shipped', 'delivered'].includes(request.status) && (
                         <button
                             onClick={() => {
                                 setShowQuoteForm(true);
                                 setQuotationViewMode('view');
                             }}
-                            className="bg-sky-700 text-white px-8 py-2.5 rounded-full text-sm font-normal hover:bg-sky-800 transition-colors"
+                            className="w-full sm:w-auto bg-sky-700 text-white px-8 py-2.5 rounded-full text-sm font-medium hover:bg-sky-800 transition-colors shadow-sm shadow-sky-700/20"
                         >
                             View Quotation
                         </button>
                     )}
-                    <button className="border border-sky-700 text-sky-700 px-8 py-2.5 rounded-full text-sm font-normal hover:bg-sky-50 transition-colors">
-                        Add Internal Notes
-                    </button>
                 </div>
             </div>
 
             {/* Quotation Form/Details Modal (Overlay) */}
             {showQuoteForm && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-[60] overflow-y-auto py-10">
+                <div
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-[60] overflow-y-auto py-10 px-4"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setShowQuoteForm(false);
+                    }}
+                >
                     {quotationViewMode === 'create' ? (
                         /* CREATE/EDIT FORM */
-                        <div className="w-full max-w-[583px] bg-white rounded-lg shadow-2xl relative max-h-[95vh] overflow-y-auto">
+                        <div
+                            className="w-full max-w-[583px] bg-white rounded-lg shadow-2xl relative max-h-[95vh] overflow-y-auto no-scrollbar"
+                            onClick={(e) => e.stopPropagation()}
+                        >
                             {/* Close Button */}
                             <button
                                 onClick={() => setShowQuoteForm(false)}
@@ -796,7 +872,10 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                         </div>
                     ) : (
                         /* QUOTATION DETAILS VIEW */
-                        <div className="w-full max-w-[893px] bg-white rounded-lg border border-black shadow-2xl relative max-h-[95vh] overflow-y-auto">
+                        <div
+                            className="w-full max-w-4xl bg-white rounded-lg border border-black shadow-2xl relative max-h-[95vh] overflow-y-auto no-scrollbar"
+                            onClick={(e) => e.stopPropagation()}
+                        >
                             {/* Close Button */}
                             <button
                                 onClick={() => setShowQuoteForm(false)}
@@ -814,7 +893,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                     </h1>
 
                                     {/* Status Badges and Edit Button */}
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex flex-wrap items-center gap-4">
                                         <div className="bg-[#E6EEF6] px-4 py-1 rounded-[14px]">
                                             <span className="text-[#0557A5] text-base font-medium">ID : {request.quotationId || 'QT-8891'}</span>
                                         </div>
@@ -824,7 +903,10 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                             </span>
                                         </div>
                                         <button
-                                            onClick={() => setQuotationViewMode('create')}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setQuotationViewMode('create');
+                                            }}
                                             className="ml-auto bg-[#0557A5] text-white px-6 py-2 rounded-full text-sm font-normal hover:bg-[#044580] transition-colors"
                                         >
                                             Edit Quotation
@@ -833,7 +915,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                 </div>
 
                                 {/* Top Row: Customer Info & Request Summary */}
-                                <div className="grid grid-cols-2 gap-7 mb-7">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-7 mb-7">
                                     {/* Customer Information */}
                                     <div className="bg-white shadow-[3px_3px_12px_rgba(0,0,0,0.15)] rounded-lg p-5">
                                         <h2 className="text-lg font-medium text-[#333333] mb-6">Customer Information</h2>
@@ -906,7 +988,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                 </div>
 
                                 {/* Bottom Row: Price Breakdown, History & Response Status */}
-                                <div className="grid grid-cols-2 gap-7">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-7 mb-7">
                                     {/* Complete Price Breakdown */}
                                     <div className="bg-white shadow-[3px_3px_12px_rgba(0,0,0,0.15)] rounded-lg p-5">
                                         <h2 className="text-lg font-medium text-[#333333] mb-6">Complete Price Breakdown</h2>
@@ -974,7 +1056,54 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                             <h2 className="text-lg font-medium text-[#333333] mb-4">Customer Response Status</h2>
                                             <div className="flex justify-between items-center">
                                                 <span className="text-[#868686] text-sm">Current Status</span>
-                                                <span className="text-[#333333] text-sm font-medium">Awaiting Response</span>
+                                                <span className={`text-sm font-medium ${['ready_for_pickup', 'accepted', 'shipped', 'delivered'].includes(request.status) ? 'text-green-600' :
+                                                    ['rejected'].includes(request.status) ? 'text-red-600' :
+                                                        'text-orange-600'
+                                                    }`}>
+                                                    {['ready_for_pickup', 'accepted', 'shipped', 'delivered'].includes(request.status) ? 'Accepted' :
+                                                        ['rejected'].includes(request.status) ? 'Rejected' :
+                                                            'Awaiting Response'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Validity Section */}
+                                <div className="mb-7">
+                                    <div className="bg-white shadow-[3px_3px_12px_rgba(0,0,0,0.15)] rounded-lg p-5">
+                                        <h2 className="text-lg font-medium text-[#333333] mb-6">Validity</h2>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[#868686] text-sm">Quotation Valid Until</span>
+                                            <span className="text-[#333333] text-sm font-medium">
+                                                {request.validUntil ? formatDate(request.validUntil) : (validUntil ? formatDate(validUntil) : 'N/A')}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Terms & Notes Section */}
+                                <div>
+                                    <div className="bg-white shadow-[3px_3px_12px_rgba(0,0,0,0.15)] rounded-lg p-5">
+                                        <h2 className="text-lg font-medium text-[#333333] mb-6">Terms & Notes</h2>
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-start">
+                                                <span className="text-[#868686] text-sm">Payment Terms</span>
+                                                <span className="text-[#333333] text-sm font-medium text-right max-w-[60%]">
+                                                    {paymentTerms || 'N/A'}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-start">
+                                                <span className="text-[#868686] text-sm">Delivery Conditions</span>
+                                                <span className="text-[#333333] text-sm font-medium text-right max-w-[60%]">
+                                                    {deliveryConditions || 'N/A'}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-start">
+                                                <span className="text-[#868686] text-sm">Other Information</span>
+                                                <span className="text-[#333333] text-sm font-medium text-right max-w-[60%]">
+                                                    {otherInformation || 'N/A'}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -987,3 +1116,12 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
         </div>
     );
 }
+
+// Add this style to your globals.css or component styles to hide scrollbar
+// .no-scrollbar::-webkit-scrollbar {
+//     display: none;
+// }
+// .no-scrollbar {
+//     -ms-overflow-style: none;
+//     scrollbar-width: none;
+// }

@@ -6,6 +6,7 @@ import 'package:bb_logistics/src/features/auth/presentation/signup_screen.dart';
 import 'package:bb_logistics/src/features/auth/presentation/splash_screen.dart';
 import 'package:bb_logistics/src/features/home/presentation/home_screen.dart';
 import 'package:bb_logistics/src/features/profile/presentation/profile_screen.dart';
+import 'package:bb_logistics/src/features/quotation/presentation/add_address_screen.dart';
 import 'package:bb_logistics/src/features/quotation/presentation/quotation_detail_screen.dart';
 import 'package:bb_logistics/src/features/quotation/presentation/quotation_screen.dart';
 import 'package:bb_logistics/src/features/shipment/presentation/request_shipment_screen.dart';
@@ -78,6 +79,15 @@ GoRouter goRouter(Ref ref) {
         builder: (context, state) {
           final quotationId = state.pathParameters['id']!;
           return QuotationDetailScreen(quotationId: quotationId);
+        },
+      ),
+      // Add Address Screen
+      GoRoute(
+        path: '/quotations/:id/address',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final quotationId = state.pathParameters['id']!;
+          return AddAddressScreen(quotationId: quotationId);
         },
       ),
       // Tracking Screen - Root level route for full-screen map view

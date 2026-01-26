@@ -23,7 +23,10 @@ router.put('/:id', quotationController.updateQuotation);
 // Update quotation price (specialized)
 router.put('/:id/update-price', quotationController.updateQuotePrice);
 
-// Approve quotation (manager)
+// Approve request (manager - initial approval)
+router.put('/:id/approve', quotationController.approveRequest);
+
+// Approve quotation (manager - final approval)
 router.patch('/:id/approve', quotationController.approveByManager);
 
 // Send quotation to client app
@@ -40,6 +43,9 @@ router.get('/client/:clientId', quotationController.getClientQuotations);
 
 // Get single quotation for client (with visibility check)
 router.get('/client/:clientId/:id', quotationController.getClientQuotation);
+
+// Update address details (client app)
+router.put('/:id/address', quotationController.updateAddress);
 
 // Accept quotation (client app)
 router.patch('/:id/accept', quotationController.acceptByClient);

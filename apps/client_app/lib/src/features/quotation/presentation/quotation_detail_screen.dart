@@ -194,11 +194,13 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
   }
 
   Widget _buildContent(BuildContext context, Quotation quotation) {
-    if (quotation.status == QuotationStatus.requestSent) {
+    if (quotation.status == QuotationStatus.requestSent ||
+        quotation.status == QuotationStatus.approved ||
+        quotation.status == QuotationStatus.detailsSubmitted) {
       return Column(
         children: [
           _buildSummaryCard(quotation),
-          _buildPendingBanner(context),
+          _buildPendingBanner(context, quotation.status),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -416,6 +418,12 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
       case QuotationStatus.delivered:
         badgeColor = Colors.green[800]!;
         break;
+      case QuotationStatus.approved:
+        badgeColor = AppTheme.warning;
+        break;
+      case QuotationStatus.detailsSubmitted:
+        badgeColor = Colors.blueGrey;
+        break;
     }
 
     return Container(
@@ -457,7 +465,9 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     );
 
     // Show placeholder for pending quotations
-    if (quotation.status == QuotationStatus.requestSent) {
+    if (quotation.status == QuotationStatus.requestSent ||
+        quotation.status == QuotationStatus.approved ||
+        quotation.status == QuotationStatus.detailsSubmitted) {
       return Center(
         child: Container(
           margin: const EdgeInsets.all(32),
@@ -648,7 +658,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     );
   }
 
-  Widget _buildPendingBanner(BuildContext context) {
+  Widget _buildPendingBanner(BuildContext context, QuotationStatus status) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -664,7 +674,11 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Request Sent. Waiting for Manager to calculate cost.',
+              status == QuotationStatus.approved
+                  ? 'Request Approved. Please provide address details.'
+                  : status == QuotationStatus.detailsSubmitted
+                  ? 'Address Submitted. Waiting for final pricing calculation.'
+                  : 'Request Sent. Waiting for Manager to calculate cost.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: AppTheme.warning,
                 fontWeight: FontWeight.bold,
@@ -729,7 +743,9 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
 
   Widget _buildPdfTab(Quotation quotation) {
     // Show pending state for pending quotations
-    if (quotation.status == QuotationStatus.requestSent) {
+    if (quotation.status == QuotationStatus.requestSent ||
+        quotation.status == QuotationStatus.approved ||
+        quotation.status == QuotationStatus.detailsSubmitted) {
       return Center(
         child: Container(
           margin: const EdgeInsets.all(32),
@@ -924,16 +940,17 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
         child: SafeArea(
           child: Row(
             children: [
-              // Reject Button (optional, can be added if needed, sticking to Proceed for now based on prompt or add Reject if needed)
-              // Prompt said: "Show a primary button: 'Proceed / Enter Address'".
-              // It didn't explicitly ask for a Reject button here on client app side, but 'rejected' state exists.
-              // I will stick to what the prompt requested for cost_calculated: "Show a primary button: 'Proceed / Enter Address'".
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () =>
-                      _showAddressConfirmationDialog(context, quotation),
+                  onPressed: () {
+                    // For now, we reuse the dialog but we should probably have a different flow for acceptance
+                    // Since backend doesn't have specific 'accept' endpoint other than confirm-address or similar?
+                    // Let's assume confirmAddress is still the way to "finalize" it or we need a new one.
+                    // The previous flow used confirmAddress to finalize.
+                    _showAddressConfirmationDialog(context, quotation);
+                  },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryBlue,
+                    backgroundColor: AppTheme.success,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -942,7 +959,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                     elevation: 0,
                   ),
                   child: const Text(
-                    'Proceed / Enter Address',
+                    'Accept Quotation',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -1091,19 +1108,43 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     Quotation quotation,
   ) {
     final formKey = GlobalKey<FormState>();
-    final pickupNameController = TextEditingController();
-    final pickupAddressController = TextEditingController();
-    final pickupCityController = TextEditingController();
-    final pickupZipController = TextEditingController();
-    final pickupCountryController = TextEditingController();
-    final pickupPhoneController = TextEditingController();
+    final pickupNameController = TextEditingController(
+      text: quotation.origin?.name,
+    );
+    final pickupAddressController = TextEditingController(
+      text: quotation.origin?.addressLine,
+    );
+    final pickupCityController = TextEditingController(
+      text: quotation.origin?.city,
+    );
+    final pickupZipController = TextEditingController(
+      text: quotation.origin?.zip,
+    );
+    final pickupCountryController = TextEditingController(
+      text: quotation.origin?.country,
+    );
+    final pickupPhoneController = TextEditingController(
+      text: quotation.origin?.phone,
+    );
 
-    final deliveryNameController = TextEditingController();
-    final deliveryAddressController = TextEditingController();
-    final deliveryCityController = TextEditingController();
-    final deliveryZipController = TextEditingController();
-    final deliveryCountryController = TextEditingController();
-    final deliveryPhoneController = TextEditingController();
+    final deliveryNameController = TextEditingController(
+      text: quotation.destination?.name,
+    );
+    final deliveryAddressController = TextEditingController(
+      text: quotation.destination?.addressLine,
+    );
+    final deliveryCityController = TextEditingController(
+      text: quotation.destination?.city,
+    );
+    final deliveryZipController = TextEditingController(
+      text: quotation.destination?.zip,
+    );
+    final deliveryCountryController = TextEditingController(
+      text: quotation.destination?.country,
+    );
+    final deliveryPhoneController = TextEditingController(
+      text: quotation.destination?.phone,
+    );
 
     showDialog(
       context: context,

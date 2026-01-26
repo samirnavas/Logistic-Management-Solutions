@@ -1,6 +1,8 @@
 /// Quotation status enum
 enum QuotationStatus {
   requestSent,
+  approved,
+  detailsSubmitted,
   costCalculated,
   rejected,
   readyForPickup,
@@ -11,6 +13,10 @@ enum QuotationStatus {
     switch (this) {
       case QuotationStatus.requestSent:
         return 'Request Sent';
+      case QuotationStatus.approved:
+        return 'Approved - Action Required';
+      case QuotationStatus.detailsSubmitted:
+        return 'Details Submitted';
       case QuotationStatus.costCalculated:
         return 'Cost Calculated';
       case QuotationStatus.rejected:
@@ -219,8 +225,12 @@ class Quotation {
       case 'request_sent':
       case 'Pending': // Legacy
         return QuotationStatus.requestSent;
+      case 'approved':
+        return QuotationStatus.approved;
+      case 'details_submitted':
+        return QuotationStatus.detailsSubmitted;
       case 'cost_calculated':
-      case 'Approved': // Legacy
+      case 'Approved': // Legacy (Use cost_calculated for final approval with price)
         return QuotationStatus.costCalculated;
       case 'rejected':
       case 'Rejected': // Legacy
@@ -242,6 +252,12 @@ class Quotation {
     switch (status) {
       case QuotationStatus.requestSent:
         statusStr = 'request_sent';
+        break;
+      case QuotationStatus.approved:
+        statusStr = 'approved';
+        break;
+      case QuotationStatus.detailsSubmitted:
+        statusStr = 'details_submitted';
         break;
       case QuotationStatus.costCalculated:
         statusStr = 'cost_calculated';

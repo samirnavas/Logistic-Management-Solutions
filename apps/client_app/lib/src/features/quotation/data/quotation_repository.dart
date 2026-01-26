@@ -76,6 +76,18 @@ class QuotationRepository {
     });
   }
 
+  /// Update address details (details_submitted)
+  Future<void> updateAddress(
+    String id,
+    Map<String, dynamic> origin,
+    Map<String, dynamic> destination,
+  ) async {
+    await _apiService.putRequest('/api/quotations/$id/address', {
+      'origin': origin,
+      'destination': destination,
+    });
+  }
+
   /// Create a new quotation request
   Future<Quotation> createQuotation(Map<String, dynamic> requestData) async {
     final response = await _apiService.postRequest(

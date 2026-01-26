@@ -463,6 +463,69 @@ exports.deleteQuotation = async (req, res) => {
 };
 
 // ============================================
+// Approve Request (Manager)
+// ============================================
+exports.approveRequest = async (req, res) => {
+    try {
+        const quotation = await Quotation.findById(req.params.id);
+
+        if (!quotation) {
+            return res.status(404).json({ message: 'Quotation not found' });
+        }
+
+        quotation.status = 'approved';
+        await quotation.save();
+
+        // Notify client
+        await Notification.createNotification({
+            recipientId: quotation.clientId,
+            title: 'Request Approved',
+            message: 'Request Approved. Please add your address details.',
+            type: 'success',
+            category: 'quotation',
+            relatedId: quotation._id,
+            relatedModel: 'Quotation',
+        });
+
+        res.json({
+            message: 'Request approved successfully',
+            quotation,
+        });
+    } catch (error) {
+        console.error('Approve Request Error:', error);
+        res.status(500).json({ message: 'Failed to approve request', error: error.message });
+    }
+};
+
+// ============================================
+// Update Address (Client)
+// ============================================
+exports.updateAddress = async (req, res) => {
+    try {
+        const { origin, destination } = req.body;
+        const quotation = await Quotation.findById(req.params.id);
+
+        if (!quotation) {
+            return res.status(404).json({ message: 'Quotation not found' });
+        }
+
+        if (origin) quotation.origin = origin;
+        if (destination) quotation.destination = destination;
+
+        quotation.status = 'details_submitted';
+        const updatedQuotation = await quotation.save();
+
+        res.json({
+            message: 'Address details submitted successfully',
+            quotation: updatedQuotation,
+        });
+    } catch (error) {
+        console.error('Update Address Error:', error);
+        res.status(500).json({ message: 'Failed to update address', error: error.message });
+    }
+};
+
+// ============================================
 // Confirm address and set Ready for Pickup
 // ============================================
 exports.confirmAddress = async (req, res) => {

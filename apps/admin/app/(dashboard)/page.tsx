@@ -157,12 +157,12 @@ export default function DashboardPage() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                 {/* Card 1: Total Quotation Requests (Blue) */}
                 <div className="bg-[#EBF5FF] border border-blue-100 rounded-xl p-5 flex flex-col justify-between h-32 relative overflow-hidden group">
                     <div className="z-10">
                         <h3 className="text-3xl font-bold text-slate-800 mb-1">{stats.totalRequests}</h3>
-                        <p className="text-sm text-slate-500 font-medium">Total Quotation Requests</p>
+                        <p className="text-sm text-slate-500 font-medium whitespace-nowrap">Total Quotation Requests</p>
                     </div>
                     <div className="absolute right-4 top-4 text-blue-400 bg-white p-2 rounded-full shadow-sm">
                         <div className="w-5 h-5 flex items-center justify-center border-2 border-blue-400 rounded-full text-[10px] font-bold">=</div>
@@ -173,7 +173,7 @@ export default function DashboardPage() {
                 <div className="bg-[#E0F2F1] border border-cyan-100 rounded-xl p-5 flex flex-col justify-between h-32 relative overflow-hidden">
                     <div className="z-10">
                         <h3 className="text-3xl font-bold text-slate-800 mb-1">{stats.pendingRequests}</h3>
-                        <p className="text-sm text-slate-500 font-medium">Pending Requests</p>
+                        <p className="text-sm text-slate-500 font-medium whitespace-nowrap">Pending Requests</p>
                     </div>
                     <div className="absolute right-4 top-4 text-cyan-500 bg-white p-2 rounded-full shadow-sm">
                         <Hourglass size={18} />
@@ -184,7 +184,7 @@ export default function DashboardPage() {
                 <div className="bg-[#FFF3E0] border border-orange-100 rounded-xl p-5 flex flex-col justify-between h-32 relative overflow-hidden">
                     <div className="z-10">
                         <h3 className="text-3xl font-bold text-slate-800 mb-1">{stats.totalQuotations}</h3>
-                        <p className="text-sm text-slate-500 font-medium">Total Quotations</p>
+                        <p className="text-sm text-slate-500 font-medium whitespace-nowrap">Total Quotations</p>
                     </div>
                     <div className="absolute right-4 top-4 text-orange-400 bg-white p-2 rounded-full shadow-sm">
                         <div className="w-5 h-5 flex items-center justify-center border-2 border-orange-400 rounded-full text-[10px] font-bold">=</div>
@@ -195,7 +195,7 @@ export default function DashboardPage() {
                 <div className="bg-[#E8F5E9] border border-green-100 rounded-xl p-5 flex flex-col justify-between h-32 relative overflow-hidden">
                     <div className="z-10">
                         <h3 className="text-3xl font-bold text-slate-800 mb-1">{stats.pendingQuotations}</h3>
-                        <p className="text-sm text-slate-500 font-medium">Pending Quotations</p>
+                        <p className="text-sm text-slate-500 font-medium whitespace-nowrap">Pending Quotations</p>
                     </div>
                     <div className="absolute right-4 top-4 text-green-500 bg-white p-2 rounded-full shadow-sm">
                         <Hourglass size={18} />
@@ -206,7 +206,7 @@ export default function DashboardPage() {
                 <div className="bg-[#FCE4EC] border border-pink-100 rounded-xl p-5 flex flex-col justify-between h-32 relative overflow-hidden">
                     <div className="z-10">
                         <h3 className="text-3xl font-bold text-slate-800 mb-1">{stats.acceptedQuotations}</h3>
-                        <p className="text-sm text-slate-500 font-medium">Accepted Quotations</p>
+                        <p className="text-sm text-slate-500 font-medium whitespace-nowrap">Accepted Quotations</p>
                     </div>
                     <div className="absolute right-4 top-4 text-pink-400 bg-white p-2 rounded-full shadow-sm">
                         <CheckCircle size={18} />
@@ -215,86 +215,88 @@ export default function DashboardPage() {
             </div>
 
             {/* Table Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
 
                 {/* Filters */}
-                <div className="flex justify-end gap-4 mb-6 relative">
+                <div className="flex flex-col sm:flex-row justify-end gap-4 mb-6 relative">
                     {statusFilter && (
                         <button
                             onClick={clearFilters}
-                            className="text-sm text-red-500 hover:text-red-700 font-medium"
+                            className="text-sm text-red-500 hover:text-red-700 font-medium self-end sm:self-auto min-h-[44px] flex items-center"
                         >
                             Clear Filters
                         </button>
                     )}
-                    <button className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors">
-                        <span className="opacity-70">Date</span>
-                        <ChevronDown size={14} />
-                    </button>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors">
-                        <span className="opacity-70">Delivery Type</span>
-                        <ChevronDown size={14} />
-                    </button>
-
-                    <div className="relative">
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setShowStatusMenu(!showStatusMenu);
-                            }}
-                            className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm transition-colors ${statusFilter ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}
-                        >
-                            <span className="opacity-70">{statusFilter ? getStatusLabel(statusFilter) : 'Status'}</span>
+                    <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+                        <button className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors whitespace-nowrap min-h-[44px]">
+                            <span className="opacity-70">Date</span>
+                            <ChevronDown size={14} />
+                        </button>
+                        <button className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors whitespace-nowrap min-h-[44px]">
+                            <span className="opacity-70">Delivery Type</span>
                             <ChevronDown size={14} />
                         </button>
 
-                        {/* Status Dropdown */}
-                        {showStatusMenu && (
-                            <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
-                                <button
-                                    onClick={() => handleStatusSelect('request_sent')}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                >
-                                    New
-                                </button>
-                                <button
-                                    onClick={() => handleStatusSelect('cost_calculated')}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                >
-                                    Pending
-                                </button>
-                                <button
-                                    onClick={() => handleStatusSelect('ready_for_pickup')}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                >
-                                    Accepted
-                                </button>
-                            </div>
-                        )}
+                        <div className="relative">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowStatusMenu(!showStatusMenu);
+                                }}
+                                className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm transition-colors whitespace-nowrap min-h-[44px] ${statusFilter ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}
+                            >
+                                <span className="opacity-70">{statusFilter ? getStatusLabel(statusFilter) : 'Status'}</span>
+                                <ChevronDown size={14} />
+                            </button>
+
+                            {/* Status Dropdown */}
+                            {showStatusMenu && (
+                                <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
+                                    <button
+                                        onClick={() => handleStatusSelect('request_sent')}
+                                        className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px]"
+                                    >
+                                        New
+                                    </button>
+                                    <button
+                                        onClick={() => handleStatusSelect('cost_calculated')}
+                                        className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px]"
+                                    >
+                                        Pending
+                                    </button>
+                                    <button
+                                        onClick={() => handleStatusSelect('ready_for_pickup')}
+                                        className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px]"
+                                    >
+                                        Accepted
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
                 {/* Table */}
-                <div className="overflow-x-auto min-h-[400px]">
-                    <table className="w-full text-left border-collapse">
+                <div className="w-full overflow-x-auto shadow-sm rounded-lg border border-gray-100">
+                    <table className="min-w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-[#F1F5F9] text-slate-500 text-xs uppercase font-bold tracking-wider">
-                                <th className="px-4 py-4 rounded-l-lg">SI No.</th>
-                                <th className="px-4 py-4">Name</th>
-                                <th className="px-4 py-4">Location</th>
-                                <th className="px-4 py-4">Contact</th>
-                                <th className="px-4 py-4">Delivery Type</th>
-                                <th className="px-4 py-4">#Boxes</th>
-                                <th className="px-4 py-4">CBM</th>
-                                <th className="px-4 py-4">Weight</th>
-                                <th className="px-4 py-4">Destination</th>
-                                <th className="px-4 py-4">Request#</th>
-                                <th className="px-4 py-4">Expiry#</th>
-                                <th className="px-4 py-4">Status</th>
-                                <th className="px-4 py-4 rounded-r-lg">Action</th>
+                                <th className="px-4 py-4 whitespace-nowrap">SI No.</th>
+                                <th className="px-4 py-4 whitespace-nowrap">Name</th>
+                                <th className="px-4 py-4 whitespace-nowrap">Location</th>
+                                <th className="px-4 py-4 whitespace-nowrap">Contact</th>
+                                <th className="px-4 py-4 whitespace-nowrap">Delivery Type</th>
+                                <th className="px-4 py-4 whitespace-nowrap">#Boxes</th>
+                                <th className="px-4 py-4 whitespace-nowrap">CBM</th>
+                                <th className="px-4 py-4 whitespace-nowrap">Weight</th>
+                                <th className="px-4 py-4 whitespace-nowrap">Destination</th>
+                                <th className="px-4 py-4 whitespace-nowrap">Request#</th>
+                                <th className="px-4 py-4 whitespace-nowrap">Expiry#</th>
+                                <th className="px-4 py-4 whitespace-nowrap">Status</th>
+                                <th className="px-4 py-4 whitespace-nowrap">Action</th>
                             </tr>
                         </thead>
-                        <tbody className="text-sm text-slate-600">
+                        <tbody className="text-sm text-slate-600 divide-y divide-gray-100">
                             {loading ? (
                                 <tr>
                                     <td colSpan={13} className="px-4 py-8 text-center text-slate-400">Loading data...</td>
@@ -305,40 +307,42 @@ export default function DashboardPage() {
                                 </tr>
                             ) : (
                                 quotations.map((row, index) => (
-                                    <tr key={row._id || row.id || index} className="border-b border-gray-50 hover:bg-gray-50 transition-colors group">
-                                        <td className="px-4 py-4 text-slate-400">
+                                    <tr key={row._id || row.id || index} className="hover:bg-gray-50 transition-colors group">
+                                        <td className="px-4 py-4 text-slate-400 whitespace-nowrap">
                                             #{String((currentPage - 1) * itemsPerPage + index + 1).padStart(3, '0')}
                                         </td>
-                                        <td className="px-4 py-4 font-medium text-slate-700">
-                                            {typeof row.clientId === 'object' && row.clientId !== null && 'fullName' in row.clientId
-                                                ? (row.clientId as any).fullName
-                                                : 'Unknown'}
+                                        <td className="px-4 py-4 font-medium text-slate-700 whitespace-nowrap" title={typeof row.clientId === 'object' && row.clientId !== null && 'fullName' in row.clientId ? (row.clientId as any).fullName : 'Unknown'}>
+                                            <div className="truncate max-w-[150px]">
+                                                {typeof row.clientId === 'object' && row.clientId !== null && 'fullName' in row.clientId
+                                                    ? (row.clientId as any).fullName
+                                                    : 'Unknown'}
+                                            </div>
                                         </td>
-                                        <td className="px-4 py-4 text-slate-500">{row.origin?.city || '-'}</td>
-                                        <td className="px-4 py-4 text-slate-500 text-xs text-nowrap">
+                                        <td className="px-4 py-4 text-slate-500 whitespace-nowrap">{row.origin?.city || '-'}</td>
+                                        <td className="px-4 py-4 text-slate-500 text-xs whitespace-nowrap">
                                             {typeof row.clientId === 'object' && row.clientId !== null && 'phone' in row.clientId
                                                 ? (row.clientId as any).phone
                                                 : row.origin?.phone || '-'}
                                         </td>
-                                        <td className="px-4 py-4 text-slate-500 text-xs">{row.serviceType || 'Standard'}</td>
-                                        <td className="px-4 py-4 text-center">{row.items?.reduce((a, b) => a + (b.quantity || 0), 0) || 0}</td>
-                                        <td className="px-4 py-4 text-center">{'-'}</td>
-                                        <td className="px-4 py-4 text-center">{'-'}</td>
-                                        <td className="px-4 py-4 text-slate-500">{row.destination?.city || '-'}</td>
-                                        <td className="px-4 py-4 text-xs">{row.quotationId?.split('-').pop() || row.quotationNumber?.slice(-6) || 'N/A'}</td>
+                                        <td className="px-4 py-4 text-slate-500 text-xs whitespace-nowrap">{row.serviceType || 'Standard'}</td>
+                                        <td className="px-4 py-4 text-center whitespace-nowrap">{row.items?.reduce((a, b) => a + (b.quantity || 0), 0) || 0}</td>
+                                        <td className="px-4 py-4 text-center whitespace-nowrap">{'-'}</td>
+                                        <td className="px-4 py-4 text-center whitespace-nowrap">{'-'}</td>
+                                        <td className="px-4 py-4 text-slate-500 whitespace-nowrap">{row.destination?.city || '-'}</td>
+                                        <td className="px-4 py-4 text-xs whitespace-nowrap">{row.quotationId?.split('-').pop() || row.quotationNumber?.slice(-6) || 'N/A'}</td>
                                         <td className="px-4 py-4 text-xs whitespace-nowrap">{row.validUntil ? formatDate(row.validUntil) : '-'}</td>
-                                        <td className="px-4 py-4">
+                                        <td className="px-4 py-4 whitespace-nowrap">
                                             <span className={getStatusStyle(row.status)}>
                                                 {getStatusLabel(row.status)}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-4 relative">
+                                        <td className="px-4 py-4 relative whitespace-nowrap">
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     setSelectedRequestId(row._id || row.id);
                                                 }}
-                                                className="text-gray-400 hover:text-blue-600 px-3 py-1 rounded-md text-sm transition-colors border border-transparent hover:border-gray-200 hover:bg-white"
+                                                className="text-gray-400 hover:text-blue-600 px-3 py-1 rounded-md text-sm transition-colors border border-transparent hover:border-gray-200 hover:bg-white min-h-[32px]"
                                             >
                                                 View
                                             </button>
