@@ -721,22 +721,22 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                     >
                         {/* Modal Header */}
                         <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-white z-10">
-                            <h1 className="text-xl font-bold text-zinc-900 flex items-center gap-3">
+                            <h1 className="text-xl font-bold text-[#333333] flex items-center gap-3">
                                 {quotationViewMode === 'create' ? (
                                     <>
-                                        <span className="w-2 h-8 bg-blue-600 rounded-full"></span>
+                                        <span className="w-2 h-8 bg-[#0557A5] rounded-full"></span>
                                         Create Quotation
                                     </>
                                 ) : (
                                     <>
-                                        <span className="w-2 h-8 bg-indigo-600 rounded-full"></span>
+                                        <span className="w-2 h-8 bg-[#0557A5] rounded-full"></span>
                                         Quotation Details
                                     </>
                                 )}
                             </h1>
                             <button
                                 onClick={() => setShowQuoteForm(false)}
-                                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F5F5F5] hover:bg-gray-200 text-[#868686] hover:text-[#333333] transition-colors"
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
@@ -768,7 +768,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                                         <label className="text-zinc-500 text-xs uppercase font-bold tracking-wide mb-1.5 block">Valid Until</label>
                                                         <input
                                                             type="date"
-                                                            className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-zinc-700"
+                                                            className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#333333] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20 font-medium"
                                                             value={validUntil}
                                                             onChange={(e) => setValidUntil(e.target.value)}
                                                         />
@@ -787,7 +787,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                                         <textarea
                                                             placeholder="e.g. 50% advance, 50% on delivery"
                                                             rows={2}
-                                                            className="w-full bg-gray-50 border-0 rounded-lg px-4 py-2.5 text-sm text-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 resize-none"
+                                                            className="w-full bg-[#F5F5F5] border-0 rounded-[20px] px-5 py-2.5 text-sm text-[#333333] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20 resize-none"
                                                             value={paymentTerms}
                                                             onChange={(e) => setPaymentTerms(e.target.value)}
                                                         />
@@ -797,7 +797,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                                         <textarea
                                                             placeholder="e.g. Door to Door, Unloading by client"
                                                             rows={2}
-                                                            className="w-full bg-gray-50 border-0 rounded-lg px-4 py-2.5 text-sm text-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 resize-none"
+                                                            className="w-full bg-[#F5F5F5] border-0 rounded-[20px] px-5 py-2.5 text-sm text-[#333333] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20 resize-none"
                                                             value={deliveryConditions}
                                                             onChange={(e) => setDeliveryConditions(e.target.value)}
                                                         />
@@ -807,7 +807,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                                         <textarea
                                                             placeholder="Any other special instructions..."
                                                             rows={2}
-                                                            className="w-full bg-gray-50 border-0 rounded-lg px-4 py-2.5 text-sm text-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 resize-none"
+                                                            className="w-full bg-[#F5F5F5] border-0 rounded-[20px] px-5 py-2.5 text-sm text-[#333333] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20 resize-none"
                                                             value={otherInformation}
                                                             onChange={(e) => setOtherInformation(e.target.value)}
                                                         />
@@ -829,10 +829,10 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                                         <div>
                                                             <label className="block text-sm font-medium text-zinc-700 mb-2">Base Price</label>
                                                             <div className="relative">
-                                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">₹</span>
+                                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#868686]">₹</span>
                                                                 <input
                                                                     type="number"
-                                                                    className="w-full pl-8 pr-4 py-2.5 bg-gray-50 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                                                                    className="w-full pl-8 pr-5 py-2.5 bg-[#F5F5F5] border-0 rounded-[20px] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20 transition-all font-medium text-[#333333] placeholder:text-[#868686]"
                                                                     placeholder="0.00"
                                                                     value={productBasePrice || ''}
                                                                     onChange={(e) => setProductBasePrice(Number(e.target.value))}
@@ -842,10 +842,10 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                                         <div>
                                                             <label className="block text-sm font-medium text-zinc-700 mb-2">Delivery Charges</label>
                                                             <div className="relative">
-                                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">₹</span>
+                                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#868686]">₹</span>
                                                                 <input
                                                                     type="number"
-                                                                    className="w-full pl-8 pr-4 py-2.5 bg-gray-50 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                                                                    className="w-full pl-8 pr-5 py-2.5 bg-[#F5F5F5] border-0 rounded-[20px] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20 transition-all font-medium text-[#333333] placeholder:text-[#868686]"
                                                                     placeholder="0.00"
                                                                     value={deliveryCharges || ''}
                                                                     onChange={(e) => setDeliveryCharges(Number(e.target.value))}
@@ -855,10 +855,10 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                                         <div>
                                                             <label className="block text-sm font-medium text-zinc-700 mb-2">Packaging</label>
                                                             <div className="relative">
-                                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">₹</span>
+                                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#868686]">₹</span>
                                                                 <input
                                                                     type="number"
-                                                                    className="w-full pl-8 pr-4 py-2.5 bg-gray-50 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                                                                    className="w-full pl-8 pr-5 py-2.5 bg-[#F5F5F5] border-0 rounded-[20px] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20 transition-all font-medium text-[#333333] placeholder:text-[#868686]"
                                                                     placeholder="0.00"
                                                                     value={packagingCharges || ''}
                                                                     onChange={(e) => setPackagingCharges(Number(e.target.value))}
@@ -868,10 +868,10 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                                         <div>
                                                             <label className="block text-sm font-medium text-zinc-700 mb-2">Insurance</label>
                                                             <div className="relative">
-                                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">₹</span>
+                                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#868686]">₹</span>
                                                                 <input
                                                                     type="number"
-                                                                    className="w-full pl-8 pr-4 py-2.5 bg-gray-50 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                                                                    className="w-full pl-8 pr-5 py-2.5 bg-[#F5F5F5] border-0 rounded-[20px] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20 transition-all font-medium text-[#333333] placeholder:text-[#868686]"
                                                                     placeholder="0.00"
                                                                     value={insuranceCharges || ''}
                                                                     onChange={(e) => setInsuranceCharges(Number(e.target.value))}
@@ -888,12 +888,12 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                                             <div className="flex items-center gap-3">
                                                                 <input
                                                                     type="number"
-                                                                    className="flex-1 px-4 py-2.5 bg-gray-50 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                                                                    className="flex-1 px-5 py-2.5 bg-[#F5F5F5] border-0 rounded-[20px] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20 transition-all font-medium text-[#333333] placeholder:text-[#868686]"
                                                                     placeholder="18"
                                                                     value={taxPercentage || ''}
                                                                     onChange={(e) => setTaxPercentage(Number(e.target.value))}
                                                                 />
-                                                                <span className="text-zinc-500 text-sm font-medium bg-gray-100 px-3 py-2 rounded-lg">
+                                                                <span className="text-[#333333] text-sm font-medium bg-[#F5F5F5] px-4 py-2.5 rounded-[20px]">
                                                                     ₹ {taxAmount.toLocaleString('en-IN')}
                                                                 </span>
                                                             </div>
@@ -904,14 +904,14 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                                                 <select
                                                                     value={discountType}
                                                                     onChange={(e) => setDiscountType(e.target.value as 'percentage' | 'fixed')}
-                                                                    className="bg-gray-100 rounded-lg px-3 py-2 text-sm text-zinc-700 focus:ring-2 focus:ring-blue-500/20"
+                                                                    className="bg-[#F5F5F5] rounded-[20px] px-4 py-2 text-sm text-[#333333] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
                                                                 >
                                                                     <option value="fixed">₹</option>
                                                                     <option value="percentage">%</option>
                                                                 </select>
                                                                 <input
                                                                     type="number"
-                                                                    className="flex-1 px-4 py-2.5 bg-gray-50 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                                                                    className="flex-1 px-5 py-2.5 bg-[#F5F5F5] border-0 rounded-[20px] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20 transition-all font-medium text-[#333333] placeholder:text-[#868686]"
                                                                     placeholder="0"
                                                                     value={discountValue || ''}
                                                                     onChange={(e) => setDiscountValue(Number(e.target.value))}
@@ -939,13 +939,13 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                 <div className="space-y-6">
                                     {/* Status Banner */}
                                     <div className={`rounded-xl p-4 flex justify-between items-center border ${request.status === 'cost_calculated' ? 'bg-purple-50 border-purple-100 text-purple-700' :
-                                            request.status === 'approved' ? 'bg-green-50 border-green-100 text-green-700' :
-                                                request.status === 'sent' ? 'bg-blue-50 border-blue-100 text-blue-700' :
-                                                    'bg-gray-50 border-gray-200 text-gray-700'
+                                        request.status === 'approved' ? 'bg-green-50 border-green-100 text-green-700' :
+                                            request.status === 'sent' ? 'bg-blue-50 border-blue-100 text-blue-700' :
+                                                'bg-gray-50 border-gray-200 text-gray-700'
                                         }`}>
                                         <div className="flex items-center gap-3">
                                             <span className={`flex items-center justify-center w-8 h-8 rounded-full ${request.status === 'cost_calculated' ? 'bg-purple-100' :
-                                                    request.status === 'approved' ? 'bg-green-100' : 'bg-white'
+                                                request.status === 'approved' ? 'bg-green-100' : 'bg-white'
                                                 }`}>
                                                 {request.status === 'cost_calculated' ? '📝' : '✓'}
                                             </span>
@@ -1028,19 +1028,19 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                             <div className="p-6 bg-white border-t border-gray-100 flex justify-end gap-3 z-10">
                                 <button
                                     onClick={() => setShowQuoteForm(false)}
-                                    className="px-6 py-2.5 rounded-xl text-zinc-500 hover:bg-gray-100 font-medium transition-colors"
+                                    className="px-6 py-2.5 rounded-[20px] text-[#868686] hover:bg-gray-50 font-medium transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleSaveDraft}
-                                    className="px-6 py-2.5 rounded-xl bg-purple-100 text-purple-700 hover:bg-purple-200 font-semibold transition-colors flex items-center gap-2"
+                                    className="px-6 py-2.5 rounded-[20px] border border-[#0557A5] text-[#0557A5] hover:bg-[#0557A5]/5 font-medium transition-colors flex items-center gap-2"
                                 >
                                     <span>💾</span> Save Draft
                                 </button>
                                 <button
                                     onClick={handleSendToCustomer}
-                                    className="px-6 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 font-semibold shadow-lg shadow-blue-600/20 transition-all flex items-center gap-2"
+                                    className="px-6 py-2.5 rounded-[20px] bg-[#0557A5] text-white hover:bg-[#044580] font-medium shadow-lg shadow-[#0557A5]/20 transition-all flex items-center gap-2"
                                 >
                                     <span>📨</span> Send to Customer
                                 </button>

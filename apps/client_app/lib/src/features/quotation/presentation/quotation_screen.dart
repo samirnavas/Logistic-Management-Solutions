@@ -74,14 +74,18 @@ class _QuotationScreenState extends ConsumerState<QuotationScreen> {
         return 2;
       case QuotationStatus.costCalculated:
         return 3;
-      case QuotationStatus.readyForPickup:
+      case QuotationStatus.sent:
         return 4;
-      case QuotationStatus.shipped:
+      case QuotationStatus.accepted:
         return 5;
-      case QuotationStatus.delivered:
+      case QuotationStatus.readyForPickup:
         return 6;
-      case QuotationStatus.rejected:
+      case QuotationStatus.shipped:
         return 7;
+      case QuotationStatus.delivered:
+        return 8;
+      case QuotationStatus.rejected:
+        return 9;
     }
   }
 
@@ -586,6 +590,10 @@ class _QuotationCard extends StatelessWidget {
     switch (quotation.status) {
       case QuotationStatus.costCalculated:
         return AppTheme.success;
+      case QuotationStatus.sent:
+        return AppTheme.success;
+      case QuotationStatus.accepted:
+        return Colors.green[800]!;
       case QuotationStatus.requestSent:
         return AppTheme.warning;
       case QuotationStatus.approved:

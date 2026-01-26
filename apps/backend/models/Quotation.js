@@ -484,27 +484,41 @@ quotationSchema.methods.canBeEdited = function () {
  */
 quotationSchema.methods.toClientJSON = function () {
     const obj = this.toJSON();
+    const status = this.status;
 
-    // Define statuses where price should be visible regardless of isApprovedByManager flag
-    const priceVisibleStatuses = [
-        'cost_calculated',
+    // Define statuses where price/details are ALWAYS visible to client
+    // This overrides any other flags like isApprovedByManager
+    const alwaysVisibleStatuses = [
+        'sent',
+        'accepted',
+        'approved',
         'ready_for_pickup',
         'shipped',
         'delivered',
-        'Approved',
-        'Sent',
-        'Accepted'
+        'Sent', 'Accepted', 'Approved' // Safety for legacy/mixed case
     ];
 
+    if (alwaysVisibleStatuses.includes(status)) {
+        return obj;
+    }
+
+    // For other statuses (request_sent, cost_calculated, details_submitted), 
+    // hide details if not explicitly approved or if it's a draft
+
     // Check if price should be hidden
-    // Hide if NOT approved by manager AND status is NOT in the visible list
-    if (!this.isApprovedByManager && !priceVisibleStatuses.includes(this.status)) {
+    // Hide if NOT approved by manager 
+    if (!this.isApprovedByManager) {
         // Hide pricing details for unapproved quotations
         obj.items = [];
         obj.subtotal = null;
         obj.tax = null;
         obj.totalAmount = null;
         obj.discount = null;
+
+        // Also mask status so client doesn't see "cost_calculated" or other internal statuses
+        if (obj.status === 'cost_calculated') {
+            obj.status = 'request_sent';
+        }
     }
 
     return obj;

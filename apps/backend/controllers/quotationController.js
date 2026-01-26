@@ -58,7 +58,7 @@ exports.getClientQuotations = async (req, res) => {
         ]);
 
         res.json({
-            quotations,
+            quotations: quotations.map(q => q.toClientJSON()),
             pagination: {
                 page: parseInt(page),
                 limit: parseInt(limit),

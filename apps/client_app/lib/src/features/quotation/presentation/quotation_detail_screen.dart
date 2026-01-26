@@ -403,6 +403,12 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
       case QuotationStatus.costCalculated:
         badgeColor = AppTheme.success;
         break;
+      case QuotationStatus.sent:
+        badgeColor = AppTheme.success;
+        break;
+      case QuotationStatus.accepted:
+        badgeColor = Colors.green[800]!;
+        break;
       case QuotationStatus.requestSent:
         badgeColor = AppTheme.warning;
         break;
@@ -963,7 +969,8 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
   }
 
   Widget _buildActionButtons(BuildContext context, Quotation quotation) {
-    if (quotation.status == QuotationStatus.costCalculated) {
+    if (quotation.status == QuotationStatus.costCalculated ||
+        quotation.status == QuotationStatus.sent) {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(

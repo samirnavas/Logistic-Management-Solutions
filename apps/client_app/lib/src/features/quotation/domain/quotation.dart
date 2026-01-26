@@ -4,6 +4,8 @@ enum QuotationStatus {
   approved,
   detailsSubmitted,
   costCalculated,
+  sent,
+  accepted,
   rejected,
   readyForPickup,
   shipped,
@@ -18,7 +20,11 @@ enum QuotationStatus {
       case QuotationStatus.detailsSubmitted:
         return 'Details Submitted';
       case QuotationStatus.costCalculated:
-        return 'Cost Calculated';
+        return 'Draft Quotation';
+      case QuotationStatus.sent:
+        return 'Quotation Received';
+      case QuotationStatus.accepted:
+        return 'Accepted';
       case QuotationStatus.rejected:
         return 'Rejected';
       case QuotationStatus.readyForPickup:
@@ -306,8 +312,14 @@ class Quotation {
       case 'details_submitted':
         return QuotationStatus.detailsSubmitted;
       case 'cost_calculated':
-      case 'Approved': // Legacy (Use cost_calculated for final approval with price)
+      case 'Approved': // Legacy
         return QuotationStatus.costCalculated;
+      case 'sent':
+      case 'Sent':
+        return QuotationStatus.sent;
+      case 'accepted':
+      case 'Accepted':
+        return QuotationStatus.accepted;
       case 'rejected':
       case 'Rejected': // Legacy
         return QuotationStatus.rejected;
@@ -337,6 +349,12 @@ class Quotation {
         break;
       case QuotationStatus.costCalculated:
         statusStr = 'cost_calculated';
+        break;
+      case QuotationStatus.sent:
+        statusStr = 'sent';
+        break;
+      case QuotationStatus.accepted:
+        statusStr = 'accepted';
         break;
       case QuotationStatus.rejected:
         statusStr = 'rejected';
