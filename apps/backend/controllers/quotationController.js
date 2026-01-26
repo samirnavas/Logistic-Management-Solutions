@@ -187,9 +187,10 @@ exports.updateQuotation = async (req, res) => {
         }
 
         // Update allowed fields
+        // Update allowed fields
         const allowedUpdates = [
             'items', 'taxRate', 'discount', 'discountReason', 'currency',
-            'validUntil', 'termsAndConditions', 'internalNotes',
+            'validUntil', 'termsAndConditions', 'internalNotes', 'additionalNotes',
             'status', 'managerId', 'origin', 'destination', 'pickupDate', 'deliveryDate'
         ];
 
@@ -228,7 +229,7 @@ exports.updateQuotation = async (req, res) => {
 // ============================================
 exports.updateQuotePrice = async (req, res) => {
     try {
-        const { items, taxRate, discount, internalNotes, validUntil, status } = req.body;
+        const { items, taxRate, discount, internalNotes, additionalNotes, validUntil, status } = req.body;
         const quotation = await Quotation.findById(req.params.id);
 
         if (!quotation) {
@@ -240,6 +241,7 @@ exports.updateQuotePrice = async (req, res) => {
         if (taxRate !== undefined) quotation.taxRate = taxRate;
         if (discount !== undefined) quotation.discount = discount;
         if (internalNotes !== undefined) quotation.internalNotes = internalNotes;
+        if (additionalNotes !== undefined) quotation.additionalNotes = additionalNotes;
         if (validUntil !== undefined) quotation.validUntil = validUntil;
 
         // Set status to 'cost_calculated' (intermediate) or whatever was passed

@@ -196,6 +196,7 @@ class Quotation {
   final String? cargoType;
   final String? serviceType;
   final String? specialInstructions;
+  final String? additionalNotes; // Terms & Notes from admin
 
   const Quotation({
     required this.id,
@@ -213,6 +214,7 @@ class Quotation {
     this.cargoType,
     this.serviceType,
     this.specialInstructions,
+    this.additionalNotes,
   });
 
   Quotation copyWith({
@@ -231,6 +233,7 @@ class Quotation {
     String? cargoType,
     String? serviceType,
     String? specialInstructions,
+    String? additionalNotes,
   }) {
     return Quotation(
       id: id ?? this.id,
@@ -248,6 +251,7 @@ class Quotation {
       cargoType: cargoType ?? this.cargoType,
       serviceType: serviceType ?? this.serviceType,
       specialInstructions: specialInstructions ?? this.specialInstructions,
+      additionalNotes: additionalNotes ?? this.additionalNotes,
     );
   }
 
@@ -286,6 +290,7 @@ class Quotation {
       cargoType: json['cargoType'] as String?,
       serviceType: json['serviceType'] as String?,
       specialInstructions: json['specialInstructions'] as String?,
+      additionalNotes: json['additionalNotes'] as String?,
     );
   }
 
@@ -363,6 +368,7 @@ class Quotation {
       'cargoType': cargoType,
       'serviceType': serviceType,
       'specialInstructions': specialInstructions,
+      'additionalNotes': additionalNotes,
     };
   }
 }

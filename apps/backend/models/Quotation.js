@@ -16,12 +16,12 @@ const lineItemSchema = new mongoose.Schema({
     },
     weight: {
         type: Number,
-        required: [true, 'Weight is required'], // Assuming weight is mandatory
+        default: 0,
         min: [0, 'Weight cannot be negative'],
     },
     dimensions: {
         type: mongoose.Schema.Types.Mixed, // Can be String "LxWxH" or Object { L, W, H }
-        required: [true, 'Dimensions are required'],
+        default: 'N/A',
     },
     images: {
         type: [String], // Array of image URLs
@@ -29,7 +29,7 @@ const lineItemSchema = new mongoose.Schema({
     },
     category: {
         type: String,
-        enum: ['General', 'Special', 'Harmful', 'Explosive'],
+        enum: ['General', 'Special', 'Harmful', 'Explosive', 'Freight', 'Insurance', 'Packaging', 'Handling', 'Tax', 'Other', 'freight', 'insurance', 'handling', 'other'], // Added lowercase for compatibility
         default: 'General',
     },
     isHazardous: {
@@ -276,6 +276,12 @@ const quotationSchema = new mongoose.Schema({
         type: String,
         trim: true,
         maxlength: [1000, 'Internal notes cannot exceed 1000 characters'],
+        default: '',
+    },
+    additionalNotes: {
+        type: String,
+        trim: true,
+        maxlength: [2000, 'Additional notes cannot exceed 2000 characters'],
         default: '',
     },
     termsAndConditions: {

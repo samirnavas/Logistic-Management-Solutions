@@ -82,9 +82,10 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
             setValidUntil(date.toISOString().split('T')[0]);
         }
 
-        // Extract notes
-        if (quotation.internalNotes) {
-            const notes = quotation.internalNotes.split('\n');
+        // Extract notes (Prefer additionalNotes, fallback to internalNotes)
+        const notesSource = quotation.additionalNotes || quotation.internalNotes;
+        if (notesSource) {
+            const notes = notesSource.split('\n');
             notes.forEach((note: string) => {
                 if (note.includes('Payment Terms:')) {
                     setPaymentTerms(note.replace('Payment Terms:', '').trim());
@@ -184,6 +185,8 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                     quantity: 1,
                     unitPrice: productBasePrice,
                     amount: productBasePrice,
+                    weight: 0,
+                    dimensions: 'N/A',
                     category: 'freight'
                 });
             }
@@ -193,6 +196,8 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                     quantity: 1,
                     unitPrice: deliveryCharges,
                     amount: deliveryCharges,
+                    weight: 0,
+                    dimensions: 'N/A',
                     category: 'freight'
                 });
             }
@@ -202,6 +207,8 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                     quantity: 1,
                     unitPrice: packagingCharges,
                     amount: packagingCharges,
+                    weight: 0,
+                    dimensions: 'N/A',
                     category: 'handling'
                 });
             }
@@ -211,6 +218,8 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                     quantity: 1,
                     unitPrice: insuranceCharges,
                     amount: insuranceCharges,
+                    weight: 0,
+                    dimensions: 'N/A',
                     category: 'insurance'
                 });
             }
@@ -220,6 +229,8 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                     quantity: 1,
                     unitPrice: taxAmount,
                     amount: taxAmount,
+                    weight: 0,
+                    dimensions: 'N/A',
                     category: 'other'
                 });
             }
@@ -235,7 +246,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                 items: items.length > 0 ? items : [{ description: 'Service Charge', quantity: 1, unitPrice: 0, amount: 0, category: 'other' }],
                 taxRate: taxPercentage, // Tax percentage
                 discount: Number(discountAmount),
-                internalNotes: combinedNotes,
+                additionalNotes: combinedNotes,
                 validUntil: validUntil || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
                 status: 'cost_calculated' // Valid status for pricing entered but not sent
             };
@@ -282,6 +293,8 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                     quantity: 1,
                     unitPrice: productBasePrice,
                     amount: productBasePrice,
+                    weight: 0,
+                    dimensions: 'N/A',
                     category: 'freight'
                 });
             }
@@ -291,6 +304,8 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                     quantity: 1,
                     unitPrice: deliveryCharges,
                     amount: deliveryCharges,
+                    weight: 0,
+                    dimensions: 'N/A',
                     category: 'freight'
                 });
             }
@@ -300,6 +315,8 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                     quantity: 1,
                     unitPrice: packagingCharges,
                     amount: packagingCharges,
+                    weight: 0,
+                    dimensions: 'N/A',
                     category: 'handling'
                 });
             }
@@ -309,6 +326,8 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                     quantity: 1,
                     unitPrice: insuranceCharges,
                     amount: insuranceCharges,
+                    weight: 0,
+                    dimensions: 'N/A',
                     category: 'insurance'
                 });
             }
@@ -318,6 +337,8 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                     quantity: 1,
                     unitPrice: taxAmount,
                     amount: taxAmount,
+                    weight: 0,
+                    dimensions: 'N/A',
                     category: 'other'
                 });
             }
@@ -333,7 +354,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                 items: items.length > 0 ? items : [{ description: 'Service Charge', quantity: 1, unitPrice: 0, amount: 0, category: 'other' }],
                 taxRate: taxPercentage,
                 discount: Number(discountAmount),
-                internalNotes: combinedNotes,
+                additionalNotes: combinedNotes,
                 validUntil: validUntil || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
                 status: 'cost_calculated'
             };
@@ -422,12 +443,12 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                 ID: <span className="text-zinc-900">{request.quotationId}</span>
                             </span>
                             <span className={`px-3 py-1 rounded-full font-medium border ${request.status === 'request_sent' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                                request.status === 'cost_calculated' ? 'bg-orange-50 text-orange-700 border-orange-100' :
+                                request.status === 'cost_calculated' ? 'bg-purple-50 text-purple-700 border-purple-100' :
                                     request.status === 'approved' ? 'bg-green-50 text-green-700 border-green-100' :
                                         'bg-gray-50 text-gray-700 border-gray-100'
                                 }`}>
                                 {request.status === 'request_sent' ? 'New' :
-                                    request.status === 'cost_calculated' ? 'Pending' :
+                                    request.status === 'cost_calculated' ? 'Draft' :
                                         request.status === 'approved' ? 'Approved' : request.status}
                             </span>
                         </div>
@@ -610,7 +631,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                             <div className="bg-gradient-to-br from-gray-900 to-zinc-800 rounded-xl shadow-lg p-6 text-white">
                                 <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
                                     <span className="w-1 h-6 bg-green-500 rounded-full"></span>
-                                    Quotation Summary
+                                    {request.status === 'cost_calculated' ? 'Quotation Summary (Draft)' : 'Quotation Summary'}
                                 </h2>
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                                     <div>
@@ -688,505 +709,354 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
             {/* Quotation Form/Details Modal (Overlay) */}
             {showQuoteForm && (
                 <div
-                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-[60] overflow-y-auto py-10 px-4"
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[60] p-4 sm:p-6"
                     onClick={(e) => {
                         e.stopPropagation();
                         setShowQuoteForm(false);
                     }}
                 >
-                    {quotationViewMode === 'create' ? (
-                        /* CREATE/EDIT FORM */
-                        <div
-                            className="w-full max-w-[583px] bg-white rounded-lg shadow-2xl relative max-h-[95vh] overflow-y-auto no-scrollbar"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            {/* Close Button */}
+                    <div
+                        className="w-full max-w-6xl bg-white rounded-2xl shadow-2xl relative h-[90vh] flex flex-col overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-white z-10">
+                            <h1 className="text-xl font-bold text-zinc-900 flex items-center gap-3">
+                                {quotationViewMode === 'create' ? (
+                                    <>
+                                        <span className="w-2 h-8 bg-blue-600 rounded-full"></span>
+                                        Create Quotation
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="w-2 h-8 bg-indigo-600 rounded-full"></span>
+                                        Quotation Details
+                                    </>
+                                )}
+                            </h1>
                             <button
                                 onClick={() => setShowQuoteForm(false)}
-                                className="absolute top-5 right-5 text-[#868686] hover:text-[#333333] transition-colors z-10"
-                                aria-label="Close modal"
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
                             >
-                                ✕
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
+                        </div>
 
-                            <div className="p-8">
-                                {/* Header */}
-                                <h1 className="text-[20px] font-medium text-[#333333] leading-7 mb-11">
-                                    Create Quotation
-                                </h1>
-
-                                <form onSubmit={(e) => e.preventDefault()}>
-                                    {/* Quotation Info Card */}
-                                    <div className="bg-[#F5F5F5] rounded-lg p-6 mb-8 space-y-4">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-[#868686] text-base">Quotation ID</span>
-                                            <span className="text-[#333333] text-base">{request.quotationId || 'QT-50422'}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-[#868686] text-base">Linked Request ID</span>
-                                            <span className="text-[#333333] text-base">{requestId}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-[#868686] text-base">Customer Name</span>
-                                            <span className="text-[#333333] text-base">{request.clientId?.fullName || 'N/A'}</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Price Breakdown Section */}
-                                    <div className="mb-8">
-                                        <h2 className="text-lg font-medium text-[#333333] leading-[25.2px] mb-4">
-                                            Price Breakdown
-                                        </h2>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            {/* Product Base Price */}
-                                            <div>
-                                                <label className="block text-sm text-[#333333] mb-2">
-                                                    Product Base Price
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    placeholder="Product Base Price"
-                                                    className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#333333] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
-                                                    value={productBasePrice || ''}
-                                                    onChange={(e) => setProductBasePrice(Number(e.target.value))}
-                                                />
-                                            </div>
-
-                                            {/* Delivery Charges */}
-                                            <div>
-                                                <label className="block text-sm text-[#333333] mb-2">
-                                                    Delivery Charges
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    placeholder="Delivery Charges"
-                                                    className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#333333] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
-                                                    value={deliveryCharges || ''}
-                                                    onChange={(e) => setDeliveryCharges(Number(e.target.value))}
-                                                />
-                                            </div>
-
-                                            {/* Packaging Charges */}
-                                            <div>
-                                                <label className="block text-sm text-[#333333] mb-2">
-                                                    Packaging Charges
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    placeholder="Packaging Charges"
-                                                    className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#333333] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
-                                                    value={packagingCharges || ''}
-                                                    onChange={(e) => setPackagingCharges(Number(e.target.value))}
-                                                />
-                                            </div>
-
-                                            {/* Insurance Charges */}
-                                            <div>
-                                                <label className="block text-sm text-[#333333] mb-2">
-                                                    Insurance Charges
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    placeholder="Insurance Charges"
-                                                    className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#333333] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
-                                                    value={insuranceCharges || ''}
-                                                    onChange={(e) => setInsuranceCharges(Number(e.target.value))}
-                                                />
-                                            </div>
-
-                                            {/* Tax Percentage */}
-                                            <div>
-                                                <label className="block text-sm text-[#333333] mb-2">
-                                                    Tax Percentage (%)
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    placeholder="Tax %"
-                                                    className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#333333] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
-                                                    value={taxPercentage || ''}
-                                                    onChange={(e) => setTaxPercentage(Number(e.target.value))}
-                                                    min="0"
-                                                    max="100"
-                                                    step="0.01"
-                                                />
-                                                {taxAmount > 0 && (
-                                                    <div className="text-xs text-[#868686] mt-1">
-                                                        = ₹ {taxAmount.toLocaleString('en-IN')}
+                        {/* Modal Body (Scrollable) */}
+                        <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50 custom-scrollbar">
+                            {quotationViewMode === 'create' ? (
+                                /* CREATE/EDIT FORM */
+                                <form onSubmit={(e) => e.preventDefault()} className="h-full">
+                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+                                        {/* Left Column (Metadata & Terms) - Spans 5/12 */}
+                                        <div className="lg:col-span-5 space-y-6">
+                                            {/* Info Card */}
+                                            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                                                <h2 className="text-sm font-bold text-zinc-800 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
+                                                    Reference Info
+                                                </h2>
+                                                <div className="space-y-4">
+                                                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                                        <span className="text-zinc-500 text-sm">Quotation ID</span>
+                                                        <span className="text-zinc-900 font-mono font-medium">{request.quotationId || 'QT-NEW'}</span>
                                                     </div>
-                                                )}
-                                            </div>
-
-                                            {/* Discount */}
-                                            <div>
-                                                <label className="block text-sm text-[#333333] mb-2">
-                                                    Discount
-                                                </label>
-                                                <div className="flex gap-2">
-                                                    <select
-                                                        value={discountType}
-                                                        onChange={(e) => setDiscountType(e.target.value as 'percentage' | 'fixed')}
-                                                        className="bg-[#F5F5F5] rounded-[20px] px-4 py-2.5 text-sm text-[#333333] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
-                                                    >
-                                                        <option value="fixed">₹</option>
-                                                        <option value="percentage">%</option>
-                                                    </select>
-                                                    <input
-                                                        type="number"
-                                                        placeholder={discountType === 'percentage' ? 'Discount %' : 'Discount Amount'}
-                                                        className="flex-1 bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#333333] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
-                                                        value={discountValue || ''}
-                                                        onChange={(e) => setDiscountValue(Number(e.target.value))}
-                                                        min="0"
-                                                        max={discountType === 'percentage' ? 100 : undefined}
-                                                        step={discountType === 'percentage' ? 0.01 : 1}
-                                                    />
+                                                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                                        <span className="text-zinc-500 text-sm">Client</span>
+                                                        <span className="text-zinc-900 font-medium">{request.clientId?.fullName || 'N/A'}</span>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-zinc-500 text-xs uppercase font-bold tracking-wide mb-1.5 block">Valid Until</label>
+                                                        <input
+                                                            type="date"
+                                                            className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-zinc-700"
+                                                            value={validUntil}
+                                                            onChange={(e) => setValidUntil(e.target.value)}
+                                                        />
+                                                    </div>
                                                 </div>
-                                                {discountAmount > 0 && discountType === 'percentage' && (
-                                                    <div className="text-xs text-[#868686] mt-1">
-                                                        = ₹ {discountAmount.toLocaleString('en-IN')}
+                                            </div>
+
+                                            {/* Terms & Notes */}
+                                            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                                                <h2 className="text-sm font-bold text-zinc-800 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
+                                                    Terms & Conditions
+                                                </h2>
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <label className="text-xs text-zinc-500 font-medium mb-1 block">Payment Terms</label>
+                                                        <textarea
+                                                            placeholder="e.g. 50% advance, 50% on delivery"
+                                                            rows={2}
+                                                            className="w-full bg-gray-50 border-0 rounded-lg px-4 py-2.5 text-sm text-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 resize-none"
+                                                            value={paymentTerms}
+                                                            onChange={(e) => setPaymentTerms(e.target.value)}
+                                                        />
                                                     </div>
-                                                )}
+                                                    <div>
+                                                        <label className="text-xs text-zinc-500 font-medium mb-1 block">Delivery Conditions</label>
+                                                        <textarea
+                                                            placeholder="e.g. Door to Door, Unloading by client"
+                                                            rows={2}
+                                                            className="w-full bg-gray-50 border-0 rounded-lg px-4 py-2.5 text-sm text-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 resize-none"
+                                                            value={deliveryConditions}
+                                                            onChange={(e) => setDeliveryConditions(e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs text-zinc-500 font-medium mb-1 block">Other Info</label>
+                                                        <textarea
+                                                            placeholder="Any other special instructions..."
+                                                            rows={2}
+                                                            className="w-full bg-gray-50 border-0 rounded-lg px-4 py-2.5 text-sm text-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 resize-none"
+                                                            value={otherInformation}
+                                                            onChange={(e) => setOtherInformation(e.target.value)}
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        {/* Final Quoted Amount */}
-                                        <div className="bg-[#F5F5F5] rounded-lg px-6 py-4 mt-6 flex justify-between items-center">
-                                            <span className="text-[#868686] text-base">Final Quoted Amount</span>
-                                            <span className="text-[#333333] text-lg font-semibold leading-[25.2px]">
-                                                ₹ {finalQuotedAmount.toLocaleString('en-IN')}
-                                            </span>
+                                        {/* Right Column (Financials) - Spans 7/12 */}
+                                        <div className="lg:col-span-7">
+                                            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-full flex flex-col">
+                                                <h2 className="text-lg font-bold text-zinc-800 mb-6 flex items-center gap-2">
+                                                    <span className="w-8 h-8 rounded-lg bg-green-100 text-green-600 flex items-center justify-center">₹</span>
+                                                    Price Breakdown
+                                                </h2>
+
+                                                <div className="space-y-5 flex-1">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-zinc-700 mb-2">Base Price</label>
+                                                            <div className="relative">
+                                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">₹</span>
+                                                                <input
+                                                                    type="number"
+                                                                    className="w-full pl-8 pr-4 py-2.5 bg-gray-50 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                                                                    placeholder="0.00"
+                                                                    value={productBasePrice || ''}
+                                                                    onChange={(e) => setProductBasePrice(Number(e.target.value))}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-zinc-700 mb-2">Delivery Charges</label>
+                                                            <div className="relative">
+                                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">₹</span>
+                                                                <input
+                                                                    type="number"
+                                                                    className="w-full pl-8 pr-4 py-2.5 bg-gray-50 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                                                                    placeholder="0.00"
+                                                                    value={deliveryCharges || ''}
+                                                                    onChange={(e) => setDeliveryCharges(Number(e.target.value))}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-zinc-700 mb-2">Packaging</label>
+                                                            <div className="relative">
+                                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">₹</span>
+                                                                <input
+                                                                    type="number"
+                                                                    className="w-full pl-8 pr-4 py-2.5 bg-gray-50 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                                                                    placeholder="0.00"
+                                                                    value={packagingCharges || ''}
+                                                                    onChange={(e) => setPackagingCharges(Number(e.target.value))}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-zinc-700 mb-2">Insurance</label>
+                                                            <div className="relative">
+                                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">₹</span>
+                                                                <input
+                                                                    type="number"
+                                                                    className="w-full pl-8 pr-4 py-2.5 bg-gray-50 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                                                                    placeholder="0.00"
+                                                                    value={insuranceCharges || ''}
+                                                                    onChange={(e) => setInsuranceCharges(Number(e.target.value))}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="h-px bg-gray-100 my-4"></div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-zinc-700 mb-2">Tax Rate (%)</label>
+                                                            <div className="flex items-center gap-3">
+                                                                <input
+                                                                    type="number"
+                                                                    className="flex-1 px-4 py-2.5 bg-gray-50 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                                                                    placeholder="18"
+                                                                    value={taxPercentage || ''}
+                                                                    onChange={(e) => setTaxPercentage(Number(e.target.value))}
+                                                                />
+                                                                <span className="text-zinc-500 text-sm font-medium bg-gray-100 px-3 py-2 rounded-lg">
+                                                                    ₹ {taxAmount.toLocaleString('en-IN')}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-zinc-700 mb-2">Discount</label>
+                                                            <div className="flex gap-2">
+                                                                <select
+                                                                    value={discountType}
+                                                                    onChange={(e) => setDiscountType(e.target.value as 'percentage' | 'fixed')}
+                                                                    className="bg-gray-100 rounded-lg px-3 py-2 text-sm text-zinc-700 focus:ring-2 focus:ring-blue-500/20"
+                                                                >
+                                                                    <option value="fixed">₹</option>
+                                                                    <option value="percentage">%</option>
+                                                                </select>
+                                                                <input
+                                                                    type="number"
+                                                                    className="flex-1 px-4 py-2.5 bg-gray-50 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                                                                    placeholder="0"
+                                                                    value={discountValue || ''}
+                                                                    onChange={(e) => setDiscountValue(Number(e.target.value))}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-8 bg-zinc-900 rounded-xl p-6 text-white flex justify-between items-center shadow-lg">
+                                                    <div>
+                                                        <p className="text-gray-400 text-sm mb-1">Total Quotation Value</p>
+                                                        <p className="text-2xl font-bold tracking-tight">INR</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-4xl font-bold">₹ {finalQuotedAmount.toLocaleString('en-IN')}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-
-                                    {/* Validity Section */}
-                                    <div className="mb-8">
-                                        <h2 className="text-lg font-medium text-[#333333] leading-[25.2px] mb-4">
-                                            Validity
-                                        </h2>
-                                        <label className="block text-sm text-[#333333] mb-2">
-                                            Quotation Valid Until
-                                        </label>
-                                        <input
-                                            type="date"
-                                            className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
-                                            value={validUntil}
-                                            onChange={(e) => setValidUntil(e.target.value)}
-                                        />
-                                    </div>
-
-                                    {/* Terms & Notes Section */}
-                                    <div className="mb-8">
-                                        <h2 className="text-lg font-medium text-[#333333] leading-[25.2px] mb-4">
-                                            Terms & Notes
-                                        </h2>
-
-                                        <div className="space-y-4">
-                                            {/* Payment Terms */}
-                                            <div>
-                                                <label className="block text-sm text-[#333333] mb-2">
-                                                    Payment Terms
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Text here...."
-                                                    className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#333333] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
-                                                    value={paymentTerms}
-                                                    onChange={(e) => setPaymentTerms(e.target.value)}
-                                                />
-                                            </div>
-
-                                            {/* Delivery Conditions */}
-                                            <div>
-                                                <label className="block text-sm text-[#333333] mb-2">
-                                                    Delivery Conditions
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Text here...."
-                                                    className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#333333] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
-                                                    value={deliveryConditions}
-                                                    onChange={(e) => setDeliveryConditions(e.target.value)}
-                                                />
-                                            </div>
-
-                                            {/* Other Information */}
-                                            <div>
-                                                <label className="block text-sm text-[#333333] mb-2">
-                                                    Other Information
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Text here...."
-                                                    className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#333333] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
-                                                    value={otherInformation}
-                                                    onChange={(e) => setOtherInformation(e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="flex gap-4">
-                                        <button
-                                            type="button"
-                                            onClick={handleSaveDraft}
-                                            className="flex-1 bg-[#0557A5] text-white rounded-[20px] h-10 text-sm font-normal leading-[19.6px] hover:bg-[#044580] transition-colors"
-                                        >
-                                            Save as Draft
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={handleSendToCustomer}
-                                            className="flex-1 border border-[#0557A5] text-[#0557A5] bg-white rounded-[20px] h-10 text-sm font-normal leading-[19.6px] hover:bg-[#0557A5]/5 transition-colors"
-                                        >
-                                            Send to Customer
-                                        </button>
                                     </div>
                                 </form>
-                            </div>
-                        </div>
-                    ) : (
-                        /* QUOTATION DETAILS VIEW */
-                        <div
-                            className="w-full max-w-4xl bg-white rounded-lg border border-black shadow-2xl relative max-h-[95vh] overflow-y-auto no-scrollbar"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            {/* Close Button */}
-                            <button
-                                onClick={() => setShowQuoteForm(false)}
-                                className="absolute top-5 right-5 text-[#868686] hover:text-[#333333] transition-colors z-10"
-                                aria-label="Close modal"
-                            >
-                                ✕
-                            </button>
-
-                            <div className="p-8">
-                                {/* Header */}
-                                <div className="mb-6">
-                                    <h1 className="text-[20px] font-medium text-[#333333] leading-7 mb-4">
-                                        Quotation Detail
-                                    </h1>
-
-                                    {/* Status Badges and Edit Button */}
-                                    <div className="flex flex-wrap items-center gap-4">
-                                        <div className="bg-[#E6EEF6] px-4 py-1 rounded-[14px]">
-                                            <span className="text-[#0557A5] text-base font-medium">ID : {request.quotationId || 'QT-8891'}</span>
-                                        </div>
-                                        <div className="bg-[#E6EEF6] px-4 py-1 rounded-[14px]">
-                                            <span className="text-[#0557A5] text-base font-medium">
-                                                Status : {request.status === 'draft' ? 'Draft' : request.status === 'sent' ? 'Sent to Customer' : 'Pending Customer Action'}
+                            ) : (
+                                /* QUOTATION DETAILS VIEW */
+                                <div className="space-y-6">
+                                    {/* Status Banner */}
+                                    <div className={`rounded-xl p-4 flex justify-between items-center border ${request.status === 'cost_calculated' ? 'bg-purple-50 border-purple-100 text-purple-700' :
+                                            request.status === 'approved' ? 'bg-green-50 border-green-100 text-green-700' :
+                                                request.status === 'sent' ? 'bg-blue-50 border-blue-100 text-blue-700' :
+                                                    'bg-gray-50 border-gray-200 text-gray-700'
+                                        }`}>
+                                        <div className="flex items-center gap-3">
+                                            <span className={`flex items-center justify-center w-8 h-8 rounded-full ${request.status === 'cost_calculated' ? 'bg-purple-100' :
+                                                    request.status === 'approved' ? 'bg-green-100' : 'bg-white'
+                                                }`}>
+                                                {request.status === 'cost_calculated' ? '📝' : '✓'}
                                             </span>
+                                            <div>
+                                                <div className="font-bold text-sm uppercase tracking-wide opacity-80">Current Status</div>
+                                                <div className="text-lg font-bold">
+                                                    {request.status === 'cost_calculated' ? 'Draft Quotation' :
+                                                        request.status === 'sent' ? 'Sent to Customer' :
+                                                            request.status === 'accepted' ? 'Accepted by Customer' :
+                                                                request.status}
+                                                </div>
+                                            </div>
                                         </div>
                                         <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setQuotationViewMode('create');
-                                            }}
-                                            className="ml-auto bg-[#0557A5] text-white px-6 py-2 rounded-full text-sm font-normal hover:bg-[#044580] transition-colors"
+                                            onClick={(e) => { e.stopPropagation(); setQuotationViewMode('create'); }}
+                                            className="px-5 py-2 bg-white rounded-full shadow-sm text-sm font-semibold hover:shadow-md transition-all flex items-center gap-2"
+                                            style={{ color: 'inherit' }}
                                         >
-                                            Edit Quotation
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                            Edit Details
                                         </button>
                                     </div>
-                                </div>
 
-                                {/* Top Row: Customer Info & Request Summary */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-7 mb-7">
-                                    {/* Customer Information */}
-                                    <div className="bg-white shadow-[3px_3px_12px_rgba(0,0,0,0.15)] rounded-lg p-5">
-                                        <h2 className="text-lg font-medium text-[#333333] mb-6">Customer Information</h2>
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between">
-                                                <span className="text-[#868686] text-sm">Name</span>
-                                                <span className="text-[#333333] text-sm font-medium">{request.clientId?.fullName || 'N/A'}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-[#868686] text-sm">Email</span>
-                                                <span className="text-[#333333] text-sm font-medium">{request.clientId?.email || 'N/A'}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-[#868686] text-sm">Mobile Number</span>
-                                                <span className="text-[#333333] text-sm font-medium">{request.clientId?.phone || request.origin?.phone || 'N/A'}</span>
-                                            </div>
-                                            <div className="flex justify-between items-start">
-                                                <span className="text-[#868686] text-sm">Address</span>
-                                                <span className="text-[#333333] text-sm font-medium text-right max-w-[220px]">
-                                                    {request.origin?.addressLine || '123, MG Road'}, {request.origin?.city}, {request.origin?.state}
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-[#868686] text-sm">Location</span>
-                                                <span className="text-[#333333] text-sm font-medium">{request.origin?.city || 'N/A'}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Full Request Summary */}
-                                    <div className="bg-white shadow-[3px_3px_12px_rgba(0,0,0,0.15)] rounded-lg p-5">
-                                        <h2 className="text-lg font-medium text-[#333333] mb-6">Full Request Summary</h2>
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between">
-                                                <span className="text-[#868686] text-sm">Product Name</span>
-                                                <span className="text-[#333333] text-sm font-medium">{request.cargoType || 'N/A'}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-[#868686] text-sm">Number of Boxes</span>
-                                                <span className="text-[#333333] text-sm font-medium">
-                                                    {request.items?.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0) || 10}
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-[#868686] text-sm">Packaging Type</span>
-                                                <span className="text-[#333333] text-sm font-medium">Secure Box</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-[#868686] text-sm">Pickup Location</span>
-                                                <span className="text-[#333333] text-sm font-medium">{request.origin?.city || 'N/A'}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-[#868686] text-sm">Delivery Location</span>
-                                                <span className="text-[#333333] text-sm font-medium">{request.destination?.city || 'N/A'}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-[#868686] text-sm">Mode</span>
-                                                <span className="text-[#333333] text-sm font-medium">{request.serviceType || 'Air'}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-[#868686] text-sm">Preferred Date</span>
-                                                <span className="text-[#333333] text-sm font-medium">{formatDate(request.preferredDate) || '20 Sep 2025'}</span>
-                                            </div>
-                                            <div className="flex justify-between items-start">
-                                                <span className="text-[#868686] text-sm">Special Instructions</span>
-                                                <span className="text-[#333333] text-sm font-medium text-right max-w-[200px]">{request.specialInstructions || 'Handle with extra care'}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Bottom Row: Price Breakdown, History & Response Status */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-7 mb-7">
-                                    {/* Complete Price Breakdown */}
-                                    <div className="bg-white shadow-[3px_3px_12px_rgba(0,0,0,0.15)] rounded-lg p-5">
-                                        <h2 className="text-lg font-medium text-[#333333] mb-6">Complete Price Breakdown</h2>
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between">
-                                                <span className="text-[#868686] text-sm">Base Product Price</span>
-                                                <span className="text-[#333333] text-sm font-medium">₹ {(displayValues.productBasePrice || productBasePrice || 0).toLocaleString('en-IN')}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-[#868686] text-sm">Transportation Charges</span>
-                                                <span className="text-[#333333] text-sm font-medium">₹ {(displayValues.deliveryCharges || deliveryCharges || 0).toLocaleString('en-IN')}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-[#868686] text-sm">Packaging Charges</span>
-                                                <span className="text-[#333333] text-sm font-medium">₹ {(displayValues.packagingCharges || packagingCharges || 0).toLocaleString('en-IN')}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-[#868686] text-sm">Insurance Charges</span>
-                                                <span className="text-[#333333] text-sm font-medium">₹ {(displayValues.insuranceCharges || insuranceCharges || 0).toLocaleString('en-IN')}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-[#868686] text-sm">Taxes (GST {request.taxRate || taxPercentage}%)</span>
-                                                <span className="text-[#333333] text-sm font-medium">₹ {(displayValues.taxAmount || taxAmount || 0).toLocaleString('en-IN')}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-[#868686] text-sm">Discount</span>
-                                                <span className="text-[#333333] text-sm font-medium">– ₹ {(displayValues.discountAmount || discountAmount || 0).toLocaleString('en-IN')}</span>
-                                            </div>
-                                            <div className="pt-4 border-t border-gray-200">
-                                                <div className="flex justify-between items-center">
-                                                    <span className="text-[#333333] text-base font-semibold">Final Quoted Amount</span>
-                                                    <span className="text-[#0557A5] text-xl font-bold">₹ {(displayValues.totalAmount || finalQuotedAmount || 0).toLocaleString('en-IN')}</span>
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        {/* Financial Summary */}
+                                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                                            <h2 className="text-lg font-semibold text-zinc-800 mb-6 flex items-center gap-2">
+                                                <span className="w-1 h-6 bg-green-500 rounded-full"></span>
+                                                Financial Summary
+                                            </h2>
+                                            <div className="space-y-3">
+                                                <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                                                    <span className="text-zinc-500">Base Price</span>
+                                                    <span className="font-medium text-zinc-900">₹ {(displayValues.productBasePrice || 0).toLocaleString()}</span>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Right Column: History & Response Status */}
-                                    <div className="space-y-7">
-                                        {/* Quotation History */}
-                                        <div className="bg-white shadow-[3px_3px_12px_rgba(0,0,0,0.15)] rounded-lg p-5">
-                                            <h2 className="text-lg font-medium text-[#333333] mb-6">Quotation History</h2>
-                                            <div className="space-y-3 text-sm">
-                                                <div className="flex justify-between">
-                                                    <span className="text-[#868686]">12 Sep 2025</span>
-                                                    <span className="text-[#333333] font-medium">Draft created by Admin A</span>
+                                                <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                                                    <span className="text-zinc-500">Delivery</span>
+                                                    <span className="font-medium text-zinc-900">₹ {(displayValues.deliveryCharges || 0).toLocaleString()}</span>
                                                 </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-[#868686]">13 Sep 2025</span>
-                                                    <span className="text-[#333333] font-medium">Edited – price updated</span>
+                                                <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                                                    <span className="text-zinc-500">Extras (Pkg + Ins)</span>
+                                                    <span className="font-medium text-zinc-900">₹ {((displayValues.packagingCharges || 0) + (displayValues.insuranceCharges || 0)).toLocaleString()}</span>
                                                 </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-[#868686]">13 Sep 2025</span>
-                                                    <span className="text-[#333333] font-medium">Sent to customer (Email / App)</span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-[#868686]">15 Sep 2025</span>
-                                                    <span className="text-[#333333] font-medium">Resent to customer</span>
+                                                <div className="flex justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                                    <span className="text-zinc-800 font-semibold">Total Amount</span>
+                                                    <span className="font-bold text-green-700 text-lg">₹ {request.totalAmount?.toLocaleString()}</span>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        {/* Customer Response Status */}
-                                        <div className="bg-white shadow-[3px_3px_12px_rgba(0,0,0,0.15)] rounded-lg p-5">
-                                            <h2 className="text-lg font-medium text-[#333333] mb-4">Customer Response Status</h2>
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-[#868686] text-sm">Current Status</span>
-                                                <span className={`text-sm font-medium ${['ready_for_pickup', 'accepted', 'shipped', 'delivered'].includes(request.status) ? 'text-green-600' :
-                                                    ['rejected'].includes(request.status) ? 'text-red-600' :
-                                                        'text-orange-600'
-                                                    }`}>
-                                                    {['ready_for_pickup', 'accepted', 'shipped', 'delivered'].includes(request.status) ? 'Accepted' :
-                                                        ['rejected'].includes(request.status) ? 'Rejected' :
-                                                            'Awaiting Response'}
-                                                </span>
+                                        {/* Terms & Info */}
+                                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                                            <h2 className="text-lg font-semibold text-zinc-800 mb-6 flex items-center gap-2">
+                                                <span className="w-1 h-6 bg-blue-500 rounded-full"></span>
+                                                Terms & Validity
+                                            </h2>
+                                            <div className="space-y-4 text-sm">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-xs font-bold text-zinc-400 uppercase">Valid Until</span>
+                                                    <span className="font-medium text-zinc-800">{validUntil ? formatDate(validUntil) : 'N/A'}</span>
+                                                </div>
+                                                <div className="h-px bg-gray-100"></div>
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-xs font-bold text-zinc-400 uppercase">Payment Terms</span>
+                                                    <p className="text-zinc-700 italic">{paymentTerms || 'Not specified'}</p>
+                                                </div>
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-xs font-bold text-zinc-400 uppercase">Delivery Conditions</span>
+                                                    <p className="text-zinc-700 italic">{deliveryConditions || 'Not specified'}</p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* Validity Section */}
-                                <div className="mb-7">
-                                    <div className="bg-white shadow-[3px_3px_12px_rgba(0,0,0,0.15)] rounded-lg p-5">
-                                        <h2 className="text-lg font-medium text-[#333333] mb-6">Validity</h2>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-[#868686] text-sm">Quotation Valid Until</span>
-                                            <span className="text-[#333333] text-sm font-medium">
-                                                {request.validUntil ? formatDate(request.validUntil) : (validUntil ? formatDate(validUntil) : 'N/A')}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Terms & Notes Section */}
-                                <div>
-                                    <div className="bg-white shadow-[3px_3px_12px_rgba(0,0,0,0.15)] rounded-lg p-5">
-                                        <h2 className="text-lg font-medium text-[#333333] mb-6">Terms & Notes</h2>
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between items-start">
-                                                <span className="text-[#868686] text-sm">Payment Terms</span>
-                                                <span className="text-[#333333] text-sm font-medium text-right max-w-[60%]">
-                                                    {paymentTerms || 'N/A'}
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between items-start">
-                                                <span className="text-[#868686] text-sm">Delivery Conditions</span>
-                                                <span className="text-[#333333] text-sm font-medium text-right max-w-[60%]">
-                                                    {deliveryConditions || 'N/A'}
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between items-start">
-                                                <span className="text-[#868686] text-sm">Other Information</span>
-                                                <span className="text-[#333333] text-sm font-medium text-right max-w-[60%]">
-                                                    {otherInformation || 'N/A'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            )}
                         </div>
-                    )}
+
+                        {/* Modal Footer (Action Buttons) - Only for Create Mode or relevant actions */}
+                        {quotationViewMode === 'create' && (
+                            <div className="p-6 bg-white border-t border-gray-100 flex justify-end gap-3 z-10">
+                                <button
+                                    onClick={() => setShowQuoteForm(false)}
+                                    className="px-6 py-2.5 rounded-xl text-zinc-500 hover:bg-gray-100 font-medium transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSaveDraft}
+                                    className="px-6 py-2.5 rounded-xl bg-purple-100 text-purple-700 hover:bg-purple-200 font-semibold transition-colors flex items-center gap-2"
+                                >
+                                    <span>💾</span> Save Draft
+                                </button>
+                                <button
+                                    onClick={handleSendToCustomer}
+                                    className="px-6 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 font-semibold shadow-lg shadow-blue-600/20 transition-all flex items-center gap-2"
+                                >
+                                    <span>📨</span> Send to Customer
+                                </button>
+                            </div>
+                        )}
+                        {quotationViewMode === 'view' && (
+                            <div className="p-6 bg-white border-t border-gray-100 flex justify-end gap-3 z-10">
+                                <button
+                                    onClick={() => setShowQuoteForm(false)}
+                                    className="px-6 py-2.5 rounded-xl bg-gray-100 text-zinc-700 hover:bg-gray-200 font-medium transition-colors"
+                                >
+                                    Close Details
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>

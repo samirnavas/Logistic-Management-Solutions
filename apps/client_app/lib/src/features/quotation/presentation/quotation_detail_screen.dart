@@ -623,6 +623,45 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                 ),
               ],
             ),
+
+            if (quotation.additionalNotes != null &&
+                quotation.additionalNotes!.trim().isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Container(
+                height: 2,
+                decoration: BoxDecoration(
+                  color: AppTheme.textGrey.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Terms & Notes',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textGrey,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.background,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppTheme.textGrey.withValues(alpha: 0.1),
+                  ),
+                ),
+                child: Text(
+                  quotation.additionalNotes!,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    height: 1.5,
+                    color: AppTheme.textGrey,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
