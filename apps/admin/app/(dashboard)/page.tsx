@@ -48,7 +48,10 @@ export default function DashboardPage() {
             }
 
             // Fetch Quotations with Pagination
-            const resQuotations = await fetch(`/api/quotations?${params.toString()}`, { headers });
+            const resQuotations = await fetch(`/api/quotations?${params.toString()}`, {
+                headers,
+                cache: 'no-store'
+            });
             if (resQuotations.ok) {
                 const data = await resQuotations.json();
                 setQuotations(data.quotations || []);

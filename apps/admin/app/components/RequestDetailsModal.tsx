@@ -429,282 +429,286 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
     if (!request) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 sm:p-6" onClick={onClose}>
-            <div
-                className="bg-white rounded-xl shadow-2xl relative w-[95%] sm:w-full max-w-4xl h-[90vh] md:h-auto md:max-h-[90vh] flex flex-col overflow-hidden"
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* Header Section (Fixed) */}
-                <div className="flex-none flex justify-between items-start p-6 border-b border-gray-100 bg-white z-10">
-                    <div>
-                        <h1 className="text-xl font-bold text-zinc-800 mb-2">Request Detail</h1>
-                        <div className="flex flex-wrap gap-2 text-sm">
-                            <span className="bg-slate-100 px-3 py-1 rounded-full text-zinc-600 font-medium border border-slate-200">
-                                ID: <span className="text-zinc-900">{request.quotationId}</span>
-                            </span>
-                            <span className={`px-3 py-1 rounded-full font-medium border ${request.status === 'request_sent' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                                request.status === 'cost_calculated' ? 'bg-purple-50 text-purple-700 border-purple-100' :
-                                    request.status === 'approved' ? 'bg-green-50 text-green-700 border-green-100' :
-                                        'bg-gray-50 text-gray-700 border-gray-100'
-                                }`}>
-                                {request.status === 'request_sent' ? 'New' :
-                                    request.status === 'cost_calculated' ? 'Draft' :
-                                        request.status === 'approved' ? 'Approved' : request.status}
-                            </span>
-                        </div>
-                    </div>
-                    {/* Close Button */}
-                    <button onClick={onClose} className="p-2 -mr-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors">
-                        <span className="sr-only">Close</span>
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-
-                {/* Body (Scrollable) */}
-                <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
-                    <div className="space-y-6">
-                        {/* Top Row: Client & Route Info (2 Columns) */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Client Information */}
-                            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-full">
-                                <h2 className="text-lg font-semibold text-zinc-800 mb-6 flex items-center gap-2">
-                                    <span className="w-1 h-6 bg-blue-600 rounded-full"></span>
-                                    Client Information
-                                </h2>
-
-                                <div className="space-y-4">
-                                    <div className="flex flex-col p-3 bg-gray-50 rounded-lg">
-                                        <span className="text-zinc-500 text-xs mb-1">Client Name</span>
-                                        <span className="text-zinc-900 text-sm font-semibold">{request.clientId?.fullName || 'Guest User'}</span>
-                                    </div>
-                                    <div className="flex flex-col p-3 bg-gray-50 rounded-lg">
-                                        <span className="text-zinc-500 text-xs mb-1">Email Address</span>
-                                        <span className="text-zinc-900 text-sm font-medium break-all">{request.clientId?.email || 'N/A'}</span>
-                                    </div>
-                                    <div className="flex flex-col p-3 bg-gray-50 rounded-lg">
-                                        <span className="text-zinc-500 text-xs mb-1">Account Phone</span>
-                                        <span className="text-zinc-900 text-sm font-medium">{request.clientId?.phone || 'N/A'}</span>
-                                    </div>
+        <>
+            {!showQuoteForm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 sm:p-6" onClick={onClose}>
+                    <div
+                        className="bg-white rounded-xl shadow-2xl relative w-[95%] sm:w-full max-w-4xl h-[90vh] md:h-auto md:max-h-[90vh] flex flex-col overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header Section (Fixed) */}
+                        <div className="flex-none flex justify-between items-start p-6 border-b border-gray-100 bg-white z-10">
+                            <div>
+                                <h1 className="text-xl font-bold text-zinc-800 mb-2">Request Detail</h1>
+                                <div className="flex flex-wrap gap-2 text-sm">
+                                    <span className="bg-slate-100 px-3 py-1 rounded-full text-zinc-600 font-medium border border-slate-200">
+                                        ID: <span className="text-zinc-900">{request.quotationId}</span>
+                                    </span>
+                                    <span className={`px-3 py-1 rounded-full font-medium border ${request.status === 'request_sent' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                                        request.status === 'cost_calculated' ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                                            request.status === 'approved' ? 'bg-green-50 text-green-700 border-green-100' :
+                                                'bg-gray-50 text-gray-700 border-gray-100'
+                                        }`}>
+                                        {request.status === 'request_sent' ? 'New' :
+                                            request.status === 'cost_calculated' ? 'Draft' :
+                                                request.status === 'approved' ? 'Approved' : request.status}
+                                    </span>
                                 </div>
                             </div>
-
-                            {/* Route Information */}
-                            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-full">
-                                <h2 className="text-lg font-semibold text-zinc-800 mb-6 flex items-center gap-2">
-                                    <span className="w-1 h-6 bg-indigo-600 rounded-full"></span>
-                                    Route Information
-                                </h2>
-
-                                <div className="space-y-4">
-                                    {/* Pickup Section */}
-                                    <div className="p-3 bg-gray-50 rounded-lg border-l-2 border-green-500">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-xs font-bold text-green-700 uppercase tracking-wider">Pickup</span>
-                                            <span className="text-[10px] text-zinc-500">{request.pickupDate ? formatDate(request.pickupDate) : 'Date Pending'}</span>
-                                        </div>
-                                        <div className="text-sm font-semibold text-zinc-900 mb-1">{request.origin?.name || request.clientId?.fullName}</div>
-                                        <div className="text-xs text-zinc-600 mb-2">{request.origin?.phone}</div>
-                                        <div className="text-xs text-zinc-800 leading-relaxed">
-                                            {request.origin?.addressLine}<br />
-                                            {request.origin?.city}, {request.origin?.state}<br />
-                                            {request.origin?.zip}, {request.origin?.country}
-                                        </div>
-                                    </div>
-
-                                    {/* Delivery Section */}
-                                    <div className="p-3 bg-gray-50 rounded-lg border-l-2 border-red-500">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-xs font-bold text-red-700 uppercase tracking-wider">Delivery</span>
-                                        </div>
-                                        <div className="text-sm font-semibold text-zinc-900 mb-1">{request.destination?.name || 'TBC'}</div>
-                                        <div className="text-xs text-zinc-600 mb-2">{request.destination?.phone}</div>
-                                        <div className="text-xs text-zinc-800 leading-relaxed">
-                                            {request.destination?.addressLine}<br />
-                                            {request.destination?.city}, {request.destination?.state}<br />
-                                            {request.destination?.zip}, {request.destination?.country}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            {/* Close Button */}
+                            <button onClick={onClose} className="p-2 -mr-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors">
+                                <span className="sr-only">Close</span>
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
                         </div>
 
-                        {/* Bottom Full Width: Items & Specs */}
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                            <h2 className="text-lg font-semibold text-zinc-800 mb-6 flex items-center gap-2">
-                                <span className="w-1 h-6 bg-orange-500 rounded-full"></span>
-                                Shipment Details
-                            </h2>
+                        {/* Body (Scrollable) */}
+                        <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
+                            <div className="space-y-6">
+                                {/* Top Row: Client & Route Info (2 Columns) */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    {/* Client Information */}
+                                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-full">
+                                        <h2 className="text-lg font-semibold text-zinc-800 mb-6 flex items-center gap-2">
+                                            <span className="w-1 h-6 bg-blue-600 rounded-full"></span>
+                                            Client Information
+                                        </h2>
 
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                {/* Left: General Mode/Special Instructions */}
-                                <div className="lg:col-span-1 space-y-4">
-                                    <div className="p-4 bg-gray-50 rounded-xl space-y-4">
-                                        <div className="flex justify-between">
-                                            <span className="text-zinc-500 text-sm">Service Mode</span>
-                                            <span className="font-semibold text-zinc-900">{request.serviceType}</span>
+                                        <div className="space-y-4">
+                                            <div className="flex flex-col p-3 bg-gray-50 rounded-lg">
+                                                <span className="text-zinc-500 text-xs mb-1">Client Name</span>
+                                                <span className="text-zinc-900 text-sm font-semibold">{request.clientId?.fullName || 'Guest User'}</span>
+                                            </div>
+                                            <div className="flex flex-col p-3 bg-gray-50 rounded-lg">
+                                                <span className="text-zinc-500 text-xs mb-1">Email Address</span>
+                                                <span className="text-zinc-900 text-sm font-medium break-all">{request.clientId?.email || 'N/A'}</span>
+                                            </div>
+                                            <div className="flex flex-col p-3 bg-gray-50 rounded-lg">
+                                                <span className="text-zinc-500 text-xs mb-1">Account Phone</span>
+                                                <span className="text-zinc-900 text-sm font-medium">{request.clientId?.phone || 'N/A'}</span>
+                                            </div>
                                         </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-zinc-500 text-sm">Cargo Type</span>
-                                            <span className="font-semibold text-zinc-900">{request.cargoType}</span>
-                                        </div>
-                                        <div className="pt-3 border-t border-gray-200">
-                                            <span className="text-zinc-500 text-xs uppercase tracking-wider block mb-2">Special Instructions</span>
-                                            <p className="text-sm text-zinc-800 italic">
-                                                "{request.specialInstructions || 'None provided'}"
-                                            </p>
+                                    </div>
+
+                                    {/* Route Information */}
+                                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-full">
+                                        <h2 className="text-lg font-semibold text-zinc-800 mb-6 flex items-center gap-2">
+                                            <span className="w-1 h-6 bg-indigo-600 rounded-full"></span>
+                                            Route Information
+                                        </h2>
+
+                                        <div className="space-y-4">
+                                            {/* Pickup Section */}
+                                            <div className="p-3 bg-gray-50 rounded-lg border-l-2 border-green-500">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-xs font-bold text-green-700 uppercase tracking-wider">Pickup</span>
+                                                    <span className="text-[10px] text-zinc-500">{request.pickupDate ? formatDate(request.pickupDate) : 'Date Pending'}</span>
+                                                </div>
+                                                <div className="text-sm font-semibold text-zinc-900 mb-1">{request.origin?.name || request.clientId?.fullName}</div>
+                                                <div className="text-xs text-zinc-600 mb-2">{request.origin?.phone}</div>
+                                                <div className="text-xs text-zinc-800 leading-relaxed">
+                                                    {request.origin?.addressLine}<br />
+                                                    {request.origin?.city}, {request.origin?.state}<br />
+                                                    {request.origin?.zip}, {request.origin?.country}
+                                                </div>
+                                            </div>
+
+                                            {/* Delivery Section */}
+                                            <div className="p-3 bg-gray-50 rounded-lg border-l-2 border-red-500">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-xs font-bold text-red-700 uppercase tracking-wider">Delivery</span>
+                                                </div>
+                                                <div className="text-sm font-semibold text-zinc-900 mb-1">{request.destination?.name || 'TBC'}</div>
+                                                <div className="text-xs text-zinc-600 mb-2">{request.destination?.phone}</div>
+                                                <div className="text-xs text-zinc-800 leading-relaxed">
+                                                    {request.destination?.addressLine}<br />
+                                                    {request.destination?.city}, {request.destination?.state}<br />
+                                                    {request.destination?.zip}, {request.destination?.country}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Right: Items List */}
-                                <div className="lg:col-span-2">
-                                    <h3 className="text-sm font-semibold text-zinc-700 mb-3 flex items-center gap-2">
-                                        <span>Items Manifest</span>
-                                        <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{request.items?.length || 0}</span>
-                                    </h3>
-                                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                                        {request.items?.map((item: any, index: number) => (
-                                            <div key={index} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                                                <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4 mb-3">
-                                                    <div>
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <span className="font-bold text-zinc-800">{item.description}</span>
-                                                            {item.priority === 'Express' && (
-                                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-100 font-bold tracking-wide">EXPRESS</span>
-                                                            )}
-                                                            {item.isHazardous && (
-                                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-100 font-bold tracking-wide">HAZARDOUS</span>
-                                                            )}
+                                {/* Bottom Full Width: Items & Specs */}
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                                    <h2 className="text-lg font-semibold text-zinc-800 mb-6 flex items-center gap-2">
+                                        <span className="w-1 h-6 bg-orange-500 rounded-full"></span>
+                                        Shipment Details
+                                    </h2>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                        {/* Left: General Mode/Special Instructions */}
+                                        <div className="lg:col-span-1 space-y-4">
+                                            <div className="p-4 bg-gray-50 rounded-xl space-y-4">
+                                                <div className="flex justify-between">
+                                                    <span className="text-zinc-500 text-sm">Service Mode</span>
+                                                    <span className="font-semibold text-zinc-900">{request.serviceType}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-zinc-500 text-sm">Cargo Type</span>
+                                                    <span className="font-semibold text-zinc-900">{request.cargoType}</span>
+                                                </div>
+                                                <div className="pt-3 border-t border-gray-200">
+                                                    <span className="text-zinc-500 text-xs uppercase tracking-wider block mb-2">Special Instructions</span>
+                                                    <p className="text-sm text-zinc-800 italic">
+                                                        "{request.specialInstructions || 'None provided'}"
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Right: Items List */}
+                                        <div className="lg:col-span-2">
+                                            <h3 className="text-sm font-semibold text-zinc-700 mb-3 flex items-center gap-2">
+                                                <span>Items Manifest</span>
+                                                <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{request.items?.length || 0}</span>
+                                            </h3>
+                                            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                                {request.items?.map((item: any, index: number) => (
+                                                    <div key={index} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                                                        <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4 mb-3">
+                                                            <div>
+                                                                <div className="flex items-center gap-2 mb-1">
+                                                                    <span className="font-bold text-zinc-800">{item.description}</span>
+                                                                    {item.priority === 'Express' && (
+                                                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-100 font-bold tracking-wide">EXPRESS</span>
+                                                                    )}
+                                                                    {item.isHazardous && (
+                                                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-100 font-bold tracking-wide">HAZARDOUS</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="text-xs text-zinc-500">Category: {item.category}</div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <div className="text-lg font-mono font-medium text-zinc-900">{item.quantity} x Box</div>
+                                                            </div>
                                                         </div>
-                                                        <div className="text-xs text-zinc-500">Category: {item.category}</div>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <div className="text-lg font-mono font-medium text-zinc-900">{item.quantity} x Box</div>
-                                                    </div>
-                                                </div>
 
-                                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-zinc-600 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                                    <div>
-                                                        <div className="text-zinc-400 mb-0.5">Weight</div>
-                                                        <div className="font-medium text-zinc-900">{item.weight} kg</div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-zinc-400 mb-0.5">Dims (cm)</div>
-                                                        <div className="font-medium text-zinc-900">{item.dimensions}</div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-zinc-400 mb-0.5">Volume</div>
-                                                        <div className="font-medium text-zinc-900">{item.packingVolume ? `${item.packingVolume} m³` : '-'}</div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-zinc-400 mb-0.5">Target Rate</div>
-                                                        <div className="font-medium text-green-700">{item.targetRate ? `₹${item.targetRate}` : '-'}</div>
-                                                    </div>
-                                                </div>
+                                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-zinc-600 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                                            <div>
+                                                                <div className="text-zinc-400 mb-0.5">Weight</div>
+                                                                <div className="font-medium text-zinc-900">{item.weight} kg</div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-zinc-400 mb-0.5">Dims (cm)</div>
+                                                                <div className="font-medium text-zinc-900">{item.dimensions}</div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-zinc-400 mb-0.5">Volume</div>
+                                                                <div className="font-medium text-zinc-900">{item.packingVolume ? `${item.packingVolume} m³` : '-'}</div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-zinc-400 mb-0.5">Target Rate</div>
+                                                                <div className="font-medium text-green-700">{item.targetRate ? `₹${item.targetRate}` : '-'}</div>
+                                                            </div>
+                                                        </div>
 
-                                                {/* Visuals */}
-                                                {(item.images?.length > 0 || item.videoUrl) && (
-                                                    <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100">
-                                                        {item.images?.map((img: string, i: number) => (
-                                                            <a key={i} href={img} target="_blank" rel="noopener noreferrer" className="block w-10 h-10 rounded border border-gray-200 overflow-hidden hover:opacity-80">
-                                                                <img src={img} alt="" className="w-full h-full object-cover" />
-                                                            </a>
-                                                        ))}
-                                                        {item.videoUrl && (
-                                                            <a href={item.videoUrl} target="_blank" rel="noopener noreferrer" className="ml-auto text-xs flex items-center gap-1 text-blue-600 font-medium hover:underline">
-                                                                <span>🎥 Watch Video</span>
-                                                            </a>
+                                                        {/* Visuals */}
+                                                        {(item.images?.length > 0 || item.videoUrl) && (
+                                                            <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100">
+                                                                {item.images?.map((img: string, i: number) => (
+                                                                    <a key={i} href={img} target="_blank" rel="noopener noreferrer" className="block w-10 h-10 rounded border border-gray-200 overflow-hidden hover:opacity-80">
+                                                                        <img src={img} alt="" className="w-full h-full object-cover" />
+                                                                    </a>
+                                                                ))}
+                                                                {item.videoUrl && (
+                                                                    <a href={item.videoUrl} target="_blank" rel="noopener noreferrer" className="ml-auto text-xs flex items-center gap-1 text-blue-600 font-medium hover:underline">
+                                                                        <span>🎥 Watch Video</span>
+                                                                    </a>
+                                                                )}
+                                                            </div>
                                                         )}
                                                     </div>
-                                                )}
+                                                ))}
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Price Breakdown (Only if Calculated) */}
-                        {request.totalAmount > 0 && ['cost_calculated', 'sent', 'accepted', 'ready_for_pickup', 'shipped', 'delivered'].includes(request.status) && (
-                            <div className="bg-gradient-to-br from-gray-900 to-zinc-800 rounded-xl shadow-lg p-6 text-white">
-                                <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                                    <span className="w-1 h-6 bg-green-500 rounded-full"></span>
-                                    {request.status === 'cost_calculated' ? 'Quotation Summary (Draft)' : 'Quotation Summary'}
-                                </h2>
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                                    <div>
-                                        <span className="text-gray-400 text-sm block mb-1">Subtotal</span>
-                                        <div className="text-xl font-medium">₹ {request.subtotal?.toLocaleString()}</div>
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-400 text-sm block mb-1">Tax ({request.taxRate}%)</span>
-                                        <div className="text-xl font-medium">₹ {request.tax?.toLocaleString()}</div>
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-400 text-sm block mb-1">Discount</span>
-                                        <div className="text-xl font-medium text-red-300">- ₹ {request.discount?.toLocaleString() || 0}</div>
-                                    </div>
-                                    <div className="bg-white/10 p-4 rounded-lg border border-white/20">
-                                        <span className="text-green-300 text-sm block mb-1 font-bold tracking-wide uppercase">Grand Total</span>
-                                        <div className="text-3xl font-bold">
-                                            ₹ {request.totalAmount?.toLocaleString()}
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Price Breakdown (Only if Calculated) */}
+                                {request.totalAmount > 0 && ['cost_calculated', 'sent', 'accepted', 'ready_for_pickup', 'shipped', 'delivered'].includes(request.status) && (
+                                    <div className="bg-gradient-to-br from-gray-900 to-zinc-800 rounded-xl shadow-lg p-6 text-white">
+                                        <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                                            <span className="w-1 h-6 bg-green-500 rounded-full"></span>
+                                            {request.status === 'cost_calculated' ? 'Quotation Summary (Draft)' : 'Quotation Summary'}
+                                        </h2>
+                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                                            <div>
+                                                <span className="text-gray-400 text-sm block mb-1">Subtotal</span>
+                                                <div className="text-xl font-medium">₹ {request.subtotal?.toLocaleString()}</div>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-400 text-sm block mb-1">Tax ({request.taxRate}%)</span>
+                                                <div className="text-xl font-medium">₹ {request.tax?.toLocaleString()}</div>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-400 text-sm block mb-1">Discount</span>
+                                                <div className="text-xl font-medium text-red-300">- ₹ {request.discount?.toLocaleString() || 0}</div>
+                                            </div>
+                                            <div className="bg-white/10 p-4 rounded-lg border border-white/20">
+                                                <span className="text-green-300 text-sm block mb-1 font-bold tracking-wide uppercase">Grand Total</span>
+                                                <div className="text-3xl font-bold">
+                                                    ₹ {request.totalAmount?.toLocaleString()}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                        )}
+                        </div>
+
+                        {/* Footer Buttons (Fixed) */}
+                        <div className="flex-none p-6 border-t border-gray-100 bg-white flex flex-col sm:flex-row justify-end gap-3 z-10">
+                            <button className="order-1 sm:order-none w-full sm:w-auto border border-gray-300 text-gray-700 px-6 py-2.5 rounded-full text-sm font-medium hover:bg-gray-50 transition-colors">
+                                Add Internal Notes
+                            </button>
+
+                            {request.status === 'request_sent' && (
+                                <button
+                                    onClick={handleApproveRequest}
+                                    className="w-full sm:w-auto bg-sky-700 text-white px-8 py-2.5 rounded-full text-sm font-medium hover:bg-sky-800 transition-colors shadow-sm shadow-sky-700/20"
+                                >
+                                    Approve Request
+                                </button>
+                            )}
+
+                            {request.status === 'approved' && (
+                                <div className="w-full sm:w-auto bg-yellow-50 text-yellow-800 px-6 py-2.5 rounded-lg border border-yellow-200 flex items-center justify-center shadow-sm">
+                                    <span className="mr-2">⏳</span>
+                                    <span className="font-medium text-sm">Waiting for client to provide details</span>
+                                </div>
+                            )}
+
+                            {request.status === 'details_submitted' && (
+                                <button
+                                    onClick={() => {
+                                        setShowQuoteForm(true);
+                                        setQuotationViewMode('create');
+                                    }}
+                                    className="w-full sm:w-auto bg-green-600 text-white px-8 py-2.5 rounded-full text-sm font-medium hover:bg-green-700 transition-colors shadow-sm shadow-green-600/20"
+                                >
+                                    Calculate Price
+                                </button>
+                            )}
+
+                            {['cost_calculated', 'sent', 'accepted', 'ready_for_pickup', 'shipped', 'delivered'].includes(request.status) && (
+                                <button
+                                    onClick={() => {
+                                        setShowQuoteForm(true);
+                                        setQuotationViewMode('view');
+                                    }}
+                                    className="w-full sm:w-auto bg-sky-700 text-white px-8 py-2.5 rounded-full text-sm font-medium hover:bg-sky-800 transition-colors shadow-sm shadow-sky-700/20"
+                                >
+                                    View Quotation
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
-
-                {/* Footer Buttons (Fixed) */}
-                <div className="flex-none p-6 border-t border-gray-100 bg-white flex flex-col sm:flex-row justify-end gap-3 z-10">
-                    <button className="order-1 sm:order-none w-full sm:w-auto border border-gray-300 text-gray-700 px-6 py-2.5 rounded-full text-sm font-medium hover:bg-gray-50 transition-colors">
-                        Add Internal Notes
-                    </button>
-
-                    {request.status === 'request_sent' && (
-                        <button
-                            onClick={handleApproveRequest}
-                            className="w-full sm:w-auto bg-sky-700 text-white px-8 py-2.5 rounded-full text-sm font-medium hover:bg-sky-800 transition-colors shadow-sm shadow-sky-700/20"
-                        >
-                            Approve Request
-                        </button>
-                    )}
-
-                    {request.status === 'approved' && (
-                        <div className="w-full sm:w-auto bg-yellow-50 text-yellow-800 px-6 py-2.5 rounded-lg border border-yellow-200 flex items-center justify-center shadow-sm">
-                            <span className="mr-2">⏳</span>
-                            <span className="font-medium text-sm">Waiting for client to provide details</span>
-                        </div>
-                    )}
-
-                    {request.status === 'details_submitted' && (
-                        <button
-                            onClick={() => {
-                                setShowQuoteForm(true);
-                                setQuotationViewMode('create');
-                            }}
-                            className="w-full sm:w-auto bg-green-600 text-white px-8 py-2.5 rounded-full text-sm font-medium hover:bg-green-700 transition-colors shadow-sm shadow-green-600/20"
-                        >
-                            Calculate Price
-                        </button>
-                    )}
-
-                    {['cost_calculated', 'sent', 'accepted', 'ready_for_pickup', 'shipped', 'delivered'].includes(request.status) && (
-                        <button
-                            onClick={() => {
-                                setShowQuoteForm(true);
-                                setQuotationViewMode('view');
-                            }}
-                            className="w-full sm:w-auto bg-sky-700 text-white px-8 py-2.5 rounded-full text-sm font-medium hover:bg-sky-800 transition-colors shadow-sm shadow-sky-700/20"
-                        >
-                            View Quotation
-                        </button>
-                    )}
-                </div>
-            </div>
+            )}
 
             {/* Quotation Form/Details Modal (Overlay) */}
             {showQuoteForm && (
@@ -712,7 +716,11 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                     className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[60] p-4 sm:p-6"
                     onClick={(e) => {
                         e.stopPropagation();
-                        setShowQuoteForm(false);
+                        if (quotationViewMode === 'view') {
+                            onClose();
+                        } else {
+                            setShowQuoteForm(false);
+                        }
                     }}
                 >
                     <div
@@ -735,7 +743,10 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                 )}
                             </h1>
                             <button
-                                onClick={() => setShowQuoteForm(false)}
+                                onClick={() => {
+                                    if (quotationViewMode === 'view') onClose();
+                                    else setShowQuoteForm(false);
+                                }}
                                 className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F5F5F5] hover:bg-gray-200 text-[#868686] hover:text-[#333333] transition-colors"
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -1049,7 +1060,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                         {quotationViewMode === 'view' && (
                             <div className="p-6 bg-white border-t border-gray-100 flex justify-end gap-3 z-10">
                                 <button
-                                    onClick={() => setShowQuoteForm(false)}
+                                    onClick={onClose}
                                     className="px-6 py-2.5 rounded-xl bg-gray-100 text-zinc-700 hover:bg-gray-200 font-medium transition-colors"
                                 >
                                     Close Details
@@ -1059,7 +1070,8 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                     </div>
                 </div>
             )}
-        </div>
+
+        </>
     );
 }
 
