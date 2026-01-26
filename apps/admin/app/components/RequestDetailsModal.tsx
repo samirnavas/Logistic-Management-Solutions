@@ -485,50 +485,89 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                 Product & Delivery Details
                             </h2>
 
-                            <div className="space-y-4">
-                                {/* Images Row */}
-                                {request.productPhotos?.length > 0 && (
-                                    <div className="flex gap-3 mb-6 overflow-x-auto pb-2 scrollbar-thin">
-                                        {request.productPhotos.map((photo: string, i: number) => (
-                                            <div key={i} className="relative w-20 h-20 flex-shrink-0 border border-gray-200 rounded-lg overflow-hidden">
-                                                <img src={photo} alt="Product" className="w-full h-full object-cover" />
-                                            </div>
-                                        ))}
+                            <div className="space-y-6">
+                                {/* General Request Info */}
+                                <div className="space-y-4 pb-4 border-b border-gray-100">
+                                    <div className="flex justify-between items-center p-2 rounded hover:bg-gray-50">
+                                        <span className="text-zinc-500 text-sm">Mode</span>
+                                        <span className="text-zinc-900 text-sm font-medium">{request.serviceType} / {request.cargoType}</span>
                                     </div>
-                                )}
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="p-3 bg-gray-50 rounded-lg">
-                                        <div className="text-zinc-500 text-xs mb-1">Product Name</div>
-                                        <div className="text-zinc-900 text-sm font-medium">{request.cargoType}</div>
+                                    <div className="flex justify-between items-center p-2 rounded hover:bg-gray-50">
+                                        <span className="text-zinc-500 text-sm">Pickup</span>
+                                        <span className="text-zinc-900 text-sm font-medium">{request.origin?.city}</span>
                                     </div>
-                                    <div className="p-3 bg-gray-50 rounded-lg">
-                                        <div className="text-zinc-500 text-xs mb-1">Number of Boxes</div>
-                                        <div className="text-zinc-900 text-sm font-medium">
-                                            {request.items?.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0) || 0}
-                                        </div>
+                                    <div className="flex justify-between items-center p-2 rounded hover:bg-gray-50">
+                                        <span className="text-zinc-500 text-sm">Delivery</span>
+                                        <span className="text-zinc-900 text-sm font-medium">{request.destination?.city}</span>
                                     </div>
-                                    <div className="p-3 bg-gray-50 rounded-lg">
-                                        <div className="text-zinc-500 text-xs mb-1">Pickup Location</div>
-                                        <div className="text-zinc-900 text-sm font-medium">{request.origin?.city}</div>
-                                    </div>
-                                    <div className="p-3 bg-gray-50 rounded-lg">
-                                        <div className="text-zinc-500 text-xs mb-1">Delivery Location</div>
-                                        <div className="text-zinc-900 text-sm font-medium">{request.destination?.city}</div>
-                                    </div>
-                                    <div className="p-3 bg-gray-50 rounded-lg">
-                                        <div className="text-zinc-500 text-xs mb-1">Mode</div>
-                                        <div className="text-zinc-900 text-sm font-medium">{request.serviceType}</div>
-                                    </div>
-                                    <div className="p-3 bg-gray-50 rounded-lg">
-                                        <div className="text-zinc-500 text-xs mb-1">Expected Delivery</div>
-                                        <div className="text-zinc-900 text-sm font-medium">3-4 Business Days</div>
+                                    <div className="flex justify-between items-start p-2 rounded hover:bg-gray-50">
+                                        <span className="text-zinc-500 text-sm">Special Instructions</span>
+                                        <span className="text-zinc-900 text-sm font-medium text-right max-w-[180px] break-words">
+                                            {request.specialInstructions || 'None'}
+                                        </span>
                                     </div>
                                 </div>
 
-                                <div className="p-3 bg-gray-50 rounded-lg mt-4">
-                                    <div className="text-zinc-500 text-xs mb-1">Special Instructions</div>
-                                    <div className="text-zinc-900 text-sm">{request.specialInstructions || 'None'}</div>
+                                {/* Items List */}
+                                <div>
+                                    <h3 className="text-sm font-semibold text-zinc-700 mb-3 flex items-center gap-2">
+                                        <span>Items</span>
+                                        <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{request.items?.length || 0}</span>
+                                    </h3>
+                                    <div className="space-y-4">
+                                        {request.items?.map((item: any, index: number) => (
+                                            <div key={index} className="bg-gray-50 rounded-xl p-4 border border-gray-100 shadow-sm">
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <span className="font-semibold text-zinc-800 text-sm">{item.description}</span>
+                                                    {item.priority && (
+                                                        <span className={`text-[10px] px-2 py-1 rounded-full font-medium tracking-wide ${item.priority === 'Express' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                            {item.priority.toUpperCase()}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs text-zinc-600 mb-3">
+                                                    <div className="flex justify-between border-b border-gray-100 pb-1"><span>Qty:</span> <span className="font-medium text-zinc-900">{item.quantity}</span></div>
+                                                    <div className="flex justify-between border-b border-gray-100 pb-1"><span>Weight:</span> <span className="font-medium text-zinc-900">{item.weight} kg</span></div>
+                                                    <div className="flex justify-between border-b border-gray-100 pb-1"><span>Dims:</span> <span className="font-medium text-zinc-900">{item.dimensions}</span></div>
+                                                    <div className="flex justify-between border-b border-gray-100 pb-1"><span>Vol:</span> <span className="font-medium text-zinc-900">{item.packingVolume ? `${item.packingVolume} CBM` : '-'}</span></div>
+                                                    <div className="flex justify-between border-b border-gray-100 pb-1"><span>Cat:</span> <span className="font-medium text-zinc-900">{item.category}</span></div>
+                                                    <div className="flex justify-between border-b border-gray-100 pb-1"><span>Target:</span> <span className="font-medium text-zinc-900">{item.targetRate ? `$${item.targetRate}` : '-'}</span></div>
+                                                </div>
+
+                                                <div className="flex flex-wrap gap-2 mb-2">
+                                                    {item.isHazardous && (
+                                                        <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded border border-orange-200 font-medium">
+                                                            ⚠️ Hazardous
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* Item Images */}
+                                                {item.images?.length > 0 && (
+                                                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mt-3">
+                                                        {item.images.map((img: string, i: number) => (
+                                                            <a key={i} href={img} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                                                                <div className="w-14 h-14 rounded-lg overflow-hidden border border-gray-200">
+                                                                    <img src={img} alt={`Item ${index + 1}`} className="w-full h-full object-cover" />
+                                                                </div>
+                                                            </a>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {item.videoUrl && (
+                                                    <div className="mt-2 text-xs border-t border-gray-200 pt-2">
+                                                        <a href={item.videoUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                            </svg>
+                                                            Watch Video
+                                                        </a>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>

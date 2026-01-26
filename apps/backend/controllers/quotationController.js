@@ -133,10 +133,10 @@ exports.createQuotation = async (req, res) => {
         } = req.body;
 
         // Validation for critical fields
-        if (!origin || !destination || !items || items.length === 0) {
+        if (!origin || !destination || !items || !Array.isArray(items) || items.length === 0) {
             return res.status(400).json({
-                message: 'Missing required fields',
-                required: ['origin', 'destination', 'items']
+                message: 'Missing required fields or invalid items format',
+                required: ['origin', 'destination', 'items (array)']
             });
         }
 

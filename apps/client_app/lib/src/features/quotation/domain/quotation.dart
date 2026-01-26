@@ -37,26 +37,97 @@ enum QuotationStatus {
 class QuotationItem {
   final String description;
   final double cost;
+  // New Fields
+  final int quantity;
+  final double weight;
+  final dynamic dimensions; // String "LxWxH" or map
+  final List<String> images;
+  final String category;
+  final bool isHazardous;
+  final String? videoUrl;
+  final double? targetRate;
+  final double? packingVolume;
+  final String priority;
 
-  const QuotationItem({required this.description, required this.cost});
+  const QuotationItem({
+    required this.description,
+    required this.cost,
+    this.quantity = 1,
+    this.weight = 0.0,
+    this.dimensions = '',
+    this.images = const [],
+    this.category = 'General',
+    this.isHazardous = false,
+    this.videoUrl,
+    this.targetRate,
+    this.packingVolume,
+    this.priority = 'Standard',
+  });
 
-  QuotationItem copyWith({String? description, double? cost}) {
+  QuotationItem copyWith({
+    String? description,
+    double? cost,
+    int? quantity,
+    double? weight,
+    dynamic dimensions,
+    List<String>? images,
+    String? category,
+    bool? isHazardous,
+    String? videoUrl,
+    double? targetRate,
+    double? packingVolume,
+    String? priority,
+  }) {
     return QuotationItem(
       description: description ?? this.description,
       cost: cost ?? this.cost,
+      quantity: quantity ?? this.quantity,
+      weight: weight ?? this.weight,
+      dimensions: dimensions ?? this.dimensions,
+      images: images ?? this.images,
+      category: category ?? this.category,
+      isHazardous: isHazardous ?? this.isHazardous,
+      videoUrl: videoUrl ?? this.videoUrl,
+      targetRate: targetRate ?? this.targetRate,
+      packingVolume: packingVolume ?? this.packingVolume,
+      priority: priority ?? this.priority,
     );
   }
 
   factory QuotationItem.fromJson(Map<String, dynamic> json) {
     return QuotationItem(
-      description: json['description'] as String,
+      description: json['description'] as String? ?? '',
       // Backend uses 'amount' for the total cost of the line item
       cost: (json['amount'] ?? json['unitPrice'] ?? 0).toDouble(),
+      quantity: json['quantity'] as int? ?? 1,
+      weight: (json['weight'] as num?)?.toDouble() ?? 0.0,
+      dimensions: json['dimensions'] ?? '',
+      images: (json['images'] as List?)?.map((e) => e as String).toList() ?? [],
+      category: json['category'] as String? ?? 'General',
+      isHazardous: json['isHazardous'] as bool? ?? false,
+      videoUrl: json['videoUrl'] as String?,
+      targetRate: (json['targetRate'] as num?)?.toDouble(),
+      packingVolume: (json['packingVolume'] as num?)?.toDouble(),
+      priority: json['priority'] as String? ?? 'Standard',
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'description': description, 'cost': cost};
+    return {
+      'description': description,
+      'cost': cost,
+      'amount': cost, // Ensure backend sees amount if needed
+      'quantity': quantity,
+      'weight': weight,
+      'dimensions': dimensions,
+      'images': images,
+      'category': category,
+      'isHazardous': isHazardous,
+      'videoUrl': videoUrl,
+      'targetRate': targetRate,
+      'packingVolume': packingVolume,
+      'priority': priority,
+    };
   }
 }
 

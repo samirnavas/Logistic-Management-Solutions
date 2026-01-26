@@ -1,14 +1,12 @@
-import 'dart:io';
-
 import 'package:bb_logistics/src/core/api/upload_service.dart';
 import 'package:bb_logistics/src/core/widgets/app_drawer.dart';
 import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:bb_logistics/src/core/theme/theme.dart';
+import 'package:bb_logistics/src/features/shipment/presentation/shipment_form_notifier.dart';
+import 'package:bb_logistics/src/features/shipment/presentation/widgets/shipment_item_form.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:image_picker/image_picker.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
@@ -29,11 +27,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
   String _deliveryType = 'Door to Door';
   String _countryCode = '+91'; // Default India
 
-  // Controllers
-  final _itemNameController = TextEditingController();
-  final _boxesController = TextEditingController();
-  final _cbmController = TextEditingController();
-  final _hsCodeController = TextEditingController();
+  // Controllers for Pickup Address
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
@@ -44,17 +38,10 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
   final _addressTypeController = TextEditingController();
   final _notesController = TextEditingController();
 
-  // Photo state
-  final List<File> _selectedPhotos = [];
-  final ImagePicker _picker = ImagePicker();
   final UploadService _uploadService = UploadService();
 
   @override
   void dispose() {
-    _itemNameController.dispose();
-    _boxesController.dispose();
-    _cbmController.dispose();
-    _hsCodeController.dispose();
     _nameController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
@@ -76,13 +63,16 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
     // Calculate bottom padding for content so it clears the floaty button
     final contentBottomPadding = isKeyboardVisible ? bottomInset + 100 : 100.0;
 
+    final formState = ref.watch(shipmentFormProvider);
+    final formNotifier = ref.read(shipmentFormProvider.notifier);
+
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: BlueBackgroundScaffold(
         drawer: const AppDrawer(),
         body: Stack(
           children: [
-            // 1. Scrollable Content (Moved First)
+            // 1. Scrollable Content
             Positioned.fill(
               child: SingleChildScrollView(
                 child: Column(
@@ -162,64 +152,60 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                             ).animate().fadeIn(delay: 250.ms).slideX(),
                             const SizedBox(height: 24),
 
-                            // 3. Package Details
+                            // 3. Package Details (Dynamic List)
                             _buildSectionTitle(
                               'Package Details',
                             ).animate().fadeIn(delay: 300.ms).slideX(),
                             const SizedBox(height: 16),
-                            _buildTextField(
-                              hint: 'Item Name',
-                              controller: _itemNameController,
-                              validator: (value) =>
-                                  value == null || value.isEmpty
-                                  ? 'Item name is required'
-                                  : null,
+                            ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: formState.items.length,
+                              itemBuilder: (context, index) {
+                                return ShipmentItemForm(
+                                  index: index,
+                                  item: formState.items[index],
+                                  onChanged: (updatedItem) {
+                                    formNotifier.updateItem(index, updatedItem);
+                                  },
+                                  onRemove: () {
+                                    formNotifier.removeItem(index);
+                                  },
+                                  isExpanded:
+                                      index ==
+                                      formState.items.length -
+                                          1, // Auto expand latest
+                                );
+                              },
                             ).animate().fadeIn(delay: 350.ms),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildTextField(
-                                    hint: 'Number of Boxes',
-                                    controller: _boxesController,
-                                    keyboardType: TextInputType.number,
-                                    validator: (value) =>
-                                        value == null || value.isEmpty
-                                        ? 'Required'
-                                        : null,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildTextField(
-                                    hint: 'Total CBM',
-                                    controller: _cbmController,
-                                    keyboardType: TextInputType.number,
-                                    validator: (value) =>
-                                        value == null || value.isEmpty
-                                        ? 'Required'
-                                        : null,
-                                  ),
-                                ),
-                              ],
-                            ).animate().fadeIn(delay: 400.ms),
-                            const SizedBox(height: 16),
-                            _buildTextField(
-                              hint: 'HS Code',
-                              controller: _hsCodeController,
-                            ).animate().fadeIn(delay: 450.ms),
-                            const SizedBox(height: 24),
 
-                            // 4. Product Photos
-                            _buildSectionTitle('Product Photos'),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Add up to 5 photos of your products',
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(color: Colors.grey[600]),
-                            ),
                             const SizedBox(height: 12),
-                            _buildPhotoSection(),
+                            // Create a full-width container to center the button properly
+                            Container(
+                              width: double.infinity,
+                              alignment: Alignment.center,
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  formNotifier.addItem();
+                                },
+                                icon: const Icon(Icons.add),
+                                label: const Text('Add Another Item'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppTheme.primaryBlue,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 12,
+                                  ),
+                                  side: const BorderSide(
+                                    color: AppTheme.primaryBlue,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                ),
+                              ),
+                            ),
+
                             const SizedBox(height: 24),
 
                             // 5. Pickup Address
@@ -324,7 +310,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
               ),
             ),
 
-            // 2. Custom App Bar Content (Back Button & Title) (Moved Second)
+            // 2. Custom App Bar Content (Back Button & Title)
             Positioned(
               top: 0,
               left: 0,
@@ -414,6 +400,33 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
       return;
     }
 
+    // Check items
+    final formState = ref.read(shipmentFormProvider);
+    if (formState.items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please add at least one item.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Check validation of individual items
+    for (final item in formState.items) {
+      if (item.description.isEmpty || item.quantity <= 0 || item.weight <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Please complete all item details (Name, Qty, Weight are required).',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
+
     // Get current user
     final authState = ref.read(authRepositoryProvider);
     final user = authState.value;
@@ -454,52 +467,62 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
         'zip': '00000',
       };
 
-      // Construct item description from form details
-      final itemDescription =
-          '${_itemNameController.text} - ${_boxesController.text} Boxes, ${_cbmController.text} CBM, HS: ${_hsCodeController.text}';
+      // Process Items including photo uploads
+      List<Map<String, dynamic>> processedItems = [];
 
-      // Upload photos first if any
-      List<String> uploadedPhotoUrls = [];
-      if (_selectedPhotos.isNotEmpty) {
-        try {
-          uploadedPhotoUrls = await _uploadService.uploadProductPhotos(
-            _selectedPhotos,
-          );
-        } catch (e) {
-          if (mounted) Navigator.of(context).pop();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Failed to upload photos: ${e.toString().replaceAll('Exception:', '').trim()}',
-                ),
-                backgroundColor: Colors.red,
-              ),
+      for (final item in formState.items) {
+        // Upload photos for this item
+        List<String> uploadedPhotoUrls = [];
+
+        if (item.localPhotos.isNotEmpty) {
+          try {
+            uploadedPhotoUrls = await _uploadService.uploadProductPhotos(
+              item.localPhotos,
             );
+          } catch (e) {
+            // Ignore individual photo errors but maybe warn?
+            print("Error uploading photos for item ${item.description}: $e");
+            // Proceed without photos or stop? For now proceed.
           }
-          return;
         }
+
+        // Use description as the main identifier
+        // Combine name with other details if needed for backward compatibility or display
+        // But now our backend supports separated fields, so we pass them directly.
+
+        processedItems.add({
+          'description': item.description,
+          'quantity': item.quantity,
+          'weight': item.weight,
+          'dimensions': item.dimensions, // Pass raw string
+          'images': uploadedPhotoUrls, // Cloudinary URLs
+          'category': item.category,
+          'isHazardous': item.isHazardous,
+          'videoUrl': item.videoUrl,
+          'targetRate': item.targetRate,
+          'packingVolume': item.packingVolume,
+          'priority': item.priority,
+
+          // Fallback/Legacy fields
+          'unitPrice': 0,
+          'amount': 0,
+        });
       }
 
       final requestData = {
         'origin': pickupAddress,
         'destination': destinationAddress,
-        'items': [
-          {
-            'description': itemDescription,
-            'quantity': int.tryParse(_boxesController.text) ?? 1,
-            'unitPrice': 0,
-            'amount': 0,
-          },
-        ],
-        'cargoType': 'General Cargo', // Default
+        'items': processedItems,
+        'cargoType':
+            'General Cargo', // Consider making this dynamic if all items are same? Or just default
         'serviceType': 'Standard', // Default
         'specialInstructions':
             'Mode: $_shippingMode, Delivery: $_deliveryType\nNotes: ${_notesController.text}',
         'pickupDate': DateTime.now()
             .add(const Duration(days: 1))
             .toIso8601String(), // Default to tomorrow
-        'productPhotos': uploadedPhotoUrls,
+        'productPhotos':
+            [], // Legacy top-level photos - empty now as items have them
       };
 
       await ref.read(quotationRepositoryProvider).createQuotation(requestData);
@@ -800,290 +823,47 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                       ? '🇦🇪'
                       : _countryCode == '+974'
                       ? '🇶🇦'
-                      : _countryCode == '+973'
-                      ? '🇧🇭'
-                      : '🇮🇳',
-                  style: const TextStyle(fontSize: 20),
+                      : '🇧🇭',
+                  style: const TextStyle(fontSize: 24),
                 ),
-                const SizedBox(width: 4),
+                const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                const SizedBox(width: 8),
                 Text(
                   _countryCode,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const Icon(
-                  Icons.keyboard_arrow_down,
-                  color: Colors.grey,
-                  size: 18,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
                 ),
               ],
             ),
           ),
-          Container(
-            height: 24,
-            width: 1,
-            margin: const EdgeInsets.symmetric(horizontal: 12),
-            color: Colors.grey.shade300,
-          ),
+          const SizedBox(width: 12),
+          Container(width: 1, height: 24, color: Colors.grey[300]),
+          const SizedBox(width: 12),
           Expanded(
             child: TextFormField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
-              validator: (value) =>
-                  value == null || value.isEmpty ? 'Required' : null,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.black87),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
               decoration: InputDecoration(
-                border: InputBorder.none,
-                filled: false,
-                fillColor: Colors.transparent,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                errorBorder: InputBorder.none,
-                focusedErrorBorder: InputBorder.none,
                 hintText: 'Phone Number',
-                hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[400],
-                  fontSize: 13,
-                ),
+                hintStyle: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.grey[400]),
+                border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
                 isDense: true,
               ),
+              validator: (value) =>
+                  value == null || value.isEmpty ? 'Required' : null,
             ),
           ),
         ],
       ),
     );
-  }
-
-  Widget _buildPhotoSection() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          // Existing photos
-          ..._selectedPhotos.asMap().entries.map((entry) {
-            final index = entry.key;
-            final file = entry.value;
-            return Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Stack(
-                children: [
-                  Container(
-                    width: 90,
-                    height: 90,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      image: DecorationImage(
-                        image: FileImage(file),
-                        fit: BoxFit.cover,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Remove button
-                  Positioned(
-                    top: -4,
-                    right: -4,
-                    child: GestureDetector(
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        setState(() {
-                          _selectedPhotos.removeAt(index);
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.close,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-          // Add photo button (if less than 5)
-          if (_selectedPhotos.length < 5)
-            GestureDetector(
-              onTap: _showPhotoSourceDialog,
-              child: Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  color: AppTheme.background,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.3),
-                    width: 2,
-                    strokeAlign: BorderSide.strokeAlignInside,
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.add_photo_alternate_outlined,
-                      color: AppTheme.primaryBlue,
-                      size: 28,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${_selectedPhotos.length}/5',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.primaryBlue,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  void _showPhotoSourceDialog() {
-    HapticFeedback.lightImpact();
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Add Product Photo',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.camera_alt,
-                    color: AppTheme.primaryBlue,
-                  ),
-                ),
-                title: const Text('Take Photo'),
-                subtitle: const Text('Use your camera'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickPhoto(ImageSource.camera);
-                },
-              ),
-              const SizedBox(height: 8),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.photo_library,
-                    color: AppTheme.primaryBlue,
-                  ),
-                ),
-                title: const Text('Choose from Gallery'),
-                subtitle: const Text('Select existing photos'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickPhoto(ImageSource.gallery);
-                },
-              ),
-              const SizedBox(height: 12),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _pickPhoto(ImageSource source) async {
-    try {
-      if (source == ImageSource.gallery) {
-        // For gallery, allow multiple selection
-        final List<XFile> pickedFiles = await _picker.pickMultiImage(
-          maxWidth: 1200,
-          maxHeight: 1200,
-          imageQuality: 85,
-        );
-
-        if (pickedFiles.isNotEmpty) {
-          final remainingSlots = 5 - _selectedPhotos.length;
-          final filesToAdd = pickedFiles.take(remainingSlots).toList();
-
-          setState(() {
-            _selectedPhotos.addAll(filesToAdd.map((xFile) => File(xFile.path)));
-          });
-
-          if (pickedFiles.length > remainingSlots) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Only added $remainingSlots photos (max 5 total)',
-                  ),
-                  backgroundColor: AppTheme.warning,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            }
-          }
-        }
-      } else {
-        // For camera, pick single image
-        final XFile? pickedFile = await _picker.pickImage(
-          source: source,
-          maxWidth: 1200,
-          maxHeight: 1200,
-          imageQuality: 85,
-        );
-
-        if (pickedFile != null) {
-          setState(() {
-            _selectedPhotos.add(File(pickedFile.path));
-          });
-        }
-      }
-      HapticFeedback.lightImpact();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to pick image: ${e.toString()}'),
-            backgroundColor: AppTheme.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
   }
 }

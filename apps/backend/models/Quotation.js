@@ -6,15 +6,53 @@ const mongoose = require('mongoose');
 const lineItemSchema = new mongoose.Schema({
     description: {
         type: String,
-        required: [true, 'Line item description is required'],
+        required: [true, 'Product Name is required'],
         trim: true,
-        maxlength: [200, 'Description cannot exceed 200 characters'],
     },
     quantity: {
         type: Number,
-        default: 1,
+        required: [true, 'Quantity is required'],
         min: [1, 'Quantity must be at least 1'],
     },
+    weight: {
+        type: Number,
+        required: [true, 'Weight is required'], // Assuming weight is mandatory
+        min: [0, 'Weight cannot be negative'],
+    },
+    dimensions: {
+        type: mongoose.Schema.Types.Mixed, // Can be String "LxWxH" or Object { L, W, H }
+        required: [true, 'Dimensions are required'],
+    },
+    images: {
+        type: [String], // Array of image URLs
+        default: [],
+    },
+    category: {
+        type: String,
+        enum: ['General', 'Special', 'Harmful', 'Explosive'],
+        default: 'General',
+    },
+    isHazardous: {
+        type: Boolean,
+        default: false,
+    },
+    videoUrl: {
+        type: String,
+        trim: true,
+    },
+    targetRate: {
+        type: Number, // Client's expected price
+        min: [0, 'Target rate cannot be negative'],
+    },
+    packingVolume: {
+        type: Number, // CBM
+    },
+    priority: {
+        type: String,
+        enum: ['Standard', 'Express'],
+        default: 'Standard',
+    },
+    // Financial fields (populated by Manager)
     unitPrice: {
         type: Number,
         default: 0,
@@ -24,11 +62,6 @@ const lineItemSchema = new mongoose.Schema({
         type: Number,
         default: 0,
         min: [0, 'Amount cannot be negative'],
-    },
-    category: {
-        type: String,
-        enum: ['freight', 'handling', 'customs', 'insurance', 'surcharge', 'other'],
-        default: 'other',
     },
 }, { _id: false });
 

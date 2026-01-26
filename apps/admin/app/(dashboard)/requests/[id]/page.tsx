@@ -149,49 +149,75 @@ export default function RequestDetailsPage({ params }: { params: Promise<{ id: s
                     <div className="flex-1 bg-white rounded-lg shadow-[3px_3px_12px_0px_rgba(0,0,0,0.15)] p-6 h-96 overflow-y-auto">
                         <h2 className="text-lg font-medium text-zinc-800 mb-6">Product & Delivery Details</h2>
 
-                        <div className="space-y-4">
-                            {/* Images Row */}
-                            {request.productPhotos?.length > 0 && (
-                                <div className="flex gap-4 mb-4">
-                                    {request.productPhotos.map((photo: string, i: number) => (
-                                        <img key={i} src={photo} alt="Product" className="w-16 h-16 rounded-lg object-cover" />
+                        <div className="space-y-6">
+                            {/* General Request Info */}
+                            <div className="space-y-4 pb-4 border-b border-gray-100">
+                                <div className="flex justify-between">
+                                    <span className="text-zinc-500 text-sm">Mode</span>
+                                    <span className="text-zinc-800 text-sm font-medium">{request.serviceType} / {request.cargoType}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-zinc-500 text-sm">Pickup</span>
+                                    <span className="text-zinc-800 text-sm font-medium">{request.origin?.city}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-zinc-500 text-sm">Delivery</span>
+                                    <span className="text-zinc-800 text-sm font-medium">{request.destination?.city}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-zinc-500 text-sm">Special Instructions</span>
+                                    <span className="text-zinc-800 text-sm font-medium text-right max-w-[200px]">{request.specialInstructions || 'None'}</span>
+                                </div>
+                            </div>
+
+                            {/* Items List */}
+                            <div>
+                                <h3 className="text-sm font-semibold text-zinc-700 mb-3">Items ({request.items?.length || 0})</h3>
+                                <div className="space-y-4">
+                                    {request.items?.map((item: any, index: number) => (
+                                        <div key={index} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <span className="font-medium text-zinc-800 text-sm">{item.description}</span>
+                                                {item.priority && (
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${item.priority === 'Express' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                        {item.priority}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-2 text-xs text-zinc-600 mb-2">
+                                                <div>Qty: <span className="font-medium text-zinc-900">{item.quantity}</span></div>
+                                                <div>Weight: <span className="font-medium text-zinc-900">{item.weight} kg</span></div>
+                                                <div>Dims: <span className="font-medium text-zinc-900">{item.dimensions}</span></div>
+                                                <div>Vol: <span className="font-medium text-zinc-900">{item.packingVolume ? `${item.packingVolume} CBM` : '-'}</span></div>
+                                                <div>Cat: <span className="font-medium text-zinc-900">{item.category}</span></div>
+                                                <div>Target: <span className="font-medium text-zinc-900">{item.targetRate ? `$${item.targetRate}` : '-'}</span></div>
+                                            </div>
+
+                                            {item.isHazardous && (
+                                                <div className="text-xs text-orange-600 font-medium mb-2">⚠️ Hazardous Material</div>
+                                            )}
+
+                                            {/* Item Images */}
+                                            {item.images?.length > 0 && (
+                                                <div className="flex gap-2 overflow-x-auto pb-1 mt-2">
+                                                    {item.images.map((img: string, i: number) => (
+                                                        <a key={i} href={img} target="_blank" rel="noopener noreferrer">
+                                                            <img src={img} alt={`Item ${index + 1}`} className="w-12 h-12 rounded bg-gray-200 object-cover border border-gray-300" />
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {item.videoUrl && (
+                                                <div className="mt-2 text-xs">
+                                                    <a href={item.videoUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                                        📹 View Video
+                                                    </a>
+                                                </div>
+                                            )}
+                                        </div>
                                     ))}
                                 </div>
-                            )}
-
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Product Name</span>
-                                <span className="text-zinc-800 text-sm font-medium">{request.cargoType}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Number of Boxes</span>
-                                <span className="text-zinc-800 text-sm font-medium">
-                                    {request.items?.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0) || 0}
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Packaging Type</span>
-                                <span className="text-zinc-800 text-sm font-medium">Secure Box</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Pickup Location</span>
-                                <span className="text-zinc-800 text-sm font-medium">{request.origin?.city}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Delivery Location</span>
-                                <span className="text-zinc-800 text-sm font-medium">{request.destination?.city}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Mode</span>
-                                <span className="text-zinc-800 text-sm font-medium">{request.serviceType}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Expected Delivery Timeline</span>
-                                <span className="text-zinc-800 text-sm font-medium">3-4 Business Days</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-zinc-500 text-sm">Special Instructions</span>
-                                <span className="text-zinc-800 text-sm font-medium text-right">{request.specialInstructions || 'None'}</span>
                             </div>
                         </div>
                     </div>
