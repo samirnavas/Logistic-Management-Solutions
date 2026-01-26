@@ -443,126 +443,159 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
 
                 {/* Body (Scrollable) */}
                 <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
-                    <div className="flex flex-col lg:flex-row gap-6">
-                        {/* Left Column: Customer Info */}
-                        <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-fit">
-                            <h2 className="text-lg font-semibold text-zinc-800 mb-6 flex items-center gap-2">
-                                <span className="w-1 h-6 bg-blue-600 rounded-full"></span>
-                                Customer Information
-                            </h2>
+                    <div className="space-y-6">
+                        {/* Top Row: Client & Route Info (2 Columns) */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Client Information */}
+                            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-full">
+                                <h2 className="text-lg font-semibold text-zinc-800 mb-6 flex items-center gap-2">
+                                    <span className="w-1 h-6 bg-blue-600 rounded-full"></span>
+                                    Client Information
+                                </h2>
 
-                            <div className="space-y-4">
-                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-gray-50 rounded-lg">
-                                    <span className="text-zinc-500 text-sm mb-1 sm:mb-0">Name</span>
-                                    <span className="text-zinc-900 text-sm font-semibold">{request.clientId?.fullName}</span>
+                                <div className="space-y-4">
+                                    <div className="flex flex-col p-3 bg-gray-50 rounded-lg">
+                                        <span className="text-zinc-500 text-xs mb-1">Client Name</span>
+                                        <span className="text-zinc-900 text-sm font-semibold">{request.clientId?.fullName || 'Guest User'}</span>
+                                    </div>
+                                    <div className="flex flex-col p-3 bg-gray-50 rounded-lg">
+                                        <span className="text-zinc-500 text-xs mb-1">Email Address</span>
+                                        <span className="text-zinc-900 text-sm font-medium break-all">{request.clientId?.email || 'N/A'}</span>
+                                    </div>
+                                    <div className="flex flex-col p-3 bg-gray-50 rounded-lg">
+                                        <span className="text-zinc-500 text-xs mb-1">Account Phone</span>
+                                        <span className="text-zinc-900 text-sm font-medium">{request.clientId?.phone || 'N/A'}</span>
+                                    </div>
                                 </div>
-                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-gray-50 rounded-lg">
-                                    <span className="text-zinc-500 text-sm mb-1 sm:mb-0">Email</span>
-                                    <span className="text-zinc-900 text-sm font-medium">{request.clientId?.email}</span>
-                                </div>
-                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-gray-50 rounded-lg">
-                                    <span className="text-zinc-500 text-sm mb-1 sm:mb-0">Mobile Number</span>
-                                    <span className="text-zinc-900 text-sm font-medium text-nowrap">{request.clientId?.phone || request.origin?.phone || 'N/A'}</span>
-                                </div>
-                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start p-3 bg-gray-50 rounded-lg">
-                                    <span className="text-zinc-500 text-sm mb-1 sm:mb-0">Address</span>
-                                    <span className="text-zinc-900 text-sm font-medium text-right max-w-[200px]">
-                                        {request.origin?.addressLine || '123, Street Name'},<br />
-                                        {request.origin?.city}, {request.origin?.state}
-                                    </span>
-                                </div>
-                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-gray-50 rounded-lg">
-                                    <span className="text-zinc-500 text-sm mb-1 sm:mb-0">Location</span>
-                                    <span className="text-zinc-900 text-sm font-medium">{request.origin?.city}</span>
+                            </div>
+
+                            {/* Route Information */}
+                            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-full">
+                                <h2 className="text-lg font-semibold text-zinc-800 mb-6 flex items-center gap-2">
+                                    <span className="w-1 h-6 bg-indigo-600 rounded-full"></span>
+                                    Route Information
+                                </h2>
+
+                                <div className="space-y-4">
+                                    {/* Pickup Section */}
+                                    <div className="p-3 bg-gray-50 rounded-lg border-l-2 border-green-500">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-xs font-bold text-green-700 uppercase tracking-wider">Pickup</span>
+                                            <span className="text-[10px] text-zinc-500">{request.pickupDate ? formatDate(request.pickupDate) : 'Date Pending'}</span>
+                                        </div>
+                                        <div className="text-sm font-semibold text-zinc-900 mb-1">{request.origin?.name || request.clientId?.fullName}</div>
+                                        <div className="text-xs text-zinc-600 mb-2">{request.origin?.phone}</div>
+                                        <div className="text-xs text-zinc-800 leading-relaxed">
+                                            {request.origin?.addressLine}<br />
+                                            {request.origin?.city}, {request.origin?.state}<br />
+                                            {request.origin?.zip}, {request.origin?.country}
+                                        </div>
+                                    </div>
+
+                                    {/* Delivery Section */}
+                                    <div className="p-3 bg-gray-50 rounded-lg border-l-2 border-red-500">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-xs font-bold text-red-700 uppercase tracking-wider">Delivery</span>
+                                        </div>
+                                        <div className="text-sm font-semibold text-zinc-900 mb-1">{request.destination?.name || 'TBC'}</div>
+                                        <div className="text-xs text-zinc-600 mb-2">{request.destination?.phone}</div>
+                                        <div className="text-xs text-zinc-800 leading-relaxed">
+                                            {request.destination?.addressLine}<br />
+                                            {request.destination?.city}, {request.destination?.state}<br />
+                                            {request.destination?.zip}, {request.destination?.country}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Right Column: Product & Delivery Details */}
-                        <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-fit">
+                        {/* Bottom Full Width: Items & Specs */}
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                             <h2 className="text-lg font-semibold text-zinc-800 mb-6 flex items-center gap-2">
                                 <span className="w-1 h-6 bg-orange-500 rounded-full"></span>
-                                Product & Delivery Details
+                                Shipment Details
                             </h2>
 
-                            <div className="space-y-6">
-                                {/* General Request Info */}
-                                <div className="space-y-4 pb-4 border-b border-gray-100">
-                                    <div className="flex justify-between items-center p-2 rounded hover:bg-gray-50">
-                                        <span className="text-zinc-500 text-sm">Mode</span>
-                                        <span className="text-zinc-900 text-sm font-medium">{request.serviceType} / {request.cargoType}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center p-2 rounded hover:bg-gray-50">
-                                        <span className="text-zinc-500 text-sm">Pickup</span>
-                                        <span className="text-zinc-900 text-sm font-medium">{request.origin?.city}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center p-2 rounded hover:bg-gray-50">
-                                        <span className="text-zinc-500 text-sm">Delivery</span>
-                                        <span className="text-zinc-900 text-sm font-medium">{request.destination?.city}</span>
-                                    </div>
-                                    <div className="flex justify-between items-start p-2 rounded hover:bg-gray-50">
-                                        <span className="text-zinc-500 text-sm">Special Instructions</span>
-                                        <span className="text-zinc-900 text-sm font-medium text-right max-w-[180px] break-words">
-                                            {request.specialInstructions || 'None'}
-                                        </span>
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                {/* Left: General Mode/Special Instructions */}
+                                <div className="lg:col-span-1 space-y-4">
+                                    <div className="p-4 bg-gray-50 rounded-xl space-y-4">
+                                        <div className="flex justify-between">
+                                            <span className="text-zinc-500 text-sm">Service Mode</span>
+                                            <span className="font-semibold text-zinc-900">{request.serviceType}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-zinc-500 text-sm">Cargo Type</span>
+                                            <span className="font-semibold text-zinc-900">{request.cargoType}</span>
+                                        </div>
+                                        <div className="pt-3 border-t border-gray-200">
+                                            <span className="text-zinc-500 text-xs uppercase tracking-wider block mb-2">Special Instructions</span>
+                                            <p className="text-sm text-zinc-800 italic">
+                                                "{request.specialInstructions || 'None provided'}"
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Items List */}
-                                <div>
+                                {/* Right: Items List */}
+                                <div className="lg:col-span-2">
                                     <h3 className="text-sm font-semibold text-zinc-700 mb-3 flex items-center gap-2">
-                                        <span>Items</span>
+                                        <span>Items Manifest</span>
                                         <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{request.items?.length || 0}</span>
                                     </h3>
-                                    <div className="space-y-4">
+                                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                         {request.items?.map((item: any, index: number) => (
-                                            <div key={index} className="bg-gray-50 rounded-xl p-4 border border-gray-100 shadow-sm">
-                                                <div className="flex justify-between items-start mb-3">
-                                                    <span className="font-semibold text-zinc-800 text-sm">{item.description}</span>
-                                                    {item.priority && (
-                                                        <span className={`text-[10px] px-2 py-1 rounded-full font-medium tracking-wide ${item.priority === 'Express' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                                                            {item.priority.toUpperCase()}
-                                                        </span>
-                                                    )}
+                                            <div key={index} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                                                <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4 mb-3">
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="font-bold text-zinc-800">{item.description}</span>
+                                                            {item.priority === 'Express' && (
+                                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-100 font-bold tracking-wide">EXPRESS</span>
+                                                            )}
+                                                            {item.isHazardous && (
+                                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-100 font-bold tracking-wide">HAZARDOUS</span>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-xs text-zinc-500">Category: {item.category}</div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className="text-lg font-mono font-medium text-zinc-900">{item.quantity} x Box</div>
+                                                    </div>
                                                 </div>
 
-                                                <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs text-zinc-600 mb-3">
-                                                    <div className="flex justify-between border-b border-gray-100 pb-1"><span>Qty:</span> <span className="font-medium text-zinc-900">{item.quantity}</span></div>
-                                                    <div className="flex justify-between border-b border-gray-100 pb-1"><span>Weight:</span> <span className="font-medium text-zinc-900">{item.weight} kg</span></div>
-                                                    <div className="flex justify-between border-b border-gray-100 pb-1"><span>Dims:</span> <span className="font-medium text-zinc-900">{item.dimensions}</span></div>
-                                                    <div className="flex justify-between border-b border-gray-100 pb-1"><span>Vol:</span> <span className="font-medium text-zinc-900">{item.packingVolume ? `${item.packingVolume} CBM` : '-'}</span></div>
-                                                    <div className="flex justify-between border-b border-gray-100 pb-1"><span>Cat:</span> <span className="font-medium text-zinc-900">{item.category}</span></div>
-                                                    <div className="flex justify-between border-b border-gray-100 pb-1"><span>Target:</span> <span className="font-medium text-zinc-900">{item.targetRate ? `$${item.targetRate}` : '-'}</span></div>
+                                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-zinc-600 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                                    <div>
+                                                        <div className="text-zinc-400 mb-0.5">Weight</div>
+                                                        <div className="font-medium text-zinc-900">{item.weight} kg</div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-zinc-400 mb-0.5">Dims (cm)</div>
+                                                        <div className="font-medium text-zinc-900">{item.dimensions}</div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-zinc-400 mb-0.5">Volume</div>
+                                                        <div className="font-medium text-zinc-900">{item.packingVolume ? `${item.packingVolume} m³` : '-'}</div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-zinc-400 mb-0.5">Target Rate</div>
+                                                        <div className="font-medium text-green-700">{item.targetRate ? `₹${item.targetRate}` : '-'}</div>
+                                                    </div>
                                                 </div>
 
-                                                <div className="flex flex-wrap gap-2 mb-2">
-                                                    {item.isHazardous && (
-                                                        <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded border border-orange-200 font-medium">
-                                                            ⚠️ Hazardous
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                {/* Item Images */}
-                                                {item.images?.length > 0 && (
-                                                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mt-3">
-                                                        {item.images.map((img: string, i: number) => (
-                                                            <a key={i} href={img} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                                                                <div className="w-14 h-14 rounded-lg overflow-hidden border border-gray-200">
-                                                                    <img src={img} alt={`Item ${index + 1}`} className="w-full h-full object-cover" />
-                                                                </div>
+                                                {/* Visuals */}
+                                                {(item.images?.length > 0 || item.videoUrl) && (
+                                                    <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100">
+                                                        {item.images?.map((img: string, i: number) => (
+                                                            <a key={i} href={img} target="_blank" rel="noopener noreferrer" className="block w-10 h-10 rounded border border-gray-200 overflow-hidden hover:opacity-80">
+                                                                <img src={img} alt="" className="w-full h-full object-cover" />
                                                             </a>
                                                         ))}
-                                                    </div>
-                                                )}
-                                                {item.videoUrl && (
-                                                    <div className="mt-2 text-xs border-t border-gray-200 pt-2">
-                                                        <a href={item.videoUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                                            </svg>
-                                                            Watch Video
-                                                        </a>
+                                                        {item.videoUrl && (
+                                                            <a href={item.videoUrl} target="_blank" rel="noopener noreferrer" className="ml-auto text-xs flex items-center gap-1 text-blue-600 font-medium hover:underline">
+                                                                <span>🎥 Watch Video</span>
+                                                            </a>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
@@ -571,33 +604,37 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Price Breakdown (for processed quotations) */}
-                    {request.totalAmount !== undefined && (
-                        <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                            <h2 className="text-lg font-semibold text-zinc-800 mb-4 flex items-center gap-2">
-                                <span className="w-1 h-6 bg-green-600 rounded-full"></span>
-                                Price Breakdown
-                            </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="bg-sky-50 border border-sky-100 p-4 rounded-xl">
-                                    <span className="text-sky-600 text-sm block mb-1 font-medium">Total Amount</span>
-                                    <div className="text-2xl font-bold text-sky-800">
-                                        {request.currency || '₹'} {request.totalAmount?.toLocaleString()}
+                        {/* Price Breakdown (Only if Calculated) */}
+                        {request.totalAmount > 0 && ['cost_calculated', 'sent', 'accepted', 'ready_for_pickup', 'shipped', 'delivered'].includes(request.status) && (
+                            <div className="bg-gradient-to-br from-gray-900 to-zinc-800 rounded-xl shadow-lg p-6 text-white">
+                                <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                                    <span className="w-1 h-6 bg-green-500 rounded-full"></span>
+                                    Quotation Summary
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                                    <div>
+                                        <span className="text-gray-400 text-sm block mb-1">Subtotal</span>
+                                        <div className="text-xl font-medium">₹ {request.subtotal?.toLocaleString()}</div>
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-400 text-sm block mb-1">Tax ({request.taxRate}%)</span>
+                                        <div className="text-xl font-medium">₹ {request.tax?.toLocaleString()}</div>
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-400 text-sm block mb-1">Discount</span>
+                                        <div className="text-xl font-medium text-red-300">- ₹ {request.discount?.toLocaleString() || 0}</div>
+                                    </div>
+                                    <div className="bg-white/10 p-4 rounded-lg border border-white/20">
+                                        <span className="text-green-300 text-sm block mb-1 font-bold tracking-wide uppercase">Grand Total</span>
+                                        <div className="text-3xl font-bold">
+                                            ₹ {request.totalAmount?.toLocaleString()}
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="bg-gray-50 border border-gray-100 p-4 rounded-xl">
-                                    <span className="text-zinc-500 text-sm block mb-1">Subtotal</span>
-                                    <div className="text-zinc-800 font-medium text-lg">{request.subtotal?.toLocaleString()}</div>
-                                </div>
-                                <div className="bg-gray-50 border border-gray-100 p-4 rounded-xl">
-                                    <span className="text-zinc-500 text-sm block mb-1">Tax ({request.taxRate}%)</span>
-                                    <div className="text-zinc-800 font-medium text-lg">{request.tax?.toLocaleString()}</div>
-                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
 
                 {/* Footer Buttons (Fixed) */}
