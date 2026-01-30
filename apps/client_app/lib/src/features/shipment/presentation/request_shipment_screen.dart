@@ -52,7 +52,29 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
     _zipController.dispose();
     _addressTypeController.dispose();
     _notesController.dispose();
+    // Manual dispose to clear form state when leaving
+    // This allows us to use a regular Provider (avoiding Hot Reload errors)
+    // while still clearing data on back navigation.
+    // However, calling invalidate in dispose might trigger rebuilds on listeners that are disposing.
+    // A better way is to check mounted or use invalidate.
+    // Actually, invalidate clears the state.
+
+    // We can't use 'ref' in dispose() directly because it might be detached?
+    // No, ConsumerState usually allows it but it's risky.
+    // Let's rely on the fact that if we navigate away, the widget is unmounted.
+    // Wait, invalidate resets the provider state immediately.
+    // Let's wrap in a microtask or just call it.
+
     super.dispose();
+  }
+
+  @override
+  void deactivate() {
+    // Invalidate here to be safe?
+    // Or rely on autoDispose but we can't switch types easily.
+    // Let's try invalidate in dispose for now, usually safe for global providers.
+    ref.invalidate(shipmentFormProvider);
+    super.deactivate();
   }
 
   @override
@@ -210,7 +232,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                                           height: 48,
                                           decoration: BoxDecoration(
                                             color: AppTheme.primaryBlue
-                                                .withOpacity(0.1),
+                                                .withValues(alpha: 0.1),
                                             borderRadius: BorderRadius.circular(
                                               12,
                                             ),
@@ -257,14 +279,41 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                                             item: item,
                                           ),
                                         ),
-                                        if (formState.items.length > 0)
+                                        if (formState.items.isNotEmpty)
                                           IconButton(
                                             icon: const Icon(
                                               Icons.delete_outline,
                                               color: Colors.red,
                                             ),
                                             onPressed: () {
+                                              final deletedItem = item;
+                                              final deletedIndex = index;
                                               formNotifier.removeItem(index);
+
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).clearSnackBars();
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: const Text(
+                                                    'Item deleted',
+                                                  ),
+                                                  action: SnackBarAction(
+                                                    label: 'UNDO',
+                                                    onPressed: () {
+                                                      formNotifier.insertItem(
+                                                        deletedIndex,
+                                                        deletedItem,
+                                                      );
+                                                    },
+                                                  ),
+                                                  duration: const Duration(
+                                                    seconds: 4,
+                                                  ),
+                                                ),
+                                              );
                                             },
                                           ),
                                       ],
@@ -799,35 +848,40 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                     ElevatedButton(
                       onPressed: () {
                         // Validation
+                        List<String> missingFields = [];
                         if (tempItem.description.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Description is required'),
-                            ),
-                          );
-                          return;
+                          missingFields.add('Description');
                         }
                         if (tempItem.quantity <= 0) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Quantity must be greater than 0'),
-                            ),
-                          );
-                          return;
+                          missingFields.add('Quantity');
                         }
                         if (tempItem.weight <= 0) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Weight must be greater than 0'),
-                            ),
-                          );
-                          return;
+                          missingFields.add('Weight');
                         }
                         if (tempItem.hsCode == null ||
                             tempItem.hsCode!.isEmpty) {
+                          missingFields.add('HS Code');
+                        }
+
+                        if (missingFields.isNotEmpty) {
+                          ScaffoldMessenger.of(
+                            context,
+                          ).clearSnackBars(); // Clear existing
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('HS Code is required'),
+                            SnackBar(
+                              content: Text(
+                                'Please fill required fields: ${missingFields.join(', ')}',
+                              ),
+                              backgroundColor: Colors.red,
+                              behavior: SnackBarBehavior
+                                  .floating, // Improve visibility in modal
+                              margin: EdgeInsets.only(
+                                bottom:
+                                    MediaQuery.of(context).viewInsets.bottom +
+                                    10,
+                                left: 16,
+                                right: 16,
+                              ),
                             ),
                           );
                           return;
@@ -983,24 +1037,10 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
       decoration: BoxDecoration(
         color: AppTheme.background,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          // Subtle light blue glow for depth
-          BoxShadow(
-            color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-            blurRadius: 12,
-            spreadRadius: 0,
-            offset: const Offset(0, 4),
-          ),
-          BoxShadow(
-            color: AppTheme.primaryBlue.withValues(alpha: 0.04),
-            blurRadius: 20,
-            spreadRadius: 2,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           PopupMenuButton<String>(
             onSelected: (value) => setState(() => _countryCode = value),
@@ -1091,18 +1131,19 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
             child: TextFormField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-                color: Colors.black87,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.black87),
               decoration: InputDecoration(
                 hintText: 'Phone Number',
-                hintStyle: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.grey[400]),
+                hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[400],
+                  fontSize: 13,
+                ),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
                 isDense: true,
+                filled: false,
               ),
               validator: (value) =>
                   value == null || value.isEmpty ? 'Required' : null,

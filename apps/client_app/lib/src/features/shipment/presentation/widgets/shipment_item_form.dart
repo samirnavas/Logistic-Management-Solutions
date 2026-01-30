@@ -56,7 +56,7 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
     // Parse dimensions "LxWxH"
     final dims = widget.item.dimensions.toString().split('x');
     _lengthController = TextEditingController(
-      text: dims.length > 0 ? dims[0] : '',
+      text: dims.isNotEmpty ? dims[0] : '',
     );
     _widthController = TextEditingController(
       text: dims.length > 1 ? dims[1] : '',
@@ -134,7 +134,11 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
     final h = _heightController.text.trim();
     final dimString = (l.isEmpty && w.isEmpty && h.isEmpty)
         ? ''
-        : '${l}x${w}x${h}';
+        : '$l'
+              'x'
+              '$w'
+              'x'
+              '$h'; // Avoid braces lint
 
     // Fix: Allow 0 if empty to avoid forcing '1' back into the field
     final qty = int.tryParse(_quantityController.text) ?? 0;
@@ -267,17 +271,23 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
         Row(
           children: [
             Expanded(
-              child: DropdownButtonFormField<String>(
-                value: widget.item.category,
+              child: InputDecorator(
                 decoration: _inputDecoration('Category'),
-                items: ['General', 'Special', 'Harmful', 'Explosive']
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) {
-                    widget.onChanged(widget.item.copyWith(category: val));
-                  }
-                },
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: widget.item.category,
+                    isDense: true,
+                    isExpanded: true,
+                    items: ['General', 'Special', 'Harmful', 'Explosive']
+                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        widget.onChanged(widget.item.copyWith(category: val));
+                      }
+                    },
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -309,18 +319,24 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
             const SizedBox(width: 12),
             Expanded(
               flex: 1,
-              child: DropdownButtonFormField<String>(
-                value: _targetCurrency,
+              child: InputDecorator(
                 decoration: _inputDecoration('Currency'),
-                items: ['USD', 'EUR', 'GBP', 'AED', 'INR', 'CNY']
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _targetCurrency = val);
-                    _updateItem();
-                  }
-                },
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _targetCurrency,
+                    isDense: true,
+                    isExpanded: true,
+                    items: ['USD', 'EUR', 'GBP', 'AED', 'INR', 'CNY']
+                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _targetCurrency = val);
+                        _updateItem();
+                      }
+                    },
+                  ),
+                ),
               ),
             ),
           ],

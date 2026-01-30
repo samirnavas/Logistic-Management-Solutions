@@ -92,7 +92,8 @@ class ShipmentFormNotifier extends StateNotifier<ShipmentFormState> {
   }
 
   void removeItem(int index) {
-    if (state.items.length > 1) {
+    if (index >= 0 && index < state.items.length) {
+      // Ensure index is valid
       final items = [...state.items];
       items.removeAt(index);
       state = state.copyWith(items: items);
@@ -103,6 +104,14 @@ class ShipmentFormNotifier extends StateNotifier<ShipmentFormState> {
     if (index >= 0 && index < state.items.length) {
       final items = [...state.items];
       items[index] = item;
+      state = state.copyWith(items: items);
+    }
+  }
+
+  void insertItem(int index, ShipmentItemFormData item) {
+    if (index >= 0 && index <= state.items.length) {
+      final items = [...state.items];
+      items.insert(index, item);
       state = state.copyWith(items: items);
     }
   }
