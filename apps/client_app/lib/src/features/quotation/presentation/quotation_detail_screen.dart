@@ -448,6 +448,9 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
       case QuotationStatus.detailsSubmitted:
         badgeColor = Colors.blueGrey;
         break;
+      case QuotationStatus.infoRequired:
+        badgeColor = AppTheme.error;
+        break;
     }
 
     return Container(

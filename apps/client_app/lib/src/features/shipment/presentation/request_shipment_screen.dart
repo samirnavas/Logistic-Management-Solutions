@@ -12,9 +12,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
 import 'package:bb_logistics/src/features/quotation/data/quotation_repository.dart';
 import 'package:bb_logistics/src/features/home/data/dashboard_repository.dart';
+import 'package:bb_logistics/src/features/quotation/domain/quotation.dart';
 
 class RequestShipmentScreen extends ConsumerStatefulWidget {
-  const RequestShipmentScreen({super.key});
+  final Quotation? existingQuotation;
+  const RequestShipmentScreen({super.key, this.existingQuotation});
 
   @override
   ConsumerState<RequestShipmentScreen> createState() =>
@@ -40,6 +42,90 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
   final _notesController = TextEditingController();
 
   final UploadService _uploadService = UploadService();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.existingQuotation != null) {
+      final q = widget.existingQuotation!;
+      _shippingMode = q.specialInstructions?.contains('Mode: By Sea') ?? false
+          ? 'By Sea'
+          : 'By Air'; // Simple parsing or add field
+      // Better: check q.serviceType or parse specialInstructions if mode not stored explicitly
+      // Assuming defaults or parsing from specialInstructions as implemented in submit
+      if (q.specialInstructions != null) {
+        if (q.specialInstructions!.contains('Mode: By Sea')) {
+          _shippingMode = 'By Sea';
+        }
+        if (q.specialInstructions!.contains('Delivery: Warehouse Delivery')) {
+          _deliveryType = 'Warehouse Delivery';
+        }
+        // Extract notes? "Notes: ..."
+        final notesIndex = q.specialInstructions!.indexOf('Notes: ');
+        if (notesIndex != -1) {
+          _notesController.text = q.specialInstructions!.substring(
+            notesIndex + 7,
+          );
+        }
+      }
+
+      _servicePriority = q.serviceType ?? 'Standard';
+
+      if (q.origin != null) {
+        _nameController.text = q.origin!.name;
+        // Parse phone if needed or just set
+        // Phone format was: countryCode phone. Split?
+        // Simple heuristic:
+        if (q.origin!.phone.contains(' ')) {
+          final parts = q.origin!.phone.split(' ');
+          if (parts.length > 1) {
+            _countryCode = parts[0];
+            _phoneController.text = parts.sublist(1).join(' ');
+          } else {
+            _phoneController.text = q.origin!.phone;
+          }
+        } else {
+          _phoneController.text = q.origin!.phone;
+        }
+
+        _addressController.text = q.origin!.addressLine;
+        _cityController.text = q.origin!.city;
+        _stateController.text = q.origin!.state;
+        _countryController.text = q.origin!.country;
+        _zipController.text = q.origin!.zip;
+        // Address type might not be in QuotationAddress?
+        // Actually backend stores it in origin? No, QuotationAddress struct doesn't have it.
+        // It uses 'addressType' in simple object but QuotationAddress class defined in domain handles specific fields.
+        // If domain definition missed it, we assume blank or add it.
+        // Domain has name, phone, addressLine, city, state, country, zip.
+        // We'll leave Address Type blank or "Default".
+      }
+
+      // Pre-fill items
+      final items = q.items.map((i) {
+        return ShipmentItemFormData(
+          description: i.description,
+          quantity: i.quantity,
+          weight: i.weight,
+          dimensions: i.dimensions,
+          images: i.images, // Cloudinary URLs
+          category: i.category,
+          isHazardous: i.isHazardous,
+          hsCode: '', // Not in QuotationItem?
+          videoUrl: i.videoUrl,
+          targetRate: i.targetRate,
+          packingVolume: i.packingVolume,
+          cost: i.cost,
+        );
+      }).toList();
+
+      Future.microtask(() {
+        if (mounted) {
+          ref.read(shipmentFormProvider.notifier).setItems(items);
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -84,7 +170,23 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
     final isKeyboardVisible = bottomInset > 0;
 
     // Calculate bottom padding for content so it clears the floaty button
-    final contentBottomPadding = isKeyboardVisible ? bottomInset + 100 : 100.0;
+    final contentBottomPadding = isKeyboardVisible ? bottomInset + 160 : 160.0;
+
+    ref.listen<ShipmentFormState>(shipmentFormProvider, (previous, next) {
+      if (next.successMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.successMessage!),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+      if (next.error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(next.error!), backgroundColor: Colors.red),
+        );
+      }
+    });
 
     final formState = ref.watch(shipmentFormProvider);
     final formNotifier = ref.read(shipmentFormProvider.notifier);
@@ -123,6 +225,55 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Info Required Banner
+                            if (widget.existingQuotation?.status ==
+                                QuotationStatus.infoRequired)
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 24),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.red[50],
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.red[200]!),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.info_outline,
+                                          color: Colors.red,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Action Required',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(
+                                                color: Colors.red[800],
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      widget.existingQuotation?.adminFeedback ??
+                                          widget
+                                              .existingQuotation
+                                              ?.additionalNotes ??
+                                          'Please update the request details.',
+                                      style: TextStyle(
+                                        color: Colors.red[900],
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
                             // 1. Shipping Mode
                             _buildSectionTitle(
                               'Choose Shipping Mode',
@@ -501,7 +652,9 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                       ), // Back Button
                       const SizedBox(width: 8),
                       Text(
-                        'New Shipment Request',
+                        widget.existingQuotation != null
+                            ? 'Edit Request'
+                            : 'New Shipment Request',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: Colors.white,
                           fontSize: 20,
@@ -521,34 +674,176 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
               right: 24, // Add horizontal padding
               // Float 24px above bottom, or 24px above keyboard
               bottom: isKeyboardVisible ? 12 : 32,
-              child: SizedBox(
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _submitRequest,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryBlue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Save as Draft Button
+                  SizedBox(
+                    height: 48,
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: _saveDraft,
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppTheme.primaryBlue),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        backgroundColor: Colors.white,
+                      ),
+                      child: const Text(
+                        'Save as Draft',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primaryBlue,
+                          letterSpacing: 1,
+                        ),
+                      ),
                     ),
-                    elevation: 5, // Add elevation for floating effect
-                    shadowColor: Colors.black.withValues(alpha: 0.3),
                   ),
-                  child: Text(
-                    'SUBMIT REQUEST',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 1,
+                  const SizedBox(height: 12),
+                  // Submit Button
+                  SizedBox(
+                    height: 56,
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _submitRequest,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryBlue,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 5, // Add elevation for floating effect
+                        shadowColor: Colors.black.withValues(alpha: 0.3),
+                      ),
+                      child: Text(
+                        'SUBMIT REQUEST',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: 1,
+                            ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _saveDraft() async {
+    // Collect Form Data without strict validation
+
+    // Get current user
+    final authState = ref.read(authRepositoryProvider);
+    final user = authState.value;
+    if (user == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('User not logged in')));
+      return;
+    }
+
+    // Show loading indicator handled by Notifier state listener or local
+    // Since notifier takes care of API call, we just pass data.
+    // But notifier state change will trigger rebuild/listener.
+    // However, image upload is local here.
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final pickupAddress = {
+        'name': _nameController.text,
+        'phone': '$_countryCode ${_phoneController.text}',
+        'addressLine': _addressController.text,
+        'city': _cityController.text,
+        'state': _stateController.text,
+        'country': _countryController.text,
+        'zip': _zipController.text,
+        'addressType': _addressTypeController.text,
+      };
+
+      final destinationAddress = {
+        'name': 'To Be Confirmed',
+        'phone': '9999999999',
+        'addressLine': 'To Be Confirmed',
+        'city': 'To Be Confirmed',
+        'state': '',
+        'country': 'To Be Confirmed',
+        'zip': '00000',
+      };
+
+      final formState = ref.read(shipmentFormProvider);
+      List<Map<String, dynamic>> processedItems = [];
+
+      for (final item in formState.items) {
+        List<String> uploadedPhotoUrls = [];
+        if (item.localPhotos.isNotEmpty) {
+          try {
+            uploadedPhotoUrls = await _uploadService.uploadProductPhotos(
+              item.localPhotos,
+            );
+          } catch (e) {
+            print("Error uploading photos for item ${item.description}: $e");
+          }
+        }
+
+        processedItems.add({
+          'description': item.description,
+          'quantity': item.quantity,
+          'weight': item.weight,
+          'dimensions': item.dimensions,
+          'images': uploadedPhotoUrls,
+          'category': item.category,
+          'isHazardous': item.isHazardous,
+          'hsCode': item.hsCode,
+          'videoUrl': item.videoUrl,
+          'targetRate': item.targetRate,
+          'packingVolume': item.packingVolume,
+          'unitPrice': 0,
+          'amount': 0,
+        });
+      }
+
+      final requestData = {
+        'origin': pickupAddress,
+        'destination': destinationAddress,
+        'items': processedItems,
+        'cargoType': 'General Cargo',
+        'serviceType': _servicePriority,
+        'specialInstructions':
+            'Mode: $_shippingMode, Delivery: $_deliveryType\nNotes: ${_notesController.text}',
+        'pickupDate': DateTime.now()
+            .add(const Duration(days: 1))
+            .toIso8601String(),
+        // Add status or other flags if needed, but endpoint defaults to DRAFT usually
+        // or we can pass status: 'DRAFT' if backend supports it.
+        // But reusing saveAsDraft endpoint in repo which likely sets it.
+      };
+
+      await ref.read(shipmentFormProvider.notifier).saveDraft(requestData);
+
+      if (mounted) Navigator.of(context).pop(); // Dismiss loading
+    } catch (e) {
+      if (mounted) Navigator.of(context).pop();
+      // Error handled by listener
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to prepare draft: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _submitRequest() async {
@@ -636,28 +931,32 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
         // Upload photos for this item
         List<String> uploadedPhotoUrls = [];
 
+        // If item has local photos, upload them
+        // If it already has images (from edit mode) and no new local photos, keep them.
+        // If it has both, we might want to merge or just upload new ones and add to existing list.
+        // Current logic: item.images are URLs. item.localPhotos are Files.
+        // We upload localPhotos and ADD to images list.
+
         if (item.localPhotos.isNotEmpty) {
           try {
-            uploadedPhotoUrls = await _uploadService.uploadProductPhotos(
+            final newUrls = await _uploadService.uploadProductPhotos(
               item.localPhotos,
             );
+            uploadedPhotoUrls.addAll(newUrls);
           } catch (e) {
-            // Ignore individual photo errors but maybe warn?
             print("Error uploading photos for item ${item.description}: $e");
-            // Proceed without photos or stop? For now proceed.
           }
         }
 
-        // Use description as the main identifier
-        // Combine name with other details if needed for backward compatibility or display
-        // But now our backend supports separated fields, so we pass them directly.
+        // Combine existing (if any) and new
+        final allImages = [...item.images, ...uploadedPhotoUrls];
 
         processedItems.add({
           'description': item.description,
           'quantity': item.quantity,
           'weight': item.weight,
           'dimensions': item.dimensions, // Pass raw string
-          'images': uploadedPhotoUrls, // Cloudinary URLs
+          'images': allImages,
           'category': item.category,
           'isHazardous': item.isHazardous,
           'hsCode': item.hsCode,
@@ -666,8 +965,10 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
           'packingVolume': item.packingVolume,
 
           // Fallback/Legacy fields
-          'unitPrice': 0,
-          'amount': 0,
+          'unitPrice': item.cost > 0
+              ? item.cost
+              : 0, // Preserve cost if editing
+          'amount': item.cost > 0 ? item.cost : 0,
         });
       }
 
@@ -687,16 +988,38 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
             [], // Legacy top-level photos - empty now as items have them
       };
 
-      await ref.read(quotationRepositoryProvider).createQuotation(requestData);
+      if (widget.existingQuotation != null) {
+        // Update existing
+        await ref
+            .read(shipmentFormProvider.notifier)
+            .submitUpdate(widget.existingQuotation!.id, requestData);
+
+        // Dismiss loading
+        if (mounted) Navigator.of(context).pop();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Request updated successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          context.pop();
+        }
+      } else {
+        await ref
+            .read(quotationRepositoryProvider)
+            .createQuotation(requestData);
+
+        // Dismiss loading
+        if (mounted) Navigator.of(context).pop();
+
+        _showSuccessDialog();
+      }
 
       // Invalidate providers to force refresh
       ref.invalidate(quotationsProvider);
       ref.invalidate(dashboardStatsProvider);
-
-      // Dismiss loading
-      if (mounted) Navigator.of(context).pop();
-
-      _showSuccessDialog();
     } catch (e) {
       // Dismiss loading
       if (mounted) Navigator.of(context).pop();
@@ -704,7 +1027,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to create request: $e'),
+            content: Text('Failed to submit request: $e'),
             backgroundColor: Colors.red,
           ),
         );

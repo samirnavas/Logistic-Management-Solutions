@@ -11,6 +11,7 @@ class ShipmentCard extends StatelessWidget {
   final String updated;
   final VoidCallback? onTrack;
   final VoidCallback? onViewDetails;
+  final VoidCallback? onTap;
 
   const ShipmentCard({
     super.key,
@@ -23,6 +24,7 @@ class ShipmentCard extends StatelessWidget {
     this.updated = '2 hrs ago',
     this.onTrack,
     this.onViewDetails,
+    this.onTap,
   });
 
   @override
@@ -57,51 +59,59 @@ class ShipmentCard extends StatelessWidget {
               ),
             ],
           ),
-          child: Padding(
-            padding: EdgeInsets.all(isSmallScreen ? 8.0 : 12.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Left Image
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: imageSize,
-                    height: imageSize,
-                    color: Colors.grey[200],
-                    child: Icon(
-                      Icons.inventory_2_outlined,
-                      color: Colors.grey,
-                      size: isSmallScreen ? 24 : 32,
-                    ),
-                  ),
-                ),
-                SizedBox(width: isSmallScreen ? 8 : 12),
-                // Right Content
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header: ID and Status
-                      _buildHeader(context, isSmallScreen),
-                      const SizedBox(height: 8),
-                      // Details Grid
-                      _buildDetailRow(context, 'Quantity:', boxId),
-                      _buildDetailRow(context, 'Updated:', updated),
-                      _buildDetailRow(context, 'Route:', product),
-                      _buildDetailRow(
-                        context,
-                        'Shipment Mode:',
-                        '$type Freight',
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: onTap,
+              child: Padding(
+                padding: EdgeInsets.all(isSmallScreen ? 8.0 : 12.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Left Image
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: imageSize,
+                        height: imageSize,
+                        color: Colors.grey[200],
+                        child: Icon(
+                          Icons.inventory_2_outlined,
+                          color: Colors.grey,
+                          size: isSmallScreen ? 24 : 32,
+                        ),
                       ),
-                      _buildDetailRow(context, 'Expected Delivery:', date),
-                      const SizedBox(height: 12),
-                      // Buttons - responsive layout
-                      _buildButtons(context, isSmallScreen),
-                    ],
-                  ),
+                    ),
+                    SizedBox(width: isSmallScreen ? 8 : 12),
+                    // Right Content
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header: ID and Status
+                          _buildHeader(context, isSmallScreen),
+                          const SizedBox(height: 8),
+                          // Details Grid
+                          _buildDetailRow(context, 'Quantity:', boxId),
+                          _buildDetailRow(context, 'Updated:', updated),
+                          _buildDetailRow(context, 'Route:', product),
+                          _buildDetailRow(
+                            context,
+                            'Shipment Mode:',
+                            '$type Freight',
+                          ),
+                          _buildDetailRow(context, 'Expected Delivery:', date),
+                          const SizedBox(height: 12),
+                          // Buttons - responsive layout
+                          _buildButtons(context, isSmallScreen),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         );
@@ -110,6 +120,9 @@ class ShipmentCard extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context, bool isSmallScreen) {
+    final statusColor = _getStatusColor(status);
+    final statusBgColor = statusColor.withValues(alpha: 0.1);
+
     return Wrap(
       spacing: 8,
       runSpacing: 4,
@@ -117,7 +130,7 @@ class ShipmentCard extends StatelessWidget {
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(
-          '$shipmentId - On the way',
+          '$shipmentId',
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
             color: AppTheme.primaryBlue,
             fontWeight: FontWeight.bold,
@@ -127,20 +140,56 @@ class ShipmentCard extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFFE3F2FD),
+            color: statusBgColor,
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
-            status,
+            status.toUpperCase().replaceAll('_', ' '),
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: AppTheme.primaryBlue,
-              fontWeight: FontWeight.w500,
+              color: statusColor,
+              fontWeight: FontWeight.w600,
               fontSize: isSmallScreen ? 10 : 12,
             ),
           ),
         ),
       ],
     );
+  }
+
+  Color _getStatusColor(String status) {
+    // Normalize status
+    final s = status.toUpperCase().replaceAll(' ', '_');
+
+    // Status Badges:
+    // DRAFT: Grey color.
+    // INFO_REQUIRED: Red/Orange (Action Needed).
+    // PENDING_REVIEW: Yellow.
+    // VERIFIED: Blue.
+    // QUOTATION_SENT: Green (Ready to Book).
+
+    if (s.contains('DRAFT') || s.contains('COST_CALCULATED')) {
+      return Colors.grey[600]!;
+    } else if (s.contains('INFO') ||
+        s.contains('REQUIRED') ||
+        s.contains('ACTION')) {
+      return Colors.red[700]!;
+    } else if (s.contains('PENDING') ||
+        s.contains('REVIEW') ||
+        s.contains('REQUEST_SENT')) {
+      return Colors.orange[800]!; // Yellow/Orange
+    } else if (s.contains('VERIFIED') || s.contains('APPROVED')) {
+      return Colors.blue[700]!;
+    } else if (s.contains('SENT') ||
+        s.contains('RECEIVED') ||
+        s == 'QUOTATION_SENT') {
+      return Colors.green[700]!;
+    } else if (s.contains('DELIVERED')) {
+      return Colors.green[800]!;
+    } else if (s.contains('SHIPPED') || s.contains('TRANSIT')) {
+      return Colors.blue[800]!;
+    }
+
+    return AppTheme.primaryBlue;
   }
 
   Widget _buildButtons(BuildContext context, bool isSmallScreen) {

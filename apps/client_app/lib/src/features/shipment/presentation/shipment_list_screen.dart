@@ -3,6 +3,8 @@ import 'package:bb_logistics/src/core/widgets/app_drawer.dart';
 import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:bb_logistics/src/features/shipment/data/mock_shipment_repository.dart';
 import 'package:bb_logistics/src/features/shipment/presentation/widgets/shipment_card.dart';
+import 'package:bb_logistics/src/features/quotation/domain/quotation.dart';
+import 'package:bb_logistics/src/features/shipment/presentation/request_shipment_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -171,16 +173,10 @@ class _ShipmentListScreenState extends ConsumerState<ShipmentListScreen> {
                                       '/tracking/${shipment.trackingNumber}',
                                     );
                                   },
-                                  onViewDetails: () {
-                                    HapticFeedback.lightImpact();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Shipment details coming soon',
-                                        ),
-                                      ),
-                                    );
-                                  },
+                                  onViewDetails: () =>
+                                      _handleShipmentTap(context, shipment),
+                                  onTap: () =>
+                                      _handleShipmentTap(context, shipment),
                                 ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
                               ),
                               const SizedBox(height: 20),
@@ -251,6 +247,68 @@ class _ShipmentListScreenState extends ConsumerState<ShipmentListScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _handleShipmentTap(BuildContext context, dynamic shipment) {
+    HapticFeedback.lightImpact();
+    // Normalize status
+    final status = shipment.status.toString().toUpperCase();
+
+    if (status.contains('DRAFT') ||
+        status.contains('INFO') ||
+        status.contains('REQUIRED')) {
+      // Navigate to RequestShipmentScreen (Edit Mode)
+      // Map Shipment to Quotation (Best Effort)
+      final quotation = _mapShipmentToQuotation(shipment);
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) =>
+              RequestShipmentScreen(existingQuotation: quotation),
+        ),
+      );
+    } else if (status.contains('QUOTATION') &&
+        (status.contains('SENT') || status.contains('RECEIVED'))) {
+      // Navigate to QuotationDetailScreen (Review Mode)
+      context.push('/quotations/${shipment.id}');
+    } else {
+      // Navigate to TrackingScreen
+      context.push('/tracking/${shipment.trackingNumber}');
+    }
+  }
+
+  Quotation _mapShipmentToQuotation(dynamic shipment) {
+    // create a best-effort Quotation object from Shipment
+    // note: In a real app, you might want to fetch the full quotation by ID here
+    return Quotation(
+      id: shipment.id,
+      quotationId: shipment.id, // fallback
+      createdDate: shipment.createdAt,
+      status: QuotationStatus
+          .infoRequired, // Default to infoRequired for editing flow if unknown
+      items: [], // Items are lost in summary view
+      origin: QuotationAddress(
+        addressLine: shipment.origin,
+        name: 'Origin',
+        phone: '',
+        city: shipment.origin,
+        country: '',
+        state: '',
+        zip: '',
+      ),
+      destination: QuotationAddress(
+        addressLine: shipment.destination,
+        name: 'Destination',
+        phone: '',
+        city: shipment.destination,
+        country: '',
+        state: '',
+        zip: '',
+      ),
+      totalAmount: shipment.cost,
+      cargoType: 'General Cargo',
+      serviceType: 'Standard',
+      specialInstructions: '',
     );
   }
 

@@ -86,6 +86,8 @@ class _QuotationScreenState extends ConsumerState<QuotationScreen> {
         return 8;
       case QuotationStatus.rejected:
         return 9;
+      case QuotationStatus.infoRequired:
+        return 10;
     }
   }
 
@@ -608,6 +610,8 @@ class _QuotationCard extends StatelessWidget {
         return Colors.purple;
       case QuotationStatus.delivered:
         return Colors.green[800]!;
+      case QuotationStatus.infoRequired:
+        return AppTheme.error;
     }
   }
 

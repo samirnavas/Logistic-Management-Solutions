@@ -106,6 +106,29 @@ class QuotationRepository {
     }
     throw Exception('Failed to parse created quotation');
   }
+
+  /// Save quotation as draft
+  Future<Quotation> saveAsDraft(Map<String, dynamic> data) async {
+    final response = await _apiService.postRequest(
+      '/api/quotations/draft',
+      data,
+    );
+
+    if (response is Map<String, dynamic> && response.containsKey('quotation')) {
+      final quotationJson = response['quotation'];
+      if (quotationJson.containsKey('_id') &&
+          !quotationJson.containsKey('id')) {
+        quotationJson['id'] = quotationJson['_id'];
+      }
+      return Quotation.fromJson(quotationJson);
+    }
+    throw Exception('Failed to save draft');
+  }
+
+  /// Submit quotation (update and change status)
+  Future<void> submitQuotation(String id, Map<String, dynamic> data) async {
+    await _apiService.putRequest('/api/quotations/$id/submit', data);
+  }
 }
 
 @riverpod

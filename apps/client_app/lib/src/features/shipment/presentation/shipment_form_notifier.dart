@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../quotation/data/quotation_repository.dart';
 
 class ShipmentItemFormData {
   String description;
@@ -72,18 +73,38 @@ class ShipmentItemFormData {
 
 class ShipmentFormState {
   final List<ShipmentItemFormData> items;
+  final bool isLoading;
+  final String? error;
+  final String? successMessage;
 
-  const ShipmentFormState({required this.items});
+  const ShipmentFormState({
+    required this.items,
+    this.isLoading = false,
+    this.error,
+    this.successMessage,
+  });
 
-  ShipmentFormState copyWith({List<ShipmentItemFormData>? items}) {
-    return ShipmentFormState(items: items ?? this.items);
+  ShipmentFormState copyWith({
+    List<ShipmentItemFormData>? items,
+    bool? isLoading,
+    String? error,
+    String? successMessage,
+  }) {
+    return ShipmentFormState(
+      items: items ?? this.items,
+      isLoading: isLoading ?? this.isLoading,
+      error:
+          error, // Pass null to clear if needed, but normally we explicitly manage it
+      successMessage: successMessage,
+    );
   }
 }
 
 class ShipmentFormNotifier extends StateNotifier<ShipmentFormState> {
-  ShipmentFormNotifier() : super(const ShipmentFormState(items: [])) {
-    // Start with empty list
-  }
+  final QuotationRepository _repository;
+
+  ShipmentFormNotifier(this._repository)
+    : super(const ShipmentFormState(items: []));
 
   void addItem([ShipmentItemFormData? item]) {
     state = state.copyWith(
@@ -115,9 +136,40 @@ class ShipmentFormNotifier extends StateNotifier<ShipmentFormState> {
       state = state.copyWith(items: items);
     }
   }
+
+  void setItems(List<ShipmentItemFormData> items) {
+    state = state.copyWith(items: items);
+  }
+
+  Future<void> saveDraft(Map<String, dynamic> data) async {
+    state = state.copyWith(isLoading: true, error: null, successMessage: null);
+    try {
+      await _repository.saveAsDraft(data);
+      state = state.copyWith(
+        isLoading: false,
+        successMessage: 'Draft saved! You can resume this later.',
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  Future<void> submitUpdate(String id, Map<String, dynamic> data) async {
+    state = state.copyWith(isLoading: true, error: null, successMessage: null);
+    try {
+      await _repository.submitQuotation(id, data);
+      state = state.copyWith(
+        isLoading: false,
+        successMessage: 'Request updated and submitted successfully!',
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
 }
 
 final shipmentFormProvider =
     StateNotifierProvider<ShipmentFormNotifier, ShipmentFormState>((ref) {
-      return ShipmentFormNotifier();
+      final repository = ref.watch(quotationRepositoryProvider);
+      return ShipmentFormNotifier(repository);
     });

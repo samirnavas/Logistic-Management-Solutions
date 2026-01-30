@@ -9,7 +9,8 @@ enum QuotationStatus {
   rejected,
   readyForPickup,
   shipped,
-  delivered;
+  delivered,
+  infoRequired;
 
   String get displayName {
     switch (this) {
@@ -33,6 +34,9 @@ enum QuotationStatus {
         return 'Shipped';
       case QuotationStatus.delivered:
         return 'Delivered';
+
+      case QuotationStatus.infoRequired:
+        return 'Info Required';
     }
   }
 }
@@ -202,7 +206,9 @@ class Quotation {
   final String? cargoType;
   final String? serviceType;
   final String? specialInstructions;
+
   final String? additionalNotes; // Terms & Notes from admin
+  final String? adminFeedback; // Feedback for Info Required
 
   const Quotation({
     required this.id,
@@ -220,7 +226,9 @@ class Quotation {
     this.cargoType,
     this.serviceType,
     this.specialInstructions,
+
     this.additionalNotes,
+    this.adminFeedback,
   });
 
   Quotation copyWith({
@@ -297,6 +305,8 @@ class Quotation {
       serviceType: json['serviceType'] as String?,
       specialInstructions: json['specialInstructions'] as String?,
       additionalNotes: json['additionalNotes'] as String?,
+
+      adminFeedback: json['adminFeedback'] as String?,
     );
   }
 
@@ -330,6 +340,9 @@ class Quotation {
         return QuotationStatus.shipped;
       case 'delivered':
         return QuotationStatus.delivered;
+
+      case 'info_required':
+        return QuotationStatus.infoRequired;
       default:
         return QuotationStatus.requestSent;
     }
@@ -368,6 +381,9 @@ class Quotation {
       case QuotationStatus.delivered:
         statusStr = 'delivered';
         break;
+      case QuotationStatus.infoRequired:
+        statusStr = 'info_required';
+        break;
     }
 
     return {
@@ -387,6 +403,8 @@ class Quotation {
       'serviceType': serviceType,
       'specialInstructions': specialInstructions,
       'additionalNotes': additionalNotes,
+
+      'adminFeedback': adminFeedback,
     };
   }
 }
