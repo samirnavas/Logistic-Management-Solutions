@@ -18,8 +18,14 @@ const quotationRoutes = require('./routes/quotationRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 
+// Import cron jobs
+const { initScheduledJobs } = require('./utils/cronJobs');
+
 // Connect to Database
 connectDB();
+
+// Initialize scheduled background jobs
+initScheduledJobs();
 
 // ============================================
 // Middleware

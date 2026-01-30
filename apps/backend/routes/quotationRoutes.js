@@ -11,6 +11,12 @@ const { protect } = require('../middleware/auth');
 // Create new quotation
 router.post('/', protect, quotationController.createQuotation);
 
+// Save as draft (client - allows partial data)
+router.post('/draft', protect, quotationController.saveAsDraft);
+
+// Submit quotation (transition DRAFT → PENDING_REVIEW)
+router.put('/:id/submit', protect, quotationController.submitQuotation);
+
 // Get all quotations (manager view)
 router.get('/', quotationController.getAllQuotations);
 

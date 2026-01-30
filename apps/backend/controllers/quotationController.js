@@ -1055,6 +1055,170 @@ exports.markAsVerified = async (req, res) => {
 };
 
 // ============================================
+// Save as Draft (Client) - DRAFT FUNCTIONALITY
+// ============================================
+exports.saveAsDraft = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const {
+            origin,
+            destination,
+            items,
+            pickupDate,
+            deliveryDate,
+            cargoType,
+            serviceType,
+            specialInstructions,
+            productPhotos,
+            validUntil,
+            termsAndConditions,
+            additionalNotes
+        } = req.body;
+
+        // For drafts, we allow partial data
+        // Minimum requirement: at least clientId (which comes from auth)
+        // Everything else is optional for drafts
+
+        const draftData = {
+            clientId: userId,
+            status: 'DRAFT', // CRUCIAL: Always set to DRAFT regardless of input
+        };
+
+        // Add optional fields only if they exist
+        if (origin) draftData.origin = origin;
+        if (destination) draftData.destination = destination;
+        if (items && Array.isArray(items) && items.length > 0) draftData.items = items;
+        if (pickupDate) draftData.pickupDate = pickupDate;
+        if (deliveryDate) draftData.deliveryDate = deliveryDate;
+        if (cargoType) draftData.cargoType = cargoType;
+        if (serviceType) draftData.serviceType = serviceType;
+        if (specialInstructions) draftData.specialInstructions = specialInstructions;
+        if (productPhotos) draftData.productPhotos = productPhotos;
+        if (validUntil) draftData.validUntil = validUntil;
+        if (termsAndConditions) draftData.termsAndConditions = termsAndConditions;
+        if (additionalNotes) draftData.additionalNotes = additionalNotes;
+
+        const newDraft = new Quotation(draftData);
+
+        // Initialize statusHistory for the draft
+        newDraft.statusHistory = [{
+            status: 'DRAFT',
+            changedBy: userId,
+            reason: 'Draft created by client',
+            timestamp: new Date()
+        }];
+
+        const savedDraft = await newDraft.save();
+
+        res.status(201).json({
+            message: 'Draft saved successfully',
+            quotation: savedDraft,
+        });
+    } catch (error) {
+        console.error('Save Draft Error:', error);
+        res.status(400).json({
+            message: 'Failed to save draft',
+            error: error.message
+        });
+    }
+};
+
+// ============================================
+// Submit Quotation (Transition DRAFT → PENDING_REVIEW)
+// ============================================
+exports.submitQuotation = async (req, res) => {
+    try {
+        const quotationId = req.params.id;
+        const userId = req.user.id;
+
+        const quotation = await Quotation.findById(quotationId);
+
+        if (!quotation) {
+            return res.status(404).json({ message: 'Quotation not found' });
+        }
+
+        // Check 1: Verify ownership (only the client who created it can submit)
+        if (quotation.clientId.toString() !== userId.toString()) {
+            return res.status(403).json({
+                message: 'Not authorized to submit this quotation',
+                error: 'You can only submit your own quotations'
+            });
+        }
+
+        // Check 2: Current status must be DRAFT
+        if (quotation.status !== 'DRAFT') {
+            return res.status(400).json({
+                message: 'Cannot submit this quotation',
+                error: `Current status is ${quotation.status}. Only drafts can be submitted.`,
+                currentStatus: quotation.status
+            });
+        }
+
+        // Check 3: Validate all required fields are present
+        const validationErrors = [];
+
+        if (!quotation.origin || !quotation.origin.city || !quotation.origin.country) {
+            validationErrors.push('Origin address is incomplete (city and country required)');
+        }
+
+        if (!quotation.destination || !quotation.destination.city || !quotation.destination.country) {
+            validationErrors.push('Destination address is incomplete (city and country required)');
+        }
+
+        if (!quotation.items || !Array.isArray(quotation.items) || quotation.items.length === 0) {
+            validationErrors.push('At least one item is required');
+        }
+
+        if (!quotation.cargoType) {
+            validationErrors.push('Cargo type is required');
+        }
+
+        // If there are validation errors, return them
+        if (validationErrors.length > 0) {
+            return res.status(400).json({
+                message: 'Quotation validation failed',
+                errors: validationErrors,
+                hint: 'Please complete all required fields before submitting'
+            });
+        }
+
+        // All validations passed - transition to PENDING_REVIEW
+        quotation.status = 'PENDING_REVIEW';
+
+        // Add to audit log (statusHistory)
+        quotation.statusHistory.push({
+            status: 'PENDING_REVIEW',
+            changedBy: userId,
+            reason: 'Client submitted quotation for review',
+            timestamp: new Date()
+        });
+
+        await quotation.save();
+
+        // Optional: Notify managers about new submission
+        try {
+            // You can add notification logic here if needed
+            // await Notification.createNotificationForManagers({...});
+        } catch (notifError) {
+            console.error('Failed to send notification:', notifError);
+            // Don't fail the request if notification fails
+        }
+
+        res.json({
+            message: 'Quotation submitted successfully',
+            quotation,
+            status: 'PENDING_REVIEW'
+        });
+    } catch (error) {
+        console.error('Submit Quotation Error:', error);
+        res.status(500).json({
+            message: 'Failed to submit quotation',
+            error: error.message
+        });
+    }
+};
+
+// ============================================
 // Check & Update Expired Quotations (Job) - PHASE 3
 // ============================================
 exports.checkExpiry = async () => {
