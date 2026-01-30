@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 
 interface GenerateQuotationModalProps {
@@ -8,9 +8,10 @@ interface GenerateQuotationModalProps {
     quotationId?: string;
     linkedRequestId?: string;
     customerName?: string;
+    status: string;
+    existingData?: any;
     onClose: () => void;
-    onSaveDraft?: (data: QuotationFormData) => Promise<void>;
-    onSendToCustomer?: (data: QuotationFormData) => Promise<void>;
+    onSuccess: () => void;
 }
 
 export interface QuotationFormData {
@@ -32,9 +33,10 @@ export default function GenerateQuotationModal({
     quotationId = 'QT-50422',
     linkedRequestId = 'DR-10245',
     customerName = 'Rahul Sharma',
+    status,
+    existingData,
     onClose,
-    onSaveDraft,
-    onSendToCustomer
+    onSuccess
 }: GenerateQuotationModalProps) {
     const [formData, setFormData] = useState<QuotationFormData>({
         productBasePrice: 0,
@@ -49,6 +51,35 @@ export default function GenerateQuotationModal({
         deliveryConditions: '',
         otherInformation: ''
     });
+
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (status === 'PENDING_REVIEW') {
+            setError('Please Mark as Verified before pricing.');
+        } else {
+            setError(null);
+        }
+    }, [status]);
+
+    useEffect(() => {
+        if (status === 'NEGOTIATION_REQUESTED' && existingData) {
+            // Pre-fill logic
+            setFormData({
+                productBasePrice: existingData.subtotal || 0, // Simplified mapping needs adjustment based on actual data shape
+                deliveryCharges: 0, // Assuming these were aggregated or need specific fields
+                packagingCharges: 0,
+                insuranceCharges: 0,
+                taxes: existingData.tax || 0,
+                discount: existingData.discount || 0,
+                finalQuotedAmount: existingData.totalAmount || 0,
+                validUntil: existingData.validUntil ? new Date(existingData.validUntil).toISOString().split('T')[0] : '',
+                paymentTerms: existingData.termsAndConditions || '',
+                deliveryConditions: '',
+                otherInformation: existingData.internalNotes || ''
+            });
+        }
+    }, [status, existingData]);
 
     const [loading, setLoading] = useState(false);
 
@@ -86,29 +117,63 @@ export default function GenerateQuotationModal({
         setFormData(newFormData);
     };
 
-    const handleSaveDraft = async () => {
-        if (onSaveDraft) {
-            setLoading(true);
-            try {
-                await onSaveDraft(formData);
-            } catch (error) {
-                console.error('Error saving draft:', error);
-            } finally {
-                setLoading(false);
-            }
-        }
-    };
+    const handleSubmit = async () => {
+        if (status === 'PENDING_REVIEW') return;
 
-    const handleSendToCustomer = async () => {
-        if (onSendToCustomer) {
-            setLoading(true);
-            try {
-                await onSendToCustomer(formData);
-            } catch (error) {
-                console.error('Error sending quotation:', error);
-            } finally {
-                setLoading(false);
-            }
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            // 1. Update Quotation Details
+            const payload = {
+                items: [{
+                    description: 'Freight Charges', // Using generic description or preserve existing items if possible
+                    amount: formData.finalQuotedAmount // Using final amount as the main charge for simplification as per previous implementation
+                }],
+                taxRate: 10, // hardcoded or derived
+                tax: formData.taxes,
+                subtotal: formData.productBasePrice, // Mapping base price to subtotal
+                discount: formData.discount,
+                totalAmount: formData.finalQuotedAmount,
+                validUntil: formData.validUntil,
+                internalNotes: formData.otherInformation,
+                termsAndConditions: formData.paymentTerms
+            };
+
+            const updateRes = await fetch(`/api/quotations/${requestId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!updateRes.ok) throw new Error('Failed to update quotation details');
+
+            // 2. Approve
+            const approveRes = await fetch(`/api/quotations/${requestId}/approve`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!approveRes.ok) throw new Error('Failed to approve quotation');
+
+            // 3. Send
+            const sendRes = await fetch(`/api/quotations/${requestId}/send`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!sendRes.ok) throw new Error('Failed to send quotation');
+
+            onSuccess();
+            onClose();
+
+        } catch (error) {
+            console.error('Error sending quotation:', error);
+            alert('Failed to send quotation. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -127,8 +192,14 @@ export default function GenerateQuotationModal({
                 <div className="p-8">
                     {/* Header */}
                     <h1 className="text-[20px] font-medium text-[#333333] leading-7 mb-11">
-                        Create Quotation
+                        {status === 'NEGOTIATION_REQUESTED' ? 'Revise Quotation' : 'Create Quotation'}
                     </h1>
+
+                    {error && (
+                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+                            {error}
+                        </div>
+                    )}
 
                     {/* Quotation Info Card */}
                     <div className="bg-[#F5F5F5] rounded-lg p-6 mb-8 space-y-4">
@@ -317,18 +388,11 @@ export default function GenerateQuotationModal({
                     {/* Action Buttons */}
                     <div className="flex gap-4">
                         <button
-                            onClick={handleSaveDraft}
-                            disabled={loading}
+                            disabled={loading || !!error}
                             className="flex-1 bg-[#0557A5] text-white rounded-[20px] h-10 text-sm font-normal leading-[19.6px] hover:bg-[#044580] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={handleSubmit}
                         >
-                            {loading ? 'Saving...' : 'Save as Draft'}
-                        </button>
-                        <button
-                            onClick={handleSendToCustomer}
-                            disabled={loading}
-                            className="flex-1 border border-[#0557A5] text-[#0557A5] bg-white rounded-[20px] h-10 text-sm font-normal leading-[19.6px] hover:bg-[#0557A5]/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {loading ? 'Sending...' : 'Send to Customer'}
+                            {loading ? 'Processing...' : 'Send Quotation'}
                         </button>
                     </div>
                 </div>

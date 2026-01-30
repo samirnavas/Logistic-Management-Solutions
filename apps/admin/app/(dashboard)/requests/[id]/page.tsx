@@ -19,6 +19,10 @@ export default function RequestDetailsPage({ params }: { params: Promise<{ id: s
         validUntil: ''
     });
 
+    // Clarification Modal State
+    const [showClarificationModal, setShowClarificationModal] = useState(false);
+    const [clarificationMessage, setClarificationMessage] = useState('');
+
     useEffect(() => {
         const fetchRequest = async () => {
             try {
@@ -87,6 +91,52 @@ export default function RequestDetailsPage({ params }: { params: Promise<{ id: s
         }
     };
 
+    const handleMarkVerified = async () => {
+        if (!confirm('Are you sure you want to mark this request as Verified?')) return;
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`/api/quotations/${id}/verify`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                window.location.reload();
+            } else {
+                alert('Failed to verify request');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error verifying request');
+        }
+    };
+
+    const handleSendClarification = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`/api/quotations/${id}/request-clarification`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ message: clarificationMessage })
+            });
+
+            if (res.ok) {
+                setShowClarificationModal(false);
+                setClarificationMessage('');
+                window.location.reload();
+            } else {
+                alert('Failed to send clarification request');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error sending clarification request');
+        }
+    };
+
     if (loading) return <div className="p-8 text-center text-zinc-500">Loading details...</div>;
     if (!request) return <div className="p-8 text-center text-zinc-500">Request not found</div>;
 
@@ -112,6 +162,22 @@ export default function RequestDetailsPage({ params }: { params: Promise<{ id: s
                         </div>
                     </div>
                 </div>
+
+                {/* Negotiation Alert */}
+                {request.status === 'NEGOTIATION_REQUESTED' && request.negotiation?.clientNotes && (
+                    <div className="bg-orange-50 border-l-4 border-orange-400 p-4 mb-8 rounded-r-lg">
+                        <div className="flex">
+                            <div className="ml-3">
+                                <h3 className="text-sm leading-5 font-medium text-orange-800">
+                                    Client Negotiation Note
+                                </h3>
+                                <div className="mt-2 text-sm leading-5 text-orange-700">
+                                    <p>{request.negotiation.clientNotes}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="flex gap-8">
                     {/* Left Column: Customer Info */}
@@ -225,7 +291,26 @@ export default function RequestDetailsPage({ params }: { params: Promise<{ id: s
 
                 {/* Footer Buttons */}
                 <div className="mt-8 flex justify-center gap-6">
-                    {request.status === 'request_sent' && (
+                    {/* Action Buttons for Triage Phase */}
+                    {['PENDING_REVIEW', 'NEGOTIATION_REQUESTED'].includes(request.status) && (
+                        <>
+                            <button
+                                onClick={() => setShowClarificationModal(true)}
+                                className="bg-amber-100 text-amber-900 border border-amber-200 px-6 py-2.5 rounded-full text-sm font-medium hover:bg-amber-200 transition-colors shadow-sm"
+                            >
+                                Request Clarification
+                            </button>
+                            <button
+                                onClick={handleMarkVerified}
+                                className="bg-sky-700 text-white px-8 py-2.5 rounded-full text-sm font-medium hover:bg-sky-800 transition-colors shadow-sm"
+                            >
+                                Mark as Verified
+                            </button>
+                        </>
+                    )}
+
+                    {/* Keep default for now or legacy */}
+                    {request.status === 'VERIFIED' && (
                         <button
                             onClick={() => setShowQuoteForm(true)}
                             className="bg-sky-700 text-white px-8 py-2.5 rounded-full text-sm font-normal hover:bg-sky-800 transition-colors"
@@ -297,6 +382,45 @@ export default function RequestDetailsPage({ params }: { params: Promise<{ id: s
                                     className="px-4 py-2 text-sm bg-sky-700 text-white rounded-lg hover:bg-sky-800"
                                 >
                                     Send Quotation
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Request Clarification Modal */}
+            {showClarificationModal && (
+                <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+                    <div className="bg-white rounded-xl w-[400px] p-6 shadow-xl">
+                        <h2 className="text-lg font-semibold mb-4 text-zinc-800">Request Clarification</h2>
+                        <form onSubmit={handleSendClarification} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Message to Client
+                                </label>
+                                <textarea
+                                    required
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500/20 outline-none text-sm"
+                                    rows={4}
+                                    placeholder="Please allow us to clarify..."
+                                    value={clarificationMessage}
+                                    onChange={(e) => setClarificationMessage(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button
+                                    type="button"
+                                    className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+                                    onClick={() => setShowClarificationModal(false)}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+                                >
+                                    Send Request
                                 </button>
                             </div>
                         </form>

@@ -20,8 +20,8 @@ export default function RequestsPage() {
                     const responseData = await res.json();
                     const data = responseData.quotations || [];
                     // Filter for 'request_sent' status (New Requests)
-                    const newRequests = data.filter((q: any) => q.status === 'request_sent');
-                    setRequests(newRequests);
+                    // Show all requests or filter as needed. For now showing all to support the new status list visibility.
+                    setRequests(data);
                 }
             } catch (err) {
                 console.error(err);
@@ -33,6 +33,29 @@ export default function RequestsPage() {
     }, []);
 
 
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'PENDING_REVIEW':
+                return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+            case 'VERIFIED':
+                return 'bg-blue-100 text-blue-800 border-blue-200';
+            case 'NEGOTIATION_REQUESTED':
+                return 'bg-orange-100 text-orange-800 border-orange-200';
+            case 'INFO_REQUIRED':
+            case 'REJECTED':
+                return 'bg-red-100 text-red-800 border-red-200';
+            case 'ACCEPTED':
+            case 'BOOKED':
+                return 'bg-green-100 text-green-800 border-green-200';
+            case 'QUOTATION_SENT':
+            case 'QUOTATION_GENERATED':
+                return 'bg-purple-100 text-purple-800 border-purple-200';
+            case 'DRAFT':
+            default:
+                return 'bg-gray-100 text-gray-800 border-gray-200';
+        }
+    };
 
     return (
         <div className="flex flex-col gap-6">
@@ -77,7 +100,11 @@ export default function RequestsPage() {
                                         <td className="px-6 py-4">{req.destination?.city || 'N/A'}</td>
                                         <td className="px-6 py-4">{req.quotationId}</td>
                                         <td className="px-6 py-4">{req.validUntil ? new Date(req.validUntil).toLocaleDateString() : 'N/A'}</td>
-                                        <td className="px-6 py-4 text-sky-700 font-medium">New</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(req.status)}`}>
+                                                {req.status?.replace(/_/g, ' ') || 'UNKNOWN'}
+                                            </span>
+                                        </td>
                                         <td className="px-6 py-4">
                                             <button
                                                 onClick={() => setSelectedRequestId(req.id)}

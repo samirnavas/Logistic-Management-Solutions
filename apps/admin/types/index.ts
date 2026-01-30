@@ -51,18 +51,17 @@ export interface LineItem {
 }
 
 export type QuotationStatus =
-    | 'request_sent'
-    | 'cost_calculated'
-    | 'rejected'
-    | 'ready_for_pickup'
-    | 'shipped'
-    | 'delivered'
-    | 'Pending Approval'
-    | 'Approved'
-    | 'Sent'
-    | 'Accepted'
-    | 'Rejected'
-    | 'Draft'; // Including statuses seen in logic
+    | 'DRAFT'
+    | 'PENDING_REVIEW'
+    | 'INFO_REQUIRED'
+    | 'VERIFIED'
+    | 'QUOTATION_GENERATED'
+    | 'QUOTATION_SENT'
+    | 'NEGOTIATION_REQUESTED'
+    | 'ACCEPTED'
+    | 'REJECTED'
+    | 'EXPIRED'
+    | 'BOOKED';
 
 export interface Quotation {
     id: string;
