@@ -10,10 +10,11 @@ class ShipmentItemFormData {
   List<File> localPhotos; // Local files to be uploaded
   String category;
   bool isHazardous;
+  String? hsCode;
   String? videoUrl;
   double? targetRate;
+  String targetCurrency;
   double? packingVolume;
-  String priority;
   // Financials
   double cost;
 
@@ -26,10 +27,11 @@ class ShipmentItemFormData {
     this.localPhotos = const [],
     this.category = 'General',
     this.isHazardous = false,
+    this.hsCode,
     this.videoUrl,
     this.targetRate,
+    this.targetCurrency = 'USD',
     this.packingVolume,
-    this.priority = 'Standard',
     this.cost = 0.0,
   });
 
@@ -42,10 +44,11 @@ class ShipmentItemFormData {
     List<File>? localPhotos,
     String? category,
     bool? isHazardous,
+    String? hsCode,
     String? videoUrl,
     double? targetRate,
+    String? targetCurrency,
     double? packingVolume,
-    String? priority,
     double? cost,
   }) {
     return ShipmentItemFormData(
@@ -57,10 +60,11 @@ class ShipmentItemFormData {
       localPhotos: localPhotos ?? this.localPhotos,
       category: category ?? this.category,
       isHazardous: isHazardous ?? this.isHazardous,
+      hsCode: hsCode ?? this.hsCode,
       videoUrl: videoUrl ?? this.videoUrl,
       targetRate: targetRate ?? this.targetRate,
+      targetCurrency: targetCurrency ?? this.targetCurrency,
       packingVolume: packingVolume ?? this.packingVolume,
-      priority: priority ?? this.priority,
       cost: cost ?? this.cost,
     );
   }
@@ -78,14 +82,13 @@ class ShipmentFormState {
 
 class ShipmentFormNotifier extends StateNotifier<ShipmentFormState> {
   ShipmentFormNotifier() : super(const ShipmentFormState(items: [])) {
-    // Initialize with one empty item
-    if (state.items.isEmpty) {
-      addItem();
-    }
+    // Start with empty list
   }
 
-  void addItem() {
-    state = state.copyWith(items: [...state.items, ShipmentItemFormData()]);
+  void addItem([ShipmentItemFormData? item]) {
+    state = state.copyWith(
+      items: [...state.items, item ?? ShipmentItemFormData()],
+    );
   }
 
   void removeItem(int index) {

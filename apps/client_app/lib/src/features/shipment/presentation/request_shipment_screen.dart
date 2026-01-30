@@ -25,6 +25,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
   final _formKey = GlobalKey<FormState>();
   String _shippingMode = 'By Air';
   String _deliveryType = 'Door to Door';
+  String _servicePriority = 'Standard';
   String _countryCode = '+91'; // Default India
 
   // Controllers for Pickup Address
@@ -152,29 +153,123 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                             ).animate().fadeIn(delay: 250.ms).slideX(),
                             const SizedBox(height: 24),
 
+                            // 2.5 Service Priority
+                            _buildSectionTitle(
+                              'Service Priority',
+                            ).animate().fadeIn(delay: 275.ms).slideX(),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildRadioOption(
+                                    'Standard',
+                                    _servicePriority,
+                                    (val) =>
+                                        setState(() => _servicePriority = val!),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildRadioOption(
+                                    'Express',
+                                    _servicePriority,
+                                    (val) =>
+                                        setState(() => _servicePriority = val!),
+                                  ),
+                                ),
+                              ],
+                            ).animate().fadeIn(delay: 275.ms).slideX(),
+                            const SizedBox(height: 24),
+
                             // 3. Package Details (Dynamic List)
                             _buildSectionTitle(
                               'Package Details',
                             ).animate().fadeIn(delay: 300.ms).slideX(),
                             const SizedBox(height: 16),
-                            ListView.builder(
+                            ListView.separated(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: formState.items.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 12),
                               itemBuilder: (context, index) {
-                                return ShipmentItemForm(
-                                  index: index,
-                                  item: formState.items[index],
-                                  onChanged: (updatedItem) {
-                                    formNotifier.updateItem(index, updatedItem);
-                                  },
-                                  onRemove: () {
-                                    formNotifier.removeItem(index);
-                                  },
-                                  isExpanded:
-                                      index ==
-                                      formState.items.length -
-                                          1, // Auto expand latest
+                                final item = formState.items[index];
+                                return Card(
+                                  elevation: 0,
+                                  color: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    side: BorderSide(color: Colors.grey[200]!),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 48,
+                                          height: 48,
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.primaryBlue
+                                                .withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: const Icon(
+                                            Icons.inventory_2_outlined,
+                                            color: AppTheme.primaryBlue,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                item.description.isNotEmpty
+                                                    ? item.description
+                                                    : 'Item ${index + 1}',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                '${item.quantity} Boxes • ${item.weight} kg${item.packingVolume != null ? ' • ${item.packingVolume} CBM' : ''}',
+                                                style: TextStyle(
+                                                  color: Colors.grey[600],
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.edit_outlined,
+                                            color: Colors.blue,
+                                          ),
+                                          onPressed: () => _showItemModal(
+                                            context,
+                                            index: index,
+                                            item: item,
+                                          ),
+                                        ),
+                                        if (formState.items.length > 0)
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.delete_outline,
+                                              color: Colors.red,
+                                            ),
+                                            onPressed: () {
+                                              formNotifier.removeItem(index);
+                                            },
+                                          ),
+                                      ],
+                                    ),
+                                  ),
                                 );
                               },
                             ).animate().fadeIn(delay: 350.ms),
@@ -184,12 +279,10 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                             Container(
                               width: double.infinity,
                               alignment: Alignment.center,
-                              child: OutlinedButton.icon(
+                              child: OutlinedButton(
                                 onPressed: () {
-                                  formNotifier.addItem();
+                                  _showItemModal(context);
                                 },
-                                icon: const Icon(Icons.add),
-                                label: const Text('Add Another Item'),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: AppTheme.primaryBlue,
                                   padding: const EdgeInsets.symmetric(
@@ -202,6 +295,26 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(24),
                                   ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment
+                                      .center, // Ensure vertical center
+                                  children: [
+                                    const Icon(Icons.add),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      formState.items.isEmpty
+                                          ? 'Add Item'
+                                          : 'Add Another Item',
+                                      style: const TextStyle(
+                                        height:
+                                            1.2, // Fix line height alignment
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -498,10 +611,10 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
           'images': uploadedPhotoUrls, // Cloudinary URLs
           'category': item.category,
           'isHazardous': item.isHazardous,
+          'hsCode': item.hsCode,
           'videoUrl': item.videoUrl,
           'targetRate': item.targetRate,
           'packingVolume': item.packingVolume,
-          'priority': item.priority,
 
           // Fallback/Legacy fields
           'unitPrice': 0,
@@ -515,7 +628,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
         'items': processedItems,
         'cargoType':
             'General Cargo', // Consider making this dynamic if all items are same? Or just default
-        'serviceType': 'Standard', // Default
+        'serviceType': _servicePriority, // Use global priority
         'specialInstructions':
             'Mode: $_shippingMode, Delivery: $_deliveryType\nNotes: ${_notesController.text}',
         'pickupDate': DateTime.now()
@@ -623,6 +736,139 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _showItemModal(
+    BuildContext context, {
+    int? index,
+    ShipmentItemFormData? item,
+  }) async {
+    // If editing, use existing item. If new, create empty.
+    ShipmentItemFormData tempItem = item ?? ShipmentItemFormData();
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 16,
+                right: 16,
+                top: 16,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          index == null ? 'Add New Item' : 'Edit Item',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                    const Divider(),
+                    const SizedBox(height: 16),
+                    ShipmentItemForm(
+                      index: index ?? -1,
+                      item: tempItem,
+                      onChanged: (newItem) {
+                        setModalState(() {
+                          tempItem = newItem;
+                        });
+                      },
+                      onRemove: () {}, // Not used in modal
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Validation
+                        if (tempItem.description.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Description is required'),
+                            ),
+                          );
+                          return;
+                        }
+                        if (tempItem.quantity <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Quantity must be greater than 0'),
+                            ),
+                          );
+                          return;
+                        }
+                        if (tempItem.weight <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Weight must be greater than 0'),
+                            ),
+                          );
+                          return;
+                        }
+                        if (tempItem.hsCode == null ||
+                            tempItem.hsCode!.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('HS Code is required'),
+                            ),
+                          );
+                          return;
+                        }
+
+                        final notifier = ref.read(
+                          shipmentFormProvider.notifier,
+                        );
+                        if (index == null) {
+                          // Add new
+                          notifier.addItem(tempItem);
+                        } else {
+                          // Update existing
+                          notifier.updateItem(index, tempItem);
+                        }
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryBlue,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        index == null ? 'ADD ITEM' : 'SAVE CHANGES',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
