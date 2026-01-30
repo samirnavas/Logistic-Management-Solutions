@@ -804,123 +804,126 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                left: 16,
-                right: 16,
-                top: 16,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          index == null ? 'Add New Item' : 'Edit Item',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.close),
-                        ),
-                      ],
-                    ),
-                    const Divider(),
-                    const SizedBox(height: 16),
-                    ShipmentItemForm(
-                      index: index ?? -1,
-                      item: tempItem,
-                      onChanged: (newItem) {
-                        setModalState(() {
-                          tempItem = newItem;
-                        });
-                      },
-                      onRemove: () {}, // Not used in modal
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: () {
-                        // Validation
-                        List<String> missingFields = [];
-                        if (tempItem.description.isEmpty) {
-                          missingFields.add('Description');
-                        }
-                        if (tempItem.quantity <= 0) {
-                          missingFields.add('Quantity');
-                        }
-                        if (tempItem.weight <= 0) {
-                          missingFields.add('Weight');
-                        }
-                        if (tempItem.hsCode == null ||
-                            tempItem.hsCode!.isEmpty) {
-                          missingFields.add('HS Code');
-                        }
-
-                        if (missingFields.isNotEmpty) {
-                          ScaffoldMessenger.of(
-                            context,
-                          ).clearSnackBars(); // Clear existing
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Please fill required fields: ${missingFields.join(', ')}',
-                              ),
-                              backgroundColor: Colors.red,
-                              behavior: SnackBarBehavior
-                                  .floating, // Improve visibility in modal
-                              margin: EdgeInsets.only(
-                                bottom:
-                                    MediaQuery.of(context).viewInsets.bottom +
-                                    10,
-                                left: 16,
-                                right: 16,
-                              ),
-                            ),
-                          );
-                          return;
-                        }
-
-                        final notifier = ref.read(
-                          shipmentFormProvider.notifier,
-                        );
-                        if (index == null) {
-                          // Add new
-                          notifier.addItem(tempItem);
-                        } else {
-                          // Update existing
-                          notifier.updateItem(index, tempItem);
-                        }
-                        Navigator.pop(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryBlue,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        index == null ? 'ADD ITEM' : 'SAVE CHANGES',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+          body: StatefulBuilder(
+            builder: (context, setModalState) {
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                  left: 16,
+                  right: 16,
+                  top: 16,
                 ),
-              ),
-            );
-          },
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            index == null ? 'Add New Item' : 'Edit Item',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
+                      const Divider(),
+                      const SizedBox(height: 16),
+                      ShipmentItemForm(
+                        index: index ?? -1,
+                        item: tempItem,
+                        onChanged: (newItem) {
+                          setModalState(() {
+                            tempItem = newItem;
+                          });
+                        },
+                        onRemove: () {}, // Not used in modal
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: () {
+                          // Validation
+                          List<String> missingFields = [];
+                          if (tempItem.description.isEmpty) {
+                            missingFields.add('Description');
+                          }
+                          if (tempItem.quantity <= 0) {
+                            missingFields.add('Quantity');
+                          }
+                          if (tempItem.weight <= 0) {
+                            missingFields.add('Weight');
+                          }
+                          if (tempItem.hsCode == null ||
+                              tempItem.hsCode!.isEmpty) {
+                            missingFields.add('HS Code');
+                          }
+
+                          if (missingFields.isNotEmpty) {
+                            ScaffoldMessenger.of(
+                              context,
+                            ).clearSnackBars(); // Clear existing
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Please fill required fields: ${missingFields.join(', ')}',
+                                ),
+                                backgroundColor: Colors.red,
+                                behavior: SnackBarBehavior
+                                    .floating, // Improve visibility in modal
+                                margin: EdgeInsets.only(
+                                  bottom:
+                                      MediaQuery.of(context).viewInsets.bottom +
+                                      10,
+                                  left: 16,
+                                  right: 16,
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
+                          final notifier = ref.read(
+                            shipmentFormProvider.notifier,
+                          );
+                          if (index == null) {
+                            // Add new
+                            notifier.addItem(tempItem);
+                          } else {
+                            // Update existing
+                            notifier.updateItem(index, tempItem);
+                          }
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryBlue,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          index == null ? 'ADD ITEM' : 'SAVE CHANGES',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
         );
       },
     );
