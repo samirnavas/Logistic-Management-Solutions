@@ -187,7 +187,6 @@ exports.updateQuotation = async (req, res) => {
         }
 
         // Update allowed fields
-        // Update allowed fields
         const allowedUpdates = [
             'items', 'taxRate', 'discount', 'discountReason', 'currency',
             'validUntil', 'termsAndConditions', 'internalNotes', 'additionalNotes',
@@ -344,12 +343,10 @@ const numberToWords = (num) => {
         }, '');
     }
     return getWords(Math.floor(num)).trim() + " Only";
-};  // Note: This is a simplified Indian numbering system version based on "Rupees" in prompt sample. 
-// If international is needed, standard billion/million logic should be used. 
-// Given "Rupees" in the prompt image text ("Ninety Thousand... Rupees Only"), I will use a standard English approach but "Rupees" label is in the template.
+};
 
 // ============================================
-// Send quotation to client app
+// Send quotation to client app (UPDATED WITH PHASE 3 VALIDATIONS)
 // ============================================
 exports.sendToClient = async (req, res) => {
     try {
@@ -361,7 +358,39 @@ exports.sendToClient = async (req, res) => {
             return res.status(404).json({ message: 'Quotation not found' });
         }
 
+        // ============================================
+        // PHASE 3: VALIDATION CHECKS
+        // ============================================
+
+        // Check 1: Prevent sending if status is EXPIRED
+        if (quotation.status === 'EXPIRED') {
+            return res.status(400).json({
+                message: 'Cannot send an expired quotation to client',
+                error: 'Quotation has already expired. Please create a new quotation.'
+            });
+        }
+
+        // Check 2: Prevent sending if totalAmount is 0 (unless it's a specific free service)
+        // This prevents sending quotes that haven't been properly priced
+        if (quotation.totalAmount === 0) {
+            return res.status(400).json({
+                message: 'Cannot send quotation with zero amount',
+                error: 'Please calculate the quotation price before sending to client'
+            });
+        }
+
+        // Optional Check 3: Ensure quotation has been verified
+        // Uncomment if you want to enforce verification step before sending
+        // if (quotation.status !== 'VERIFIED' && quotation.status !== 'QUOTATION_GENERATED') {
+        //     return res.status(400).json({ 
+        //         message: 'Quotation must be verified before sending to client',
+        //         currentStatus: quotation.status
+        //     });
+        // }
+
+        // ============================================
         // 1. Prepare Data for PDF
+        // ============================================
         // Filter items for the table (Goods) vs Charges
         // Assuming 'Freight', 'Insurance', 'Packaging', 'Handling', 'Tax' are charges
         const chargeCategories = ['freight', 'insurance', 'packaging', 'handling', 'tax'];
@@ -369,19 +398,18 @@ exports.sendToClient = async (req, res) => {
         const goodsItems = quotation.items.filter(item => !chargeCategories.includes(item.category.toLowerCase()));
 
         // Calculate charges from items or use specific fields if logic dictates
-        // The prompt says: "Cost Breakdown: ... Shipping Charge, Pickup, Packaging, Insurance, Taxes."
         const getCharge = (cat) => quotation.items
             .filter(i => i.category.toLowerCase() === cat)
             .reduce((sum, i) => sum + (i.amount || 0), 0);
 
         const shippingCharge = getCharge('freight');
-        const pickupCharge = getCharge('handling'); // Assuming handling maps to pickup or similar
+        const pickupCharge = getCharge('handling');
         const packagingCharge = getCharge('packaging');
         const insuranceCharge = getCharge('insurance');
 
         // Format Currency
         const formatCurrency = (amount) => {
-            return amount.toLocaleString('en-IN', { maximumFractionDigits: 2 }); // Indian formatting as per sample
+            return amount.toLocaleString('en-IN', { maximumFractionDigits: 2 });
         };
 
         const pdfData = {
@@ -389,14 +417,14 @@ exports.sendToClient = async (req, res) => {
             clientAddress: `${quotation.destination.addressLine}, ${quotation.destination.city}`,
             clientPhone: quotation.clientId.phone || quotation.destination.phone || '',
             quotationId: quotation.quotationNumber,
-            date: new Date(quotation.createdAt).toLocaleDateString('en-GB'), // DD/MM/YYYY
+            date: new Date(quotation.createdAt).toLocaleDateString('en-GB'),
             validityDate: new Date(quotation.validUntil).toLocaleDateString('en-GB'),
             items: goodsItems.map((item, index) => ({
                 index: index + 1,
                 image: item.images && item.images.length > 0 ? item.images[0] : null,
                 category: item.category,
                 description: item.description,
-                hsCode: '8320', // Placeholder or add field to model if needed. 
+                hsCode: '8320',
                 boxes: item.quantity,
                 weight: item.weight + ' kg',
                 cbm: item.packingVolume || 0
@@ -440,11 +468,12 @@ exports.sendToClient = async (req, res) => {
 
         // 4. Save URL and Update Status
         quotation.pdfUrl = uploadResult.secure_url;
-        await quotation.sendToClient(); // This sets status='sent' and saves
+        // The sendToClient() method already sets status to 'QUOTATION_SENT'
+        await quotation.sendToClient();
 
         // Create notification for client app
         await Notification.createQuotationNotification(
-            quotation.clientId._id, // Ensure ID is passed
+            quotation.clientId._id,
             quotation,
             'sent'
         );
@@ -461,7 +490,80 @@ exports.sendToClient = async (req, res) => {
 };
 
 // ============================================
-// client app accepts quotation
+// Request Revision / Negotiation (Client Only) - PHASE 4
+// ============================================
+exports.requestRevision = async (req, res) => {
+    try {
+        const { reason } = req.body;
+        const quotation = await Quotation.findById(req.params.id);
+
+        if (!quotation) {
+            return res.status(404).json({ message: 'Quotation not found' });
+        }
+
+        // PHASE 4: Strict validation - only allow if status is QUOTATION_SENT
+        if (quotation.status !== 'QUOTATION_SENT') {
+            return res.status(400).json({
+                message: 'Cannot request revision for this quotation',
+                error: `Current status is ${quotation.status}. Revision can only be requested for sent quotations.`,
+                currentStatus: quotation.status
+            });
+        }
+
+        // Validate reason
+        if (!reason || reason.trim().length === 0) {
+            return res.status(400).json({
+                message: 'Reason is required',
+                error: 'Please provide a reason for the revision request'
+            });
+        }
+
+        // Update status to NEGOTIATION_REQUESTED
+        quotation.status = 'NEGOTIATION_REQUESTED';
+
+        // Save reason in negotiation.clientNotes
+        quotation.negotiation = {
+            ...quotation.negotiation,
+            clientNotes: reason,
+            isActive: true
+        };
+
+        // Add to audit log (statusHistory)
+        quotation.statusHistory.push({
+            status: 'NEGOTIATION_REQUESTED',
+            changedBy: req.user ? req.user.id : quotation.clientId,
+            reason: `Client requested revision: ${reason}`,
+            timestamp: new Date()
+        });
+
+        await quotation.save();
+
+        // Notify Admin/Manager about the negotiation request
+        if (quotation.managerId) {
+            await Notification.createNotification({
+                recipientId: quotation.managerId,
+                title: 'Negotiation Requested',
+                message: `Client has requested a revision for quotation ${quotation.quotationNumber}. Reason: ${reason}`,
+                type: 'warning',
+                category: 'quotation',
+                relatedId: quotation._id,
+                relatedModel: 'Quotation',
+            });
+        }
+
+        res.json({
+            message: 'Revision request submitted successfully',
+            quotation,
+            negotiation: quotation.negotiation
+        });
+    } catch (error) {
+        console.error('Request Revision Error:', error);
+        res.status(500).json({ message: 'Failed to request revision', error: error.message });
+    }
+};
+
+// ============================================
+// Client Accepts Quotation (REFINED - PHASE 4)
 // ============================================
 exports.acceptByClient = async (req, res) => {
     try {
@@ -471,9 +573,53 @@ exports.acceptByClient = async (req, res) => {
             return res.status(404).json({ message: 'Quotation not found' });
         }
 
-        await quotation.acceptByClient();
+        // ============================================
+        // PHASE 4: STRICT VALIDATION CHECKS
+        // ============================================
 
-        // Create Shipment automatically
+        // Check 1: Status must be QUOTATION_SENT
+        if (quotation.status !== 'QUOTATION_SENT') {
+            return res.status(400).json({
+                message: 'Cannot accept this quotation',
+                error: `Current status is ${quotation.status}. Only sent quotations can be accepted.`,
+                currentStatus: quotation.status
+            });
+        }
+
+        // Check 2: Expiry validation - Ensure validUntil has NOT passed
+        const now = new Date();
+        if (quotation.validUntil && new Date(quotation.validUntil) < now) {
+            return res.status(400).json({
+                message: 'Cannot accept an expired quotation',
+                error: 'This quotation has passed its validity date. Please contact us for a new quote.',
+                validUntil: quotation.validUntil,
+                expired: true
+            });
+        }
+
+        // ============================================
+        // STATE CHANGE: ACCEPTED
+        // ============================================
+
+        // Update to ACCEPTED status first
+        quotation.isAcceptedByClient = true;
+        quotation.clientAcceptedAt = new Date();
+        quotation.status = 'ACCEPTED';
+
+        // Add to audit log
+        quotation.statusHistory.push({
+            status: 'ACCEPTED',
+            changedBy: req.user ? req.user.id : quotation.clientId,
+            reason: 'Client accepted quotation',
+            timestamp: new Date()
+        });
+
+        await quotation.save();
+
+        // ============================================
+        // TRIGGER: AUTOMATICALLY CREATE SHIPMENT
+        // ============================================
+
         const packageCount = quotation.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
         const newShipment = new Shipment({
@@ -497,11 +643,25 @@ exports.acceptByClient = async (req, res) => {
 
         const savedShipment = await newShipment.save();
 
+        // ============================================
+        // FINAL STATE: BOOKED (Lock it permanently)
+        // ============================================
+
+        quotation.status = 'BOOKED';
+        quotation.statusHistory.push({
+            status: 'BOOKED',
+            changedBy: null, // System
+            reason: `Shipment created: ${savedShipment.trackingNumber}`,
+            timestamp: new Date()
+        });
+
+        await quotation.save();
+
         // Notify manager
         await Notification.createNotification({
             recipientId: quotation.managerId,
-            title: 'Quotation Accepted',
-            message: `client app has accepted quotation ${quotation.quotationNumber}. Shipment created: ${savedShipment.trackingNumber}`,
+            title: 'Quotation Accepted & Booked',
+            message: `Client has accepted quotation ${quotation.quotationNumber}. Shipment created: ${savedShipment.trackingNumber}. Quotation is now locked.`,
             type: 'success',
             category: 'quotation',
             relatedId: quotation._id,
@@ -509,13 +669,14 @@ exports.acceptByClient = async (req, res) => {
         });
 
         res.json({
-            message: 'Quotation accepted and shipment created',
+            message: 'Quotation accepted, shipment created, and booking confirmed',
             quotation,
             trackingNumber: savedShipment.trackingNumber,
-            shipmentId: savedShipment._id
+            shipmentId: savedShipment._id,
+            status: 'BOOKED'
         });
     } catch (error) {
-        console.error('Accept By client app Error:', error);
+        console.error('Accept By Client Error:', error);
         res.status(500).json({ message: 'Failed to accept quotation', error: error.message });
     }
 };
@@ -734,5 +895,197 @@ exports.getQuotationStats = async (req, res) => {
     } catch (error) {
         console.error('Get Quotation Stats Error:', error);
         res.status(500).json({ message: 'Failed to fetch quotation statistics', error: error.message });
+    }
+};
+
+// ============================================
+// Request Clarification (Admin/Manager)
+// ============================================
+exports.requestClarification = async (req, res) => {
+    try {
+        const { message } = req.body;
+        const quotation = await Quotation.findById(req.params.id);
+
+        if (!quotation) {
+            return res.status(404).json({ message: 'Quotation not found' });
+        }
+
+        // Check if user is authorized (Manager/Admin)
+        // Assuming req.user is populated by middleware
+        if (req.user.role !== 'admin' && req.user.role !== 'manager') {
+            return res.status(403).json({ message: 'Not authorized to request clarification' });
+        }
+
+        quotation.status = 'INFO_REQUIRED';
+
+        // Update negotiation field
+        quotation.negotiation = {
+            ...quotation.negotiation,
+            adminResponse: message,
+            isActive: true
+        };
+
+        // Add to history
+        quotation.statusHistory.push({
+            status: 'INFO_REQUIRED',
+            changedBy: req.user.id,
+            reason: message,
+            timestamp: new Date()
+        });
+
+        await quotation.save();
+
+        // Notify Client
+        await Notification.createNotification({
+            recipientId: quotation.clientId,
+            title: 'Action Required',
+            message: 'Admin has requested more information for your quotation request.',
+            type: 'warning',
+            category: 'quotation',
+            relatedId: quotation._id,
+            relatedModel: 'Quotation'
+        });
+
+        res.json({
+            message: 'Clarification requested successfully',
+            quotation
+        });
+    } catch (error) {
+        console.error('Request Clarification Error:', error);
+        res.status(500).json({ message: 'Failed to request clarification', error: error.message });
+    }
+};
+
+// ============================================
+// Submit Clarification (Client)
+// ============================================
+exports.submitClarification = async (req, res) => {
+    try {
+        const { items, specialInstructions, clientNotes } = req.body;
+        const quotation = await Quotation.findById(req.params.id);
+
+        if (!quotation) {
+            return res.status(404).json({ message: 'Quotation not found' });
+        }
+
+        // Update items and special instructions if provided
+        if (items) quotation.items = items;
+        if (specialInstructions) quotation.specialInstructions = specialInstructions;
+
+        // Update negotiation.clientNotes
+        quotation.negotiation = {
+            ...quotation.negotiation,
+            clientNotes: clientNotes,
+            isActive: true
+        };
+
+        // Change status back to PENDING_REVIEW
+        quotation.status = 'PENDING_REVIEW';
+
+        // Add to history
+        quotation.statusHistory.push({
+            status: 'PENDING_REVIEW',
+            changedBy: req.user.id,
+            reason: 'Client submitted clarification',
+            timestamp: new Date()
+        });
+
+        await quotation.save();
+
+        // Notify Manager
+        if (quotation.managerId) {
+            await Notification.createNotification({
+                recipientId: quotation.managerId,
+                title: 'Clarification Submitted',
+                message: 'Client has updated the quotation request details.',
+                type: 'info',
+                category: 'quotation',
+                relatedId: quotation._id,
+                relatedModel: 'Quotation'
+            });
+        }
+
+        res.json({
+            message: 'Clarification submitted successfully',
+            quotation
+        });
+    } catch (error) {
+        console.error('Submit Clarification Error:', error);
+        res.status(500).json({ message: 'Failed to submit clarification', error: error.message });
+    }
+};
+
+// ============================================
+// Mark as Verified (Manager/Dispatcher) - PHASE 3
+// ============================================
+exports.markAsVerified = async (req, res) => {
+    try {
+        const quotation = await Quotation.findById(req.params.id);
+
+        if (!quotation) {
+            return res.status(404).json({ message: 'Quotation not found' });
+        }
+
+        // Check permission (Admin/Manager/Dispatcher)
+        if (req.user.role !== 'admin' && req.user.role !== 'manager') {
+            // In a real scenario, you'd check for 'dispatcher' role too
+            return res.status(403).json({ message: 'Not authorized to verify requests' });
+        }
+
+        quotation.status = 'VERIFIED';
+
+        // Add to history
+        quotation.statusHistory.push({
+            status: 'VERIFIED',
+            changedBy: req.user.id,
+            reason: 'Request verified by operations',
+            timestamp: new Date()
+        });
+
+        await quotation.save();
+
+        res.json({
+            message: 'Quotation request verified',
+            quotation
+        });
+    } catch (error) {
+        console.error('Mark as Verified Error:', error);
+        res.status(500).json({ message: 'Failed to verify quotation', error: error.message });
+    }
+};
+
+// ============================================
+// Check & Update Expired Quotations (Job) - PHASE 3
+// ============================================
+exports.checkExpiry = async () => {
+    try {
+        const now = new Date();
+
+        // Find quotations that ARE 'QUOTATION_SENT' AND expired
+        const expiredQuotations = await Quotation.find({
+            status: 'QUOTATION_SENT',
+            validUntil: { $lt: now }
+        });
+
+        if (expiredQuotations.length === 0) {
+            return; // No expired quotations found
+        }
+
+        console.log(`Found ${expiredQuotations.length} expired quotations. Updating status...`);
+
+        for (const quote of expiredQuotations) {
+            quote.status = 'EXPIRED';
+            quote.statusHistory.push({
+                status: 'EXPIRED',
+                changedBy: null, // System
+                reason: 'Validity date passed',
+                timestamp: now
+            });
+            await quote.save();
+
+            // Optional: Notify manager or client about expiry
+        }
+    } catch (error) {
+        console.error('Check Expiry Job Error:', error);
     }
 };

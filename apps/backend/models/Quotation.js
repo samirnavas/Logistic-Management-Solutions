@@ -294,11 +294,49 @@ const quotationSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: {
-            values: ['request_sent', 'approved', 'details_submitted', 'cost_calculated', 'rejected', 'ready_for_pickup', 'shipped', 'delivered', 'sent', 'accepted'],
+            values: [
+                'DRAFT',
+                'PENDING_REVIEW',
+                'INFO_REQUIRED',
+                'VERIFIED',
+                'QUOTATION_GENERATED',
+                'QUOTATION_SENT',
+                'NEGOTIATION_REQUESTED',
+                'ACCEPTED',
+                'REJECTED',
+                'EXPIRED',
+                'BOOKED'
+            ],
             message: 'Invalid quotation status',
         },
-        default: 'request_sent',
+        default: 'DRAFT',
         index: true,
+    },
+
+    // --- Audit Log ---
+    statusHistory: [{
+        status: {
+            type: String,
+            required: true
+        },
+        changedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        reason: {
+            type: String
+        },
+        timestamp: {
+            type: Date,
+            default: Date.now
+        }
+    }],
+
+    // --- Negotiation ---
+    negotiation: {
+        clientNotes: { type: String },
+        adminResponse: { type: String },
+        isActive: { type: Boolean, default: false }
     },
 
     // --- Revision Tracking ---
@@ -361,7 +399,7 @@ quotationSchema.virtual('isExpired').get(function () {
  * client app only sees price if approved by manager
  */
 quotationSchema.virtual('isVisibleToClient').get(function () {
-    return this.isApprovedByManager && ['approved', 'sent', 'accepted', 'rejected'].includes(this.status);
+    return ['QUOTATION_SENT', 'ACCEPTED', 'REJECTED', 'BOOKED', 'NEGOTIATION_REQUESTED', 'EXPIRED'].includes(this.status);
 });
 
 /**
@@ -430,7 +468,7 @@ quotationSchema.methods.calculateTotals = function () {
 quotationSchema.methods.approveByManager = async function () {
     this.isApprovedByManager = true;
     this.managerApprovedAt = new Date();
-    this.status = 'approved';
+    this.status = 'VERIFIED';
     return this.save();
 };
 
@@ -441,7 +479,7 @@ quotationSchema.methods.sendToClient = async function () {
     if (!this.isApprovedByManager) {
         throw new Error('Quotation must be approved by manager before sending to client');
     }
-    this.status = 'sent';
+    this.status = 'QUOTATION_SENT';
     return this.save();
 };
 
@@ -454,7 +492,7 @@ quotationSchema.methods.acceptByClient = async function () {
     }
     this.isAcceptedByClient = true;
     this.clientAcceptedAt = new Date();
-    this.status = 'accepted';
+    this.status = 'ACCEPTED';
     return this.save();
 };
 
@@ -466,7 +504,7 @@ quotationSchema.methods.rejectByClient = async function (reason = '') {
     this.isRejectedByClient = true;
     this.clientRejectedAt = new Date();
     this.clientRejectionReason = reason;
-    this.status = 'rejected';
+    this.status = 'REJECTED';
     return this.save();
 };
 
@@ -475,7 +513,7 @@ quotationSchema.methods.rejectByClient = async function (reason = '') {
  * @returns {boolean}
  */
 quotationSchema.methods.canBeEdited = function () {
-    return ['Draft', 'Pending Approval'].includes(this.status);
+    return ['DRAFT', 'PENDING_REVIEW', 'INFO_REQUIRED'].includes(this.status);
 };
 
 /**
@@ -489,13 +527,12 @@ quotationSchema.methods.toClientJSON = function () {
     // Define statuses where price/details are ALWAYS visible to client
     // This overrides any other flags like isApprovedByManager
     const alwaysVisibleStatuses = [
-        'sent',
-        'accepted',
-        'approved',
-        'ready_for_pickup',
-        'shipped',
-        'delivered',
-        'Sent', 'Accepted', 'Approved' // Safety for legacy/mixed case
+        'QUOTATION_SENT',
+        'ACCEPTED',
+        'REJECTED',
+        'BOOKED',
+        'NEGOTIATION_REQUESTED',
+        'EXPIRED'
     ];
 
     if (alwaysVisibleStatuses.includes(status)) {
@@ -516,8 +553,8 @@ quotationSchema.methods.toClientJSON = function () {
         obj.discount = null;
 
         // Also mask status so client doesn't see "cost_calculated" or other internal statuses
-        if (obj.status === 'cost_calculated') {
-            obj.status = 'request_sent';
+        if (obj.status === 'QUOTATION_GENERATED' || obj.status === 'VERIFIED') {
+            obj.status = 'PENDING_REVIEW';
         }
     }
 
@@ -548,7 +585,7 @@ quotationSchema.statics.findVisibleToClient = function (clientId) {
     return this.find({
         clientId,
         isApprovedByManager: true,
-        status: { $in: ['Approved', 'Sent', 'Accepted', 'Rejected'] }
+        status: { $in: ['QUOTATION_SENT', 'ACCEPTED', 'REJECTED', 'BOOKED', 'NEGOTIATION_REQUESTED', 'EXPIRED'] }
     })
         .populate('requestId', 'requestNumber itemName mode')
         .sort({ createdAt: -1 });
@@ -560,7 +597,7 @@ quotationSchema.statics.findVisibleToClient = function (clientId) {
  * @returns {Promise<Quotation[]>}
  */
 quotationSchema.statics.findPendingApproval = function (managerId = null) {
-    const query = { status: 'Pending Approval' };
+    const query = { status: { $in: ['PENDING_REVIEW', 'VERIFIED', 'QUOTATION_GENERATED'] } };
     if (managerId) {
         query.managerId = managerId;
     }

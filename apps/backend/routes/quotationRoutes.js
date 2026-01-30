@@ -32,6 +32,10 @@ router.patch('/:id/approve', quotationController.approveByManager);
 // Send quotation to client app
 router.patch('/:id/send', quotationController.sendToClient);
 
+// Mark quotation as verified (Operations/Dispatcher - Phase 3)
+router.put('/:id/verify', protect, quotationController.markAsVerified);
+
+
 
 
 // ============================================
@@ -53,6 +57,9 @@ router.patch('/:id/accept', quotationController.acceptByClient);
 // Reject quotation (client app)
 router.patch('/:id/reject', quotationController.rejectByClient);
 
+// Request revision / negotiation (client app - Phase 4)
+router.post('/:id/request-revision', protect, quotationController.requestRevision);
+
 // Confirm address and proceed (client app)
 router.put('/:id/confirm-address', quotationController.confirmAddress);
 
@@ -68,5 +75,15 @@ router.get('/:id', quotationController.getQuotation);
 
 // Delete quotation (admin only)
 router.delete('/:id', quotationController.deleteQuotation);
+
+// ============================================
+// Clarification Loop
+// ============================================
+
+// Request clarification (Manager/Admin)
+router.post('/:id/clarification/request', protect, quotationController.requestClarification);
+
+// Submit clarification (client app)
+router.post('/:id/clarification/submit', protect, quotationController.submitClarification);
 
 module.exports = router;
