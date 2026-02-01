@@ -82,7 +82,6 @@ const addressSchema = new mongoose.Schema({
     },
     city: {
         type: String,
-        required: [true, 'City is required'],
         trim: true,
     },
     state: {
@@ -92,7 +91,6 @@ const addressSchema = new mongoose.Schema({
     },
     country: {
         type: String,
-        required: [true, 'Country is required'],
         trim: true,
     },
     zip: {
@@ -139,11 +137,11 @@ const quotationSchema = new mongoose.Schema({
     // --- Shipment Details ---
     origin: {
         type: addressSchema,
-        required: [true, 'Origin address is required'],
+        required: [function () { return this.status !== 'DRAFT'; }, 'Origin address is required'],
     },
     destination: {
         type: addressSchema,
-        required: [true, 'Destination address is required'],
+        required: [function () { return this.status !== 'DRAFT'; }, 'Destination address is required'],
     },
     pickupDate: {
         type: Date,
@@ -153,7 +151,7 @@ const quotationSchema = new mongoose.Schema({
     },
     cargoType: {
         type: String,
-        required: [true, 'Cargo type is required'],
+        required: [function () { return this.status !== 'DRAFT'; }, 'Cargo type is required'],
         default: 'General Cargo'
     },
     serviceType: {
@@ -185,6 +183,7 @@ const quotationSchema = new mongoose.Schema({
         type: [lineItemSchema],
         validate: {
             validator: function (v) {
+                if (this.status === 'DRAFT') return true;
                 return v && v.length > 0;
             },
             message: 'At least one line item is required',
@@ -553,7 +552,7 @@ quotationSchema.methods.toClientJSON = function () {
         obj.discount = null;
 
         // Also mask status so client doesn't see "cost_calculated" or other internal statuses
-        if (obj.status === 'QUOTATION_GENERATED' || obj.status === 'VERIFIED') {
+        if (obj.status === 'QUOTATION_GENERATED') {
             obj.status = 'PENDING_REVIEW';
         }
     }

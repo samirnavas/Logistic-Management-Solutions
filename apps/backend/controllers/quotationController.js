@@ -150,7 +150,7 @@ exports.createQuotation = async (req, res) => {
             cargoType,
             serviceType,
             specialInstructions,
-            status: 'request_sent',
+            status: 'PENDING_REVIEW',
             totalAmount: 0 // Initialize to 0
         });
 
@@ -199,12 +199,12 @@ exports.updateQuotation = async (req, res) => {
             }
         });
 
-        // Automatically update status to 'cost_calculated' if manager updates price/items
-        // and current status is 'request_sent'
-        if (quotation.status === 'request_sent' && (req.body.totalAmount !== undefined || req.body.items !== undefined)) {
+        // Automatically update status to 'VERIFIED' if manager updates price/items
+        // and current status is 'PENDING_REVIEW'
+        if (quotation.status === 'PENDING_REVIEW' && (req.body.totalAmount !== undefined || req.body.items !== undefined)) {
             // Ensure we don't accidentally set it if the manager explicitly set it to something else in this same update (though unlikely via this logic)
             if (!req.body.status) {
-                quotation.status = 'cost_calculated';
+                quotation.status = 'VERIFIED';
             }
         }
 
@@ -243,9 +243,9 @@ exports.updateQuotePrice = async (req, res) => {
         if (additionalNotes !== undefined) quotation.additionalNotes = additionalNotes;
         if (validUntil !== undefined) quotation.validUntil = validUntil;
 
-        // Set status to 'cost_calculated' (intermediate) or whatever was passed
+        // Set status to 'VERIFIED' (intermediate) or whatever was passed
         // This ensures the quotation is marked as processed but not yet "Approved" or "Sent" fully unless workflow dictates
-        quotation.status = status || 'cost_calculated';
+        quotation.status = status || 'VERIFIED';
 
         // Recalculate totals
         quotation.calculateTotals();
@@ -273,7 +273,7 @@ exports.rejectQuotation = async (req, res) => {
             return res.status(404).json({ message: 'Quotation not found' });
         }
 
-        quotation.status = 'rejected';
+        quotation.status = 'REJECTED';
         const updatedQuotation = await quotation.save();
 
         // Notify client app
@@ -745,7 +745,7 @@ exports.approveRequest = async (req, res) => {
             return res.status(404).json({ message: 'Quotation not found' });
         }
 
-        quotation.status = 'approved';
+        quotation.status = 'VERIFIED';
         await quotation.save();
 
         // Notify client
@@ -784,7 +784,7 @@ exports.updateAddress = async (req, res) => {
         if (origin) quotation.origin = origin;
         if (destination) quotation.destination = destination;
 
-        quotation.status = 'details_submitted';
+        quotation.status = 'PENDING_REVIEW';
         const updatedQuotation = await quotation.save();
 
         res.json({
@@ -814,7 +814,7 @@ exports.confirmAddress = async (req, res) => {
         if (deliveryAddress) quotation.destination = deliveryAddress;
 
         // Update Quotation status
-        quotation.status = 'ready_for_pickup';
+        quotation.status = 'BOOKED';
 
         // Also mark as accepted if not already (legacy compatibility)
         if (!quotation.isAcceptedByClient) {
@@ -863,19 +863,19 @@ exports.getQuotationStats = async (req, res) => {
                         { $count: "count" }
                     ],
                     pendingRequests: [
-                        { $match: { status: 'request_sent' } },
+                        { $match: { status: 'PENDING_REVIEW' } },
                         { $count: "count" }
                     ],
                     totalQuotations: [
-                        { $match: { status: { $ne: 'request_sent' } } },
+                        { $match: { status: { $ne: 'PENDING_REVIEW' } } },
                         { $count: "count" }
                     ],
                     pendingQuotations: [
-                        { $match: { status: { $in: ['cost_calculated', 'Pending Approval', 'Sent'] } } },
+                        { $match: { status: { $in: ['VERIFIED', 'Pending Approval', 'QUOTATION_SENT'] } } },
                         { $count: "count" }
                     ],
                     acceptedQuotations: [
-                        { $match: { status: { $in: ['Accepted', 'ready_for_pickup', 'shipped', 'delivered'] } } },
+                        { $match: { status: { $in: ['ACCEPTED', 'BOOKED', 'shipped', 'delivered'] } } },
                         { $count: "count" }
                     ]
                 }

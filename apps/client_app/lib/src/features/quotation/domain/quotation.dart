@@ -315,9 +315,13 @@ class Quotation {
 
     switch (status) {
       case 'request_sent':
+      case 'PENDING_REVIEW':
+      case 'pending_review':
       case 'Pending': // Legacy
         return QuotationStatus.requestSent;
       case 'approved':
+      case 'VERIFIED':
+      case 'verified':
         return QuotationStatus.approved;
       case 'details_submitted':
         return QuotationStatus.detailsSubmitted;

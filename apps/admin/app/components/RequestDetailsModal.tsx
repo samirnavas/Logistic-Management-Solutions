@@ -444,14 +444,14 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                     <span className="bg-slate-100 px-3 py-1 rounded-full text-zinc-600 font-medium border border-slate-200">
                                         ID: <span className="text-zinc-900">{request.quotationId}</span>
                                     </span>
-                                    <span className={`px-3 py-1 rounded-full font-medium border ${request.status === 'request_sent' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                                        request.status === 'cost_calculated' ? 'bg-purple-50 text-purple-700 border-purple-100' :
-                                            request.status === 'approved' ? 'bg-green-50 text-green-700 border-green-100' :
+                                    <span className={`px-3 py-1 rounded-full font-medium border ${['request_sent', 'pending_review', 'PENDING_REVIEW'].includes(request.status) ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                                        ['cost_calculated', 'draft', 'DRAFT'].includes(request.status) ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                                            ['approved', 'verified', 'VERIFIED'].includes(request.status) ? 'bg-green-50 text-green-700 border-green-100' :
                                                 'bg-gray-50 text-gray-700 border-gray-100'
                                         }`}>
-                                        {request.status === 'request_sent' ? 'New' :
-                                            request.status === 'cost_calculated' ? 'Draft' :
-                                                request.status === 'approved' ? 'Approved' : request.status}
+                                        {['request_sent', 'pending_review', 'PENDING_REVIEW'].includes(request.status) ? 'New Request' :
+                                            ['cost_calculated', 'draft', 'DRAFT'].includes(request.status) ? 'Draft' :
+                                                ['approved', 'verified', 'VERIFIED'].includes(request.status) ? 'Approved' : request.status}
                                     </span>
                                 </div>
                             </div>
@@ -520,13 +520,29 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                                 <div className="flex justify-between items-center mb-2">
                                                     <span className="text-xs font-bold text-red-700 uppercase tracking-wider">Delivery</span>
                                                 </div>
-                                                <div className="text-sm font-semibold text-zinc-900 mb-1">{request.destination?.name || 'TBC'}</div>
-                                                <div className="text-xs text-zinc-600 mb-2">{request.destination?.phone}</div>
-                                                <div className="text-xs text-zinc-800 leading-relaxed">
-                                                    {request.destination?.addressLine}<br />
-                                                    {request.destination?.city}, {request.destination?.state}<br />
-                                                    {request.destination?.zip}, {request.destination?.country}
-                                                </div>
+                                                {(request.destination?.name === 'To Be Confirmed' ||
+                                                    request.destination?.phone?.includes('999999') ||
+                                                    request.destination?.zip === '00000' ||
+                                                    request.destination?.addressLine?.includes('To Be Confirmed')) ? (
+                                                    <div className="py-2">
+                                                        <div className="text-sm font-medium text-zinc-500 italic flex items-center gap-2">
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                            To Be Confirmed
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="text-sm font-semibold text-zinc-900 mb-1">{request.destination?.name || 'TBC'}</div>
+                                                        <div className="text-xs text-zinc-600 mb-2">{request.destination?.phone}</div>
+                                                        <div className="text-xs text-zinc-800 leading-relaxed">
+                                                            {request.destination?.addressLine}<br />
+                                                            {request.destination?.city}, {request.destination?.state}<br />
+                                                            {request.destination?.zip}, {request.destination?.country}
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -629,7 +645,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                 </div>
 
                                 {/* Price Breakdown (Only if Calculated) */}
-                                {request.totalAmount > 0 && ['cost_calculated', 'sent', 'accepted', 'ready_for_pickup', 'shipped', 'delivered'].includes(request.status) && (
+                                {request.totalAmount > 0 && ['cost_calculated', 'sent', 'accepted', 'ready_for_pickup', 'shipped', 'delivered', 'QUOTATION_SENT', 'ACCEPTED', 'BOOKED'].includes(request.status) && (
                                     <div className="bg-gradient-to-br from-gray-900 to-zinc-800 rounded-xl shadow-lg p-6 text-white">
                                         <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
                                             <span className="w-1 h-6 bg-green-500 rounded-full"></span>
@@ -666,7 +682,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                 Add Internal Notes
                             </button>
 
-                            {request.status === 'request_sent' && (
+                            {['request_sent', 'pending_review', 'PENDING_REVIEW'].includes(request.status) && (
                                 <button
                                     onClick={handleApproveRequest}
                                     className="w-full sm:w-auto bg-sky-700 text-white px-8 py-2.5 rounded-full text-sm font-medium hover:bg-sky-800 transition-colors shadow-sm shadow-sky-700/20"
@@ -675,7 +691,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                 </button>
                             )}
 
-                            {request.status === 'approved' && (
+                            {['approved', 'verified', 'VERIFIED'].includes(request.status) && (
                                 <div className="w-full sm:w-auto bg-yellow-50 text-yellow-800 px-6 py-2.5 rounded-lg border border-yellow-200 flex items-center justify-center shadow-sm">
                                     <span className="mr-2">⏳</span>
                                     <span className="font-medium text-sm">Waiting for client to provide details</span>
