@@ -130,6 +130,7 @@ exports.createQuotation = async (req, res) => {
             cargoType,
             serviceType,
             specialInstructions
+            // Explicitly excluding 'status' from destructuring to prevent it from being passed
         } = req.body;
 
         // Validation for critical fields
@@ -150,7 +151,7 @@ exports.createQuotation = async (req, res) => {
             cargoType,
             serviceType,
             specialInstructions,
-            status: 'PENDING_REVIEW',
+            status: 'PENDING_REVIEW', // Strict Default
             totalAmount: 0 // Initialize to 0
         });
 
@@ -180,6 +181,16 @@ exports.updateQuotation = async (req, res) => {
             return res.status(404).json({ message: 'Quotation not found' });
         }
 
+        // Smart Status Protection: Fix for "status loop" bug
+        if (req.user && req.user.role === 'client') {
+            // Scenario A: Client updating address on VERIFIED request -> Protect Status
+            // Prevent Verified requests from reverting to Pending when client adds address
+            if (quotation.status === 'VERIFIED' || quotation.status === 'approved') {
+                if (req.body.status) delete req.body.status;
+            }
+            // Scenario B: Draft/Info Required -> Allow status change (implicitly handled by not deleting it)
+        }
+
         if (!quotation.canBeEdited()) {
             return res.status(400).json({
                 message: 'Cannot update quotation. Only draft or pending approval quotations can be modified.'
@@ -190,7 +201,8 @@ exports.updateQuotation = async (req, res) => {
         const allowedUpdates = [
             'items', 'taxRate', 'discount', 'discountReason', 'currency',
             'validUntil', 'termsAndConditions', 'internalNotes', 'additionalNotes',
-            'status', 'managerId', 'origin', 'destination', 'pickupDate', 'deliveryDate'
+            'managerId', 'origin', 'destination', 'pickupDate', 'deliveryDate',
+            'status' // Restored status to allowedUpdates
         ];
 
         allowedUpdates.forEach(field => {
