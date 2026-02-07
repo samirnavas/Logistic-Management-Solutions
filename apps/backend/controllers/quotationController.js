@@ -171,67 +171,50 @@ exports.createQuotation = async (req, res) => {
 };
 
 // ============================================
-// Update quotation (Manager)
+// Update Quotation (Universal Update with Protection)
 // ============================================
 exports.updateQuotation = async (req, res) => {
     try {
-        const quotation = await Quotation.findById(req.params.id);
+        const { id } = req.params;
+        let updateData = { ...req.body };
 
-        if (!quotation) {
+        // 1. Fetch the CURRENT state of the quotation
+        const currentQuotation = await Quotation.findById(id);
+        if (!currentQuotation) {
             return res.status(404).json({ message: 'Quotation not found' });
         }
 
-        // Smart Status Protection: Fix for "status loop" bug
+        // 2. SECURITY: Client-Side Field Protection
         if (req.user && req.user.role === 'client') {
-            // Scenario A: Client updating address on VERIFIED request -> Protect Status
-            // Prevent Verified requests from reverting to Pending when client adds address
-            if (quotation.status === 'VERIFIED' || quotation.status === 'approved') {
-                if (req.body.status) delete req.body.status;
+            // A Client can NEVER manually change the status via this endpoint
+            // The status only changes via specific actions (submit, accept, etc.)
+            if (updateData.status) {
+                console.log(`[Security] Blocked client from changing status ${currentQuotation.status} -> ${updateData.status}`);
+                delete updateData.status;
             }
-            // Scenario B: Draft/Info Required -> Allow status change (implicitly handled by not deleting it)
-        }
 
-        if (!quotation.canBeEdited()) {
-            return res.status(400).json({
-                message: 'Cannot update quotation. Only draft or pending approval quotations can be modified.'
-            });
-        }
-
-        // Update allowed fields
-        const allowedUpdates = [
-            'items', 'taxRate', 'discount', 'discountReason', 'currency',
-            'validUntil', 'termsAndConditions', 'internalNotes', 'additionalNotes',
-            'managerId', 'origin', 'destination', 'pickupDate', 'deliveryDate',
-            'status' // Restored status to allowedUpdates
-        ];
-
-        allowedUpdates.forEach(field => {
-            if (req.body[field] !== undefined) {
-                quotation[field] = req.body[field];
-            }
-        });
-
-        // Automatically update status to 'VERIFIED' if manager updates price/items
-        // and current status is 'PENDING_REVIEW'
-        if (quotation.status === 'PENDING_REVIEW' && (req.body.totalAmount !== undefined || req.body.items !== undefined)) {
-            // Ensure we don't accidentally set it if the manager explicitly set it to something else in this same update (though unlikely via this logic)
-            if (!req.body.status) {
-                quotation.status = 'VERIFIED';
+            // SPECIAL CASE: If adding Address/Pickup details while VERIFIED
+            // Ensure we don't accidentally revert to PENDING
+            if (currentQuotation.status === 'VERIFIED') {
+                console.log('[Logic] Preserving VERIFIED status during address update');
+                delete updateData.status;
+                // Allow address fields to pass through
             }
         }
 
-        // Recalculate totals
-        quotation.calculateTotals();
+        // 3. Perform the Update
+        const updatedQuotation = await Quotation.findByIdAndUpdate(
+            id,
+            updateData,
+            { new: true, runValidators: true }
+        );
 
-        const updatedQuotation = await quotation.save();
+        console.log(`[Update] Quotation ${id} updated. New Status: ${updatedQuotation.status}`);
 
-        res.json({
-            message: 'Quotation updated successfully',
-            quotation: updatedQuotation,
-        });
+        res.status(200).json(updatedQuotation);
     } catch (error) {
-        console.error('Update Quotation Error:', error);
-        res.status(400).json({ message: 'Failed to update quotation', error: error.message });
+        console.error('Update Error:', error);
+        res.status(500).json({ message: 'Error updating quotation', error: error.message });
     }
 };
 

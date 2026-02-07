@@ -82,17 +82,28 @@ class QuotationRepository {
     Map<String, dynamic> origin,
     Map<String, dynamic> destination,
   ) async {
+    // SECURITY: Explicitly remove 'status' from origin and destination to prevent overwrites
+    // Status should ONLY be changed via specific actions (submit, accept, etc.)
+    final cleanOrigin = Map<String, dynamic>.from(origin);
+    final cleanDestination = Map<String, dynamic>.from(destination);
+    cleanOrigin.remove('status');
+    cleanDestination.remove('status');
+
     await _apiService.putRequest('/api/quotations/$id/address', {
-      'origin': origin,
-      'destination': destination,
+      'origin': cleanOrigin,
+      'destination': cleanDestination,
     });
   }
 
   /// Create a new quotation request
   Future<Quotation> createQuotation(Map<String, dynamic> requestData) async {
+    // SECURITY: Remove status field - backend will set it to PENDING_REVIEW
+    final cleanData = Map<String, dynamic>.from(requestData);
+    cleanData.remove('status');
+
     final response = await _apiService.postRequest(
       '/api/quotations',
-      requestData,
+      cleanData,
     );
 
     // Response format: { message: "...", quotation: {...} }
@@ -109,9 +120,13 @@ class QuotationRepository {
 
   /// Save quotation as draft
   Future<Quotation> saveAsDraft(Map<String, dynamic> data) async {
+    // SECURITY: Remove status field - backend will set it to DRAFT
+    final cleanData = Map<String, dynamic>.from(data);
+    cleanData.remove('status');
+
     final response = await _apiService.postRequest(
       '/api/quotations/draft',
-      data,
+      cleanData,
     );
 
     if (response is Map<String, dynamic> && response.containsKey('quotation')) {
@@ -126,6 +141,7 @@ class QuotationRepository {
   }
 
   /// Submit quotation (update and change status)
+  /// This is one of the ONLY methods where status CAN be changed (DRAFT -> PENDING_REVIEW)
   Future<void> submitQuotation(String id, Map<String, dynamic> data) async {
     await _apiService.putRequest('/api/quotations/$id/submit', data);
   }
