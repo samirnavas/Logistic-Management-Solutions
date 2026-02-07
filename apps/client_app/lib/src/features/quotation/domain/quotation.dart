@@ -3,6 +3,7 @@ enum QuotationStatus {
   draft,
   requestSent,
   approved,
+  addressProvided,
   detailsSubmitted,
   costCalculated,
   sent,
@@ -21,6 +22,8 @@ enum QuotationStatus {
         return 'Request Sent';
       case QuotationStatus.approved:
         return 'Approved - Action Required';
+      case QuotationStatus.addressProvided:
+        return 'Address Provided';
       case QuotationStatus.detailsSubmitted:
         return 'Details Submitted';
       case QuotationStatus.costCalculated:
@@ -329,20 +332,28 @@ class Quotation {
       case 'VERIFIED':
       case 'verified':
         return QuotationStatus.approved;
+      case 'ADDRESS_PROVIDED':
+      case 'address_provided':
+        return QuotationStatus.addressProvided;
       case 'details_submitted':
         return QuotationStatus.detailsSubmitted;
+      case 'QUOTATION_GENERATED':
       case 'cost_calculated':
       case 'Approved': // Legacy
         return QuotationStatus.costCalculated;
+      case 'QUOTATION_SENT':
       case 'sent':
       case 'Sent':
         return QuotationStatus.sent;
+      case 'ACCEPTED':
       case 'accepted':
       case 'Accepted':
         return QuotationStatus.accepted;
+      case 'REJECTED':
       case 'rejected':
       case 'Rejected': // Legacy
         return QuotationStatus.rejected;
+      case 'BOOKED':
       case 'ready_for_pickup':
       case 'Ready for Pickup': // Legacy
         return QuotationStatus.readyForPickup;
@@ -351,6 +362,7 @@ class Quotation {
       case 'delivered':
         return QuotationStatus.delivered;
 
+      case 'INFO_REQUIRED':
       case 'info_required':
         return QuotationStatus.infoRequired;
       default:
@@ -369,6 +381,9 @@ class Quotation {
         break;
       case QuotationStatus.approved:
         statusStr = 'approved';
+        break;
+      case QuotationStatus.addressProvided:
+        statusStr = 'ADDRESS_PROVIDED';
         break;
       case QuotationStatus.detailsSubmitted:
         statusStr = 'details_submitted';

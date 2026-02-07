@@ -72,24 +72,26 @@ class _QuotationScreenState extends ConsumerState<QuotationScreen> {
         return 0;
       case QuotationStatus.approved:
         return 1;
-      case QuotationStatus.detailsSubmitted:
+      case QuotationStatus.addressProvided:
         return 2;
-      case QuotationStatus.costCalculated:
+      case QuotationStatus.detailsSubmitted:
         return 3;
-      case QuotationStatus.sent:
+      case QuotationStatus.costCalculated:
         return 4;
-      case QuotationStatus.accepted:
+      case QuotationStatus.sent:
         return 5;
-      case QuotationStatus.readyForPickup:
+      case QuotationStatus.accepted:
         return 6;
-      case QuotationStatus.shipped:
+      case QuotationStatus.readyForPickup:
         return 7;
-      case QuotationStatus.delivered:
+      case QuotationStatus.shipped:
         return 8;
-      case QuotationStatus.rejected:
+      case QuotationStatus.delivered:
         return 9;
-      case QuotationStatus.infoRequired:
+      case QuotationStatus.rejected:
         return 10;
+      case QuotationStatus.infoRequired:
+        return 11;
     }
   }
 
@@ -604,6 +606,8 @@ class _QuotationCard extends StatelessWidget {
         return AppTheme.warning;
       case QuotationStatus.approved:
         return AppTheme.error; // Red to indicate action required
+      case QuotationStatus.addressProvided:
+        return Colors.teal;
       case QuotationStatus.detailsSubmitted:
         return Colors.blueGrey;
       case QuotationStatus.rejected:

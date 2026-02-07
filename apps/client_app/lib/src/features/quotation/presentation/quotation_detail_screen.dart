@@ -448,6 +448,9 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
       case QuotationStatus.approved:
         badgeColor = AppTheme.warning;
         break;
+      case QuotationStatus.addressProvided:
+        badgeColor = Colors.teal;
+        break;
       case QuotationStatus.detailsSubmitted:
         badgeColor = Colors.blueGrey;
         break;
