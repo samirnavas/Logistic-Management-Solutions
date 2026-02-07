@@ -183,5 +183,22 @@ class _QuotationByIdProviderElement
   String get id => (origin as QuotationByIdProvider).id;
 }
 
+String _$draftsHash() => r'674f5b6476a02beaa8a43621b5afe9c2bbcc4d11';
+
+/// See also [drafts].
+@ProviderFor(drafts)
+final draftsProvider = AutoDisposeFutureProvider<List<Quotation>>.internal(
+  drafts,
+  name: r'draftsProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$draftsHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DraftsRef = AutoDisposeFutureProviderRef<List<Quotation>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

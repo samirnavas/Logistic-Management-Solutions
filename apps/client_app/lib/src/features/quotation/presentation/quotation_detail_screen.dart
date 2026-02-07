@@ -418,6 +418,9 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
   Widget _buildStatusBadge(QuotationStatus status) {
     Color badgeColor;
     switch (status) {
+      case QuotationStatus.draft:
+        badgeColor = Colors.grey;
+        break;
       case QuotationStatus.costCalculated:
         badgeColor = AppTheme.success;
         break;

@@ -66,6 +66,8 @@ class _QuotationScreenState extends ConsumerState<QuotationScreen> {
   /// Get order number for status (for sorting)
   int _getStatusOrder(QuotationStatus status) {
     switch (status) {
+      case QuotationStatus.draft:
+        return -1; // Drafts come first
       case QuotationStatus.requestSent:
         return 0;
       case QuotationStatus.approved:
@@ -590,6 +592,8 @@ class _QuotationCard extends StatelessWidget {
 
   Color _getStatusColor() {
     switch (quotation.status) {
+      case QuotationStatus.draft:
+        return Colors.grey;
       case QuotationStatus.costCalculated:
         return AppTheme.success;
       case QuotationStatus.sent:

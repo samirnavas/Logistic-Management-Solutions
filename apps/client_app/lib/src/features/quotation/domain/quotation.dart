@@ -1,5 +1,6 @@
 /// Quotation status enum
 enum QuotationStatus {
+  draft,
   requestSent,
   approved,
   detailsSubmitted,
@@ -14,6 +15,8 @@ enum QuotationStatus {
 
   String get displayName {
     switch (this) {
+      case QuotationStatus.draft:
+        return 'Draft';
       case QuotationStatus.requestSent:
         return 'Request Sent';
       case QuotationStatus.approved:
@@ -314,6 +317,9 @@ class Quotation {
     if (status == null) return QuotationStatus.requestSent;
 
     switch (status) {
+      case 'DRAFT':
+      case 'draft':
+        return QuotationStatus.draft;
       case 'request_sent':
       case 'PENDING_REVIEW':
       case 'pending_review':
@@ -355,6 +361,9 @@ class Quotation {
   Map<String, dynamic> toJson() {
     String statusStr;
     switch (status) {
+      case QuotationStatus.draft:
+        statusStr = 'DRAFT';
+        break;
       case QuotationStatus.requestSent:
         statusStr = 'request_sent';
         break;

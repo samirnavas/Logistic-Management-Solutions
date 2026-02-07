@@ -36,6 +36,10 @@ const lineItemSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    hsCode: {
+        type: String,
+        trim: true,
+    },
     videoUrl: {
         type: String,
         trim: true,
@@ -626,8 +630,32 @@ async function generateQuotationNumber() {
         createdAt: { $gte: startOfDay, $lte: endOfDay }
     });
 
-    const sequenceNumber = String(count + 1).padStart(6, '0');
-    return `QUO-${dateStr}-${sequenceNumber}`;
+    // Try to generate a unique number, incrementing if duplicates exist
+    let attempt = count + 1;
+    let quotationNumber;
+    let isUnique = false;
+    const maxAttempts = 100; // Prevent infinite loops
+
+    while (!isUnique && attempt < count + maxAttempts) {
+        const sequenceNumber = String(attempt).padStart(6, '0');
+        quotationNumber = `QUO-${dateStr}-${sequenceNumber}`;
+
+        // Check if this number already exists
+        const existing = await mongoose.model('Quotation').findOne({ quotationNumber });
+
+        if (!existing) {
+            isUnique = true;
+        } else {
+            attempt++;
+        }
+    }
+
+    if (!isUnique) {
+        // Fallback: use timestamp to ensure uniqueness
+        quotationNumber = `QUO-${dateStr}-${Date.now()}`;
+    }
+
+    return quotationNumber;
 }
 
 module.exports = mongoose.model('Quotation', quotationSchema);

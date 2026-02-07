@@ -25,7 +25,7 @@ final shipmentRepositoryProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ShipmentRepositoryRef = AutoDisposeProviderRef<ShipmentRepository>;
-String _$shipmentListHash() => r'abee6a44338dba8287f8ff07fea727c1f9573f55';
+String _$shipmentListHash() => r'0bdb0aff1ca7dceb3f8583acc89fa5dad86fef8a';
 
 /// Fetches the list of all shipments.
 ///

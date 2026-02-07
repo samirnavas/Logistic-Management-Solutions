@@ -170,46 +170,60 @@ exports.createQuotation = async (req, res) => {
     }
 };
 
-// ============================================
-// Update Quotation (Universal Update with Protection)
-// ============================================
+// ==========================================
+// SECURE UPDATE QUOTATION (The Firewall Fix)
+// ==========================================
 exports.updateQuotation = async (req, res) => {
     try {
         const { id } = req.params;
         let updateData = { ...req.body };
 
-        // 1. Fetch the CURRENT state of the quotation
-        const currentQuotation = await Quotation.findById(id);
-        if (!currentQuotation) {
+        // 1. Fetch the CURRENT state from Database
+        const existingQuotation = await Quotation.findById(id);
+        if (!existingQuotation) {
             return res.status(404).json({ message: 'Quotation not found' });
         }
 
-        // 2. SECURITY: Client-Side Field Protection
-        if (req.user && req.user.role === 'client') {
-            // A Client can NEVER manually change the status via this endpoint
-            // The status only changes via specific actions (submit, accept, etc.)
+        // 2. THE FIREWALL: Strict Field Stripping for Clients
+        if (req.user.role === 'client') {
+            console.log(`[Update] Client modifying Quotation ${id}. Current Status: ${existingQuotation.status}`);
+
+            // BLOCK 1: Never allow a client to manually set status via this route.
+            // Status changes ONLY happen via specific endpoints (submit, accept, etc.)
             if (updateData.status) {
-                console.log(`[Security] Blocked client from changing status ${currentQuotation.status} -> ${updateData.status}`);
+                console.warn(`[Security] Dropping illegal status change request to '${updateData.status}'`);
                 delete updateData.status;
             }
 
-            // SPECIAL CASE: If adding Address/Pickup details while VERIFIED
-            // Ensure we don't accidentally revert to PENDING
-            if (currentQuotation.status === 'VERIFIED') {
-                console.log('[Logic] Preserving VERIFIED status during address update');
-                delete updateData.status;
-                // Allow address fields to pass through
+            // BLOCK 2: Never allow client to edit pricing or admin notes
+            if (updateData.price) delete updateData.price;
+            if (updateData.totalAmount) delete updateData.totalAmount;
+            if (updateData.adminFeedback) delete updateData.adminFeedback;
+            if (updateData.isVerified) delete updateData.isVerified;
+
+            // LOGIC EXCEPTION: 
+            // If the request is currently in 'INFO_REQUIRED' (Admin asked for changes),
+            // We implicitely move it back to 'PENDING_REVIEW' so Admin sees the fix.
+            if (existingQuotation.status === 'INFO_REQUIRED') {
+                console.log('[Logic] Auto-moving corrected request back to PENDING_REVIEW');
+                updateData.status = 'PENDING_REVIEW';
+
+                // Add to history
+                if (!updateData.statusHistory) updateData.statusHistory = existingQuotation.statusHistory;
+                updateData.statusHistory.push({
+                    status: 'PENDING_REVIEW',
+                    changedBy: req.user._id,
+                    reason: 'Client provided requested information'
+                });
             }
         }
 
-        // 3. Perform the Update
+        // 3. Execute the Update
         const updatedQuotation = await Quotation.findByIdAndUpdate(
             id,
             updateData,
             { new: true, runValidators: true }
         );
-
-        console.log(`[Update] Quotation ${id} updated. New Status: ${updatedQuotation.status}`);
 
         res.status(200).json(updatedQuotation);
     } catch (error) {
@@ -1148,6 +1162,30 @@ exports.submitQuotation = async (req, res) => {
                 currentStatus: quotation.status
             });
         }
+
+        // IMPORTANT: Update quotation data if provided in request body
+        const {
+            origin,
+            destination,
+            items,
+            pickupDate,
+            deliveryDate,
+            cargoType,
+            serviceType,
+            specialInstructions,
+            productPhotos
+        } = req.body;
+
+        // Update fields if provided
+        if (origin) quotation.origin = origin;
+        if (destination) quotation.destination = destination;
+        if (items && Array.isArray(items)) quotation.items = items;
+        if (pickupDate) quotation.pickupDate = pickupDate;
+        if (deliveryDate) quotation.deliveryDate = deliveryDate;
+        if (cargoType) quotation.cargoType = cargoType;
+        if (serviceType) quotation.serviceType = serviceType;
+        if (specialInstructions) quotation.specialInstructions = specialInstructions;
+        if (productPhotos) quotation.productPhotos = productPhotos;
 
         // Check 3: Validate all required fields are present
         const validationErrors = [];

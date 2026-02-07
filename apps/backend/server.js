@@ -123,4 +123,4 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('  - GET    /api/requests');
     console.log('  - GET    /api/quotations');
     console.log('  - GET    /api/notifications/user/:userId');
-});
+}); // Force restart to apply schema changes

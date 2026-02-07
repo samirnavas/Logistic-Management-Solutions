@@ -7,6 +7,7 @@ import 'package:bb_logistics/src/features/auth/presentation/splash_screen.dart';
 import 'package:bb_logistics/src/features/home/presentation/home_screen.dart';
 import 'package:bb_logistics/src/features/profile/presentation/profile_screen.dart';
 import 'package:bb_logistics/src/features/quotation/presentation/add_address_screen.dart';
+import 'package:bb_logistics/src/features/quotation/presentation/drafts_screen.dart';
 import 'package:bb_logistics/src/features/quotation/presentation/quotation_detail_screen.dart';
 import 'package:bb_logistics/src/features/quotation/presentation/quotation_screen.dart';
 import 'package:bb_logistics/src/features/shipment/presentation/request_shipment_screen.dart';
@@ -98,6 +99,12 @@ GoRouter goRouter(Ref ref) {
           final shipmentId = state.pathParameters['shipmentId']!;
           return TrackingScreen(shipmentId: shipmentId);
         },
+      ),
+      // Drafts Screen - Root level route
+      GoRoute(
+        path: '/drafts',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const DraftsScreen(),
       ),
       // Stateful Nested Shell Route for Bottom Nav
       StatefulShellRoute.indexedStack(

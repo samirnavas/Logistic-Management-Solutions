@@ -107,5 +107,10 @@ class UserError implements Exception {
   }
 
   @override
-  String toString() => friendlyMessage;
+  String toString() {
+    if (rawMessage != null && rawMessage!.isNotEmpty) {
+      return '$friendlyMessage ($rawMessage)';
+    }
+    return friendlyMessage;
+  }
 }

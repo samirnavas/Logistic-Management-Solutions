@@ -11,13 +11,19 @@ class ApiService {
   // Smart URL selection
   static String get baseUrl => ApiConstants.baseUrl;
 
-  /// Parses the error response body and throws a UserError
   UserError _handleErrorResponse(http.Response response) {
     String? rawMessage;
     try {
       final errorBody = jsonDecode(response.body);
-      rawMessage =
-          errorBody['message'] ?? errorBody['msg'] ?? errorBody['error'];
+      // Prioritize combining message and error for full details
+      final msg = errorBody['message'] ?? errorBody['msg'];
+      final err = errorBody['error'];
+
+      if (msg != null && err != null) {
+        rawMessage = '$msg: $err';
+      } else {
+        rawMessage = msg ?? err;
+      }
     } catch (_) {
       // Body wasn't valid JSON
       rawMessage = response.body;

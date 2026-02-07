@@ -41,6 +41,31 @@ class QuotationRepository {
     return [];
   }
 
+  /// Get draft quotations only
+  Future<List<Quotation>> getDrafts() async {
+    if (_currentUserId == null) return [];
+
+    final response = await _apiService.getRequest(
+      '/api/quotations/client/$_currentUserId',
+    );
+
+    // Filter only DRAFT status quotations
+    if (response is Map<String, dynamic> &&
+        response.containsKey('quotations')) {
+      final List<dynamic> list = response['quotations'];
+      return list
+          .map((json) {
+            if (json.containsKey('_id') && !json.containsKey('id')) {
+              json['id'] = json['_id'];
+            }
+            return Quotation.fromJson(json);
+          })
+          .where((quotation) => quotation.status == QuotationStatus.draft)
+          .toList();
+    }
+    return [];
+  }
+
   /// Get single quotation by ID
   Future<Quotation?> getQuotationById(String id) async {
     if (_currentUserId == null) return null;
@@ -145,6 +170,32 @@ class QuotationRepository {
   Future<void> submitQuotation(String id, Map<String, dynamic> data) async {
     await _apiService.putRequest('/api/quotations/$id/submit', data);
   }
+
+  /// Update quotation (general updates like address changes on VERIFIED quotations)
+  /// FIREWALL: This method strips forbidden fields to prevent accidental status overwrites
+  Future<Quotation> updateQuotation(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    // Remove status to prevent overwriting server state
+    data.remove('status');
+
+    // Also remove other forbidden fields that only admins should modify
+    data.remove('price');
+    data.remove('totalAmount');
+    data.remove('adminFeedback');
+    data.remove('isVerified');
+
+    final response = await _apiService.putRequest('/api/quotations/$id', data);
+
+    if (response is Map<String, dynamic>) {
+      if (response.containsKey('_id') && !response.containsKey('id')) {
+        response['id'] = response['_id'];
+      }
+      return Quotation.fromJson(response);
+    }
+    throw Exception('Failed to update quotation');
+  }
 }
 
 @riverpod
@@ -164,4 +215,10 @@ Future<List<Quotation>> quotations(Ref ref) async {
 Future<Quotation?> quotationById(Ref ref, String id) async {
   final repository = ref.watch(quotationRepositoryProvider);
   return repository.getQuotationById(id);
+}
+
+@riverpod
+Future<List<Quotation>> drafts(Ref ref) async {
+  final repository = ref.watch(quotationRepositoryProvider);
+  return repository.getDrafts();
 }

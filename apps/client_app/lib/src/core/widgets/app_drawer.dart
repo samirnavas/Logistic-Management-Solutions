@@ -68,6 +68,15 @@ class AppDrawer extends ConsumerWidget {
                   },
                 ),
                 ListTile(
+                  leading: const Icon(Icons.drafts_outlined),
+                  title: const Text('Saved Drafts'),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    context.pop();
+                    context.push('/drafts');
+                  },
+                ),
+                ListTile(
                   leading: const Icon(Icons.location_searching),
                   title: const Text('Track Shipment'),
                   onTap: () {
