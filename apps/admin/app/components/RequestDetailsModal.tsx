@@ -248,7 +248,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                 discount: Number(discountAmount),
                 additionalNotes: combinedNotes,
                 validUntil: validUntil || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-                status: 'cost_calculated' // Valid status for pricing entered but not sent
+                status: 'QUOTATION_GENERATED' // Valid status for pricing entered but not sent
             };
 
             console.log('Payload being sent:', JSON.stringify(payload, null, 2));
@@ -356,7 +356,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                 discount: Number(discountAmount),
                 additionalNotes: combinedNotes,
                 validUntil: validUntil || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-                status: 'cost_calculated'
+                status: 'QUOTATION_GENERATED'
             };
 
             console.log('Send to Customer - Payload being sent:', JSON.stringify(payload, null, 2));
@@ -447,11 +447,13 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                     <span className={`px-3 py-1 rounded-full font-medium border ${['request_sent', 'pending_review', 'PENDING_REVIEW'].includes(request.status) ? 'bg-blue-50 text-blue-700 border-blue-100' :
                                         ['cost_calculated', 'draft', 'DRAFT'].includes(request.status) ? 'bg-purple-50 text-purple-700 border-purple-100' :
                                             ['approved', 'verified', 'VERIFIED'].includes(request.status) ? 'bg-green-50 text-green-700 border-green-100' :
-                                                'bg-gray-50 text-gray-700 border-gray-100'
+                                                request.status === 'ADDRESS_PROVIDED' ? 'bg-teal-50 text-teal-700 border-teal-100' :
+                                                    'bg-gray-50 text-gray-700 border-gray-100'
                                         }`}>
                                         {['request_sent', 'pending_review', 'PENDING_REVIEW'].includes(request.status) ? 'New Request' :
                                             ['cost_calculated', 'draft', 'DRAFT'].includes(request.status) ? 'Draft' :
-                                                ['approved', 'verified', 'VERIFIED'].includes(request.status) ? 'Approved' : request.status}
+                                                ['approved', 'verified', 'VERIFIED'].includes(request.status) ? 'Approved' :
+                                                    request.status === 'ADDRESS_PROVIDED' ? 'Address Provided' : request.status}
                                     </span>
                                 </div>
                             </div>
@@ -698,7 +700,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                 </div>
                             )}
 
-                            {request.status === 'details_submitted' && (
+                            {['details_submitted', 'ADDRESS_PROVIDED'].includes(request.status) && (
                                 <button
                                     onClick={() => {
                                         setShowQuoteForm(true);

@@ -55,6 +55,7 @@ export type QuotationStatus =
     | 'PENDING_REVIEW'
     | 'INFO_REQUIRED'
     | 'VERIFIED'
+    | 'ADDRESS_PROVIDED'
     | 'QUOTATION_GENERATED'
     | 'QUOTATION_SENT'
     | 'NEGOTIATION_REQUESTED'

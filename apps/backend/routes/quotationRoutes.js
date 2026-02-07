@@ -73,6 +73,9 @@ router.put('/:id/approve', protect, quotationController.approveRequest);
 // Approve quotation (manager - final approval)
 router.patch('/:id/approve', protect, quotationController.approveByManager);
 
+// Update quotation price (admin - pricing details)
+router.put('/:id/update-price', protect, quotationController.updateQuotePrice);
+
 // Send quotation to client app
 router.patch('/:id/send', protect, quotationController.sendToClient);
 

@@ -40,6 +40,8 @@ export default function RequestsPage() {
                 return 'bg-yellow-100 text-yellow-800 border-yellow-200';
             case 'VERIFIED':
                 return 'bg-blue-100 text-blue-800 border-blue-200';
+            case 'ADDRESS_PROVIDED':
+                return 'bg-teal-100 text-teal-800 border-teal-200';
             case 'NEGOTIATION_REQUESTED':
                 return 'bg-orange-100 text-orange-800 border-orange-200';
             case 'INFO_REQUIRED':

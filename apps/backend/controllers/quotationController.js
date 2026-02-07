@@ -178,57 +178,28 @@ exports.updateQuotation = async (req, res) => {
         const { id } = req.params;
         let updateData = { ...req.body };
 
-        // 1. Fetch the CURRENT state from Database
-        const existingQuotation = await Quotation.findById(id);
-        if (!existingQuotation) {
-            return res.status(404).json({ message: 'Quotation not found' });
-        }
+        const currentQuotation = await Quotation.findById(id);
+        if (!currentQuotation) return res.status(404).json({ message: 'Not found' });
 
-        // 2. THE FIREWALL: Strict Field Stripping for Clients
+        // LOGIC FIX: Handle Address Submission Loop
         if (req.user.role === 'client') {
-            console.log(`[Update] Client modifying Quotation ${id}. Current Status: ${existingQuotation.status}`);
+            // If the admin already verified it, and client is now adding details (Address)
+            if (currentQuotation.status === 'VERIFIED') {
+                console.log('Client providing address for Verified request. Moving to ADDRESS_PROVIDED.');
 
-            // BLOCK 1: Never allow a client to manually set status via this route.
-            // Status changes ONLY happen via specific endpoints (submit, accept, etc.)
-            if (updateData.status) {
-                console.warn(`[Security] Dropping illegal status change request to '${updateData.status}'`);
+                // FORCE the status to move forward, ignoring whatever the app sent
+                updateData.status = 'ADDRESS_PROVIDED';
+            }
+            // Security: Prevent Client from resetting to Pending if it's already past that stage
+            else if (currentQuotation.status !== 'DRAFT' && currentQuotation.status !== 'INFO_REQUIRED') {
                 delete updateData.status;
             }
-
-            // BLOCK 2: Never allow client to edit pricing or admin notes
-            if (updateData.price) delete updateData.price;
-            if (updateData.totalAmount) delete updateData.totalAmount;
-            if (updateData.adminFeedback) delete updateData.adminFeedback;
-            if (updateData.isVerified) delete updateData.isVerified;
-
-            // LOGIC EXCEPTION: 
-            // If the request is currently in 'INFO_REQUIRED' (Admin asked for changes),
-            // We implicitely move it back to 'PENDING_REVIEW' so Admin sees the fix.
-            if (existingQuotation.status === 'INFO_REQUIRED') {
-                console.log('[Logic] Auto-moving corrected request back to PENDING_REVIEW');
-                updateData.status = 'PENDING_REVIEW';
-
-                // Add to history
-                if (!updateData.statusHistory) updateData.statusHistory = existingQuotation.statusHistory;
-                updateData.statusHistory.push({
-                    status: 'PENDING_REVIEW',
-                    changedBy: req.user._id,
-                    reason: 'Client provided requested information'
-                });
-            }
         }
 
-        // 3. Execute the Update
-        const updatedQuotation = await Quotation.findByIdAndUpdate(
-            id,
-            updateData,
-            { new: true, runValidators: true }
-        );
-
-        res.status(200).json(updatedQuotation);
+        const updatedQuotation = await Quotation.findByIdAndUpdate(id, updateData, { new: true });
+        res.json(updatedQuotation);
     } catch (error) {
-        console.error('Update Error:', error);
-        res.status(500).json({ message: 'Error updating quotation', error: error.message });
+        res.status(500).json({ message: error.message });
     }
 };
 
@@ -252,9 +223,8 @@ exports.updateQuotePrice = async (req, res) => {
         if (additionalNotes !== undefined) quotation.additionalNotes = additionalNotes;
         if (validUntil !== undefined) quotation.validUntil = validUntil;
 
-        // Set status to 'VERIFIED' (intermediate) or whatever was passed
-        // This ensures the quotation is marked as processed but not yet "Approved" or "Sent" fully unless workflow dictates
-        quotation.status = status || 'VERIFIED';
+        // Set status - use passed status or default to QUOTATION_GENERATED (pricing has been calculated)
+        quotation.status = status || 'QUOTATION_GENERATED';
 
         // Recalculate totals
         quotation.calculateTotals();

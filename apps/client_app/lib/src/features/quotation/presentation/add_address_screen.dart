@@ -61,34 +61,41 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final origin = {
-        'name': _originNameController.text,
-        'phone': _originPhoneController.text,
-        'addressLine': _originAddressController.text,
-        'city': _originCityController.text,
-        'state': _originStateController.text,
-        'zip': _originZipController.text,
-        'country': _originCountryController.text,
+      // Prepare address data - NO status field
+      final updateData = {
+        'origin': {
+          'name': _originNameController.text,
+          'phone': _originPhoneController.text,
+          'addressLine': _originAddressController.text,
+          'city': _originCityController.text,
+          'state': _originStateController.text,
+          'zip': _originZipController.text,
+          'country': _originCountryController.text,
+        },
+        'destination': {
+          'name': _destNameController.text,
+          'phone': _destPhoneController.text,
+          'addressLine': _destAddressController.text,
+          'city': _destCityController.text,
+          'state': _destStateController.text,
+          'zip': _destZipController.text,
+          'country': _destCountryController.text,
+        },
       };
 
-      final destination = {
-        'name': _destNameController.text,
-        'phone': _destPhoneController.text,
-        'addressLine': _destAddressController.text,
-        'city': _destCityController.text,
-        'state': _destStateController.text,
-        'zip': _destZipController.text,
-        'country': _destCountryController.text,
-      };
-
+      // Use general updateQuotation instead of updateAddress
+      // Backend will handle status transition (VERIFIED -> ADDRESS_PROVIDED)
       await ref
           .read(quotationRepositoryProvider)
-          .updateAddress(widget.quotationId, origin, destination);
+          .updateQuotation(widget.quotationId, updateData);
 
       if (mounted) {
-        context.pop();
         // Refresh the provider to update the list
         ref.invalidate(quotationsProvider);
+
+        // Navigate to home/shipment list screen
+        context.go('/');
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Address details submitted successfully!'),
