@@ -215,6 +215,8 @@ class Quotation {
 
   final String? additionalNotes; // Terms & Notes from admin
   final String? adminFeedback; // Feedback for Info Required
+  final String? handoverMethod;
+  final String? warehouseDropOffLocation;
 
   const Quotation({
     required this.id,
@@ -235,6 +237,8 @@ class Quotation {
 
     this.additionalNotes,
     this.adminFeedback,
+    this.handoverMethod,
+    this.warehouseDropOffLocation,
   });
 
   Quotation copyWith({
@@ -254,6 +258,8 @@ class Quotation {
     String? serviceType,
     String? specialInstructions,
     String? additionalNotes,
+    String? handoverMethod,
+    String? warehouseDropOffLocation,
   }) {
     return Quotation(
       id: id ?? this.id,
@@ -272,6 +278,9 @@ class Quotation {
       serviceType: serviceType ?? this.serviceType,
       specialInstructions: specialInstructions ?? this.specialInstructions,
       additionalNotes: additionalNotes ?? this.additionalNotes,
+      handoverMethod: handoverMethod ?? this.handoverMethod,
+      warehouseDropOffLocation:
+          warehouseDropOffLocation ?? this.warehouseDropOffLocation,
     );
   }
 
@@ -313,6 +322,8 @@ class Quotation {
       additionalNotes: json['additionalNotes'] as String?,
 
       adminFeedback: json['adminFeedback'] as String?,
+      handoverMethod: json['handoverMethod'] as String?,
+      warehouseDropOffLocation: json['warehouseDropOffLocation'] as String?,
     );
   }
 
@@ -433,6 +444,8 @@ class Quotation {
       'additionalNotes': additionalNotes,
 
       'adminFeedback': adminFeedback,
+      'handoverMethod': handoverMethod,
+      'warehouseDropOffLocation': warehouseDropOffLocation,
     };
   }
 }

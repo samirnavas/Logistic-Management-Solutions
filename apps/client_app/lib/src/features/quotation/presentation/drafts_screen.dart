@@ -88,7 +88,7 @@ class DraftsScreen extends ConsumerWidget {
                 final createdDate = DateFormat(
                   'MMM dd, yyyy',
                 ).format(draft.createdDate);
-                final itemCount = draft.items?.length ?? 0;
+                final itemCount = draft.items.length;
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16),

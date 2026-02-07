@@ -183,6 +183,9 @@ exports.updateQuotation = async (req, res) => {
 
         // LOGIC FIX: Handle Address Submission Loop
         if (req.user.role === 'client') {
+            // Allow handoverMethod to be updated by client (part of address submission)
+            // Keep it in updateData, don't delete it
+
             // If the admin already verified it, and client is now adding details (Address)
             if (currentQuotation.status === 'VERIFIED') {
                 console.log('Client providing address for Verified request. Moving to ADDRESS_PROVIDED.');
@@ -1254,5 +1257,107 @@ exports.checkExpiry = async () => {
         }
     } catch (error) {
         console.error('Check Expiry Job Error:', error);
+    }
+};
+// ============================================
+// Send Warehouse Details (Admin Only)
+// ============================================
+exports.sendWarehouseDetails = async (req, res) => {
+    try {
+        const { locationMessage } = req.body;
+        const quotationId = req.params.id;
+
+        // Authorization check - Admin only
+        if (req.user.role !== 'admin' && req.user.role !== 'manager') {
+            return res.status(403).json({
+                message: 'Not authorized to send warehouse details',
+                error: 'Only admin or manager can send warehouse details'
+            });
+        }
+
+        // Validate locationMessage
+        if (!locationMessage || locationMessage.trim().length === 0) {
+            return res.status(400).json({
+                message: 'Location message is required',
+                error: 'Please provide warehouse location and instructions'
+            });
+        }
+
+        const quotation = await Quotation.findById(quotationId);
+
+        if (!quotation) {
+            return res.status(404).json({ message: 'Quotation not found' });
+        }
+
+        // Update warehouseDropOffLocation
+        quotation.warehouseDropOffLocation = locationMessage;
+
+        // Add to audit log
+        quotation.statusHistory.push({
+            status: quotation.status, // Keep current status
+            changedBy: req.user.id,
+            reason: 'Warehouse drop-off details provided',
+            timestamp: new Date()
+        });
+
+        await quotation.save();
+
+        // Notify Client
+        await Notification.createNotification({
+            recipientId: quotation.clientId,
+            title: 'Warehouse Drop-off Details Received',
+            message: `Warehouse drop-off location and instructions have been provided for your quotation ${quotation.quotationNumber}.`,
+            type: 'info',
+            category: 'quotation',
+            relatedId: quotation._id,
+            relatedModel: 'Quotation'
+        });
+
+        res.json({
+            message: 'Warehouse details sent successfully',
+            quotation,
+            warehouseDropOffLocation: quotation.warehouseDropOffLocation
+        });
+    } catch (error) {
+        console.error('Send Warehouse Details Error:', error);
+        res.status(500).json({
+            message: 'Failed to send warehouse details',
+            error: error.message
+        });
+    }
+};
+// ============================================
+// Send Warehouse Drop-off Details (Admin)
+// ============================================
+exports.sendWarehouseDetails = async (req, res) => {
+    try {
+        const { warehouseLocation } = req.body;
+        const quotation = await Quotation.findById(req.params.id);
+
+        if (!quotation) {
+            return res.status(404).json({ message: 'Quotation not found' });
+        }
+
+        quotation.warehouseDropOffLocation = warehouseLocation;
+        await quotation.save();
+
+        // Notify client
+        await Notification.createNotification({
+            recipientId: quotation.clientId,
+            title: 'Warehouse Drop-off Details',
+            message: 'Warehouse drop-off details have been updated for your request. Please check the quotation details.',
+            type: 'info',
+            category: 'quotation',
+            relatedId: quotation._id,
+            relatedModel: 'Quotation',
+        });
+
+        res.json({
+            message: 'Warehouse details sent successfully',
+            quotation,
+        });
+    } catch (error) {
+        console.error('Send Warehouse Details Error:', error);
+        res.status(500).json({ message: 'Failed to send warehouse details', error: error.message });
     }
 };

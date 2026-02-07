@@ -130,7 +130,7 @@ class ShipmentCard extends StatelessWidget {
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(
-          '$shipmentId',
+          shipmentId,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
             color: AppTheme.primaryBlue,
             fontWeight: FontWeight.bold,

@@ -15,6 +15,7 @@ class AddAddressScreen extends ConsumerStatefulWidget {
 
 class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
   final _formKey = GlobalKey<FormState>();
+  String _handoverMethod = 'PICKUP';
 
   // Origin Controllers
   final _originNameController = TextEditingController();
@@ -61,17 +62,28 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Prepare address data - NO status field
-      final updateData = {
-        'origin': {
-          'name': _originNameController.text,
-          'phone': _originPhoneController.text,
-          'addressLine': _originAddressController.text,
-          'city': _originCityController.text,
-          'state': _originStateController.text,
-          'zip': _originZipController.text,
-          'country': _originCountryController.text,
-        },
+      // Prepare address data
+      final Map<String, dynamic> updateData = {
+        'handoverMethod': _handoverMethod,
+        'origin': _handoverMethod == 'PICKUP'
+            ? {
+                'name': _originNameController.text,
+                'phone': _originPhoneController.text,
+                'addressLine': _originAddressController.text,
+                'city': _originCityController.text,
+                'state': _originStateController.text,
+                'zip': _originZipController.text,
+                'country': _originCountryController.text,
+              }
+            : {
+                'name': 'Self Drop-off',
+                'phone': 'N/A',
+                'addressLine': 'Self Drop-off to Warehouse',
+                'city': 'Warehouse City',
+                'state': 'N/A',
+                'zip': '00000',
+                'country': 'India',
+              },
         'destination': {
           'name': _destNameController.text,
           'phone': _destPhoneController.text,
@@ -139,6 +151,7 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
     required String label,
     required IconData icon,
     bool required = true,
+    bool enabled = true,
     TextInputType? keyboardType,
   }) {
     return Padding(
@@ -146,9 +159,12 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
+        enabled: enabled,
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: Colors.grey[400], size: 18),
+          filled: !enabled,
+          fillColor: !enabled ? Colors.grey[100] : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: Colors.grey[200]!),
@@ -160,6 +176,7 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
         ),
         validator: required
             ? (value) {
+                if (!enabled) return null;
                 if (value == null || value.trim().isEmpty) {
                   return '$label is required';
                 }
@@ -196,70 +213,172 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
                   key: _formKey,
                   child: Column(
                     children: [
-                      const Text(
-                        'Please provide address details for accurate pricing calculation.',
-                        style: TextStyle(color: Colors.grey),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 20, top: 10),
+                        child: Text(
+                          'Select your prefered handover method.',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: Colors.grey[600]),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                      const SizedBox(height: 10),
+
+                      // Handover Method Toggle - Custom styled SegmentedButton replacement
+                      // Using a simpler Row with InkWell for better control if SegmentedButton causes issues,
+                      // or sticking to standard widgets. Let's use SegmentedButton properly.
+                      SegmentedButton<String>(
+                        segments: const <ButtonSegment<String>>[
+                          ButtonSegment<String>(
+                            value: 'PICKUP',
+                            label: Text('Request Pickup'),
+                            icon: Icon(Icons.local_shipping_outlined),
+                          ),
+                          ButtonSegment<String>(
+                            value: 'DROP_OFF', // Backend enum is DROP_OFF
+                            label: Text('Self Drop-off'),
+                            icon: Icon(Icons.warehouse_outlined),
+                          ),
+                        ],
+                        selected: <String>{_handoverMethod},
+                        onSelectionChanged: (Set<String> newSelection) {
+                          setState(() {
+                            _handoverMethod = newSelection.first;
+                          });
+                        },
+                        style: ButtonStyle(
+                          backgroundColor:
+                              WidgetStateProperty.resolveWith<Color?>((
+                                Set<WidgetState> states,
+                              ) {
+                                if (states.contains(WidgetState.selected)) {
+                                  return AppTheme.primaryBlue.withValues(
+                                    alpha: 0.1,
+                                  );
+                                }
+                                return null;
+                              }),
+                          foregroundColor:
+                              WidgetStateProperty.resolveWith<Color?>((
+                                Set<WidgetState> states,
+                              ) {
+                                if (states.contains(WidgetState.selected)) {
+                                  return AppTheme.primaryBlue;
+                                }
+                                return Colors.grey[700];
+                              }),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
 
                       // Origin Section
-                      _buildSectionHeader('Pickup Address', Icons.location_on),
-                      _buildTextField(
-                        controller: _originNameController,
-                        label: 'Contact Name',
-                        icon: Icons.person,
-                      ),
-                      _buildTextField(
-                        controller: _originPhoneController,
-                        label: 'Contact Phone',
-                        icon: Icons.phone,
-                        keyboardType: TextInputType.phone,
-                      ),
-                      _buildTextField(
-                        controller: _originAddressController,
-                        label: 'Address Line',
-                        icon: Icons.home,
-                      ),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildTextField(
-                              controller: _originCityController,
-                              label: 'City',
-                              icon: Icons.location_city,
-                            ),
+                      Opacity(
+                        opacity: _handoverMethod == 'PICKUP' ? 1.0 : 0.6,
+                        child: IgnorePointer(
+                          ignoring: _handoverMethod != 'PICKUP',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildSectionHeader(
+                                'Pickup Address',
+                                Icons.location_on,
+                              ),
+                              _buildTextField(
+                                controller: _originNameController,
+                                label: 'Contact Name',
+                                icon: Icons.person,
+                                enabled: _handoverMethod == 'PICKUP',
+                              ),
+                              _buildTextField(
+                                controller: _originPhoneController,
+                                label: 'Contact Phone',
+                                icon: Icons.phone,
+                                keyboardType: TextInputType.phone,
+                                enabled: _handoverMethod == 'PICKUP',
+                              ),
+                              _buildTextField(
+                                controller: _originAddressController,
+                                label: 'Address Line',
+                                icon: Icons.home,
+                                enabled: _handoverMethod == 'PICKUP',
+                              ),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildTextField(
+                                      controller: _originCityController,
+                                      label: 'City',
+                                      icon: Icons.location_city,
+                                      enabled: _handoverMethod == 'PICKUP',
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: _buildTextField(
+                                      controller: _originZipController,
+                                      label: 'ZIP Code',
+                                      icon: Icons.pin,
+                                      keyboardType: TextInputType.number,
+                                      enabled: _handoverMethod == 'PICKUP',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildTextField(
+                                      controller: _originStateController,
+                                      label: 'State',
+                                      icon: Icons.map,
+                                      required: false,
+                                      enabled: _handoverMethod == 'PICKUP',
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: _buildTextField(
+                                      controller: _originCountryController,
+                                      label: 'Country',
+                                      icon: Icons.flag,
+                                      enabled: _handoverMethod == 'PICKUP',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _buildTextField(
-                              controller: _originZipController,
-                              label: 'ZIP Code',
-                              icon: Icons.pin,
-                              keyboardType: TextInputType.number,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildTextField(
-                              controller: _originStateController,
-                              label: 'State',
-                              icon: Icons.map,
-                              required: false,
-                            ),
+
+                      if (_handoverMethod == 'DROP_OFF')
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.blue.shade100),
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _buildTextField(
-                              controller: _originCountryController,
-                              label: 'Country',
-                              icon: Icons.flag,
-                            ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: Colors.blue.shade700,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'You will receive the warehouse drop-off location and instructions after submitting.',
+                                  style: TextStyle(
+                                    color: Colors.blue.shade900,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
 
                       const Divider(height: 40),
 

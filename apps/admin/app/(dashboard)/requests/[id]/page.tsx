@@ -22,6 +22,7 @@ export default function RequestDetailsPage({ params }: { params: Promise<{ id: s
     // Clarification Modal State
     const [showClarificationModal, setShowClarificationModal] = useState(false);
     const [clarificationMessage, setClarificationMessage] = useState('');
+    const [warehouseLocation, setWarehouseLocation] = useState('');
 
     useEffect(() => {
         const fetchRequest = async () => {
@@ -111,6 +112,30 @@ export default function RequestDetailsPage({ params }: { params: Promise<{ id: s
         }
     };
 
+    const handleSendWarehouseLocation = async () => {
+        if (!warehouseLocation.trim()) return alert('Please enter warehouse details');
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`/api/quotations/${id}/warehouse-details`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ warehouseDetails: warehouseLocation })
+            });
+
+            if (res.ok) {
+                window.location.reload();
+            } else {
+                alert('Failed to send warehouse details');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error sending warehouse details');
+        }
+    };
+
     const handleSendClarification = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -160,6 +185,14 @@ export default function RequestDetailsPage({ params }: { params: Promise<{ id: s
                         <div className="bg-slate-200 px-4 py-1.5 rounded-2xl text-sky-700 text-sm font-medium">
                             Status : {request.status === 'request_sent' ? 'New' : request.status}
                         </div>
+                        <div className={`px-4 py-1.5 rounded-2xl text-sm font-medium ${request.handoverMethod === 'DROP_OFF'
+                                ? 'bg-purple-100 text-purple-700'
+                                : 'bg-blue-100 text-blue-700'
+                            }`}>
+                            {request.handoverMethod === 'DROP_OFF'
+                                ? 'Client will Drop-off at Warehouse'
+                                : 'Standard Pickup'}
+                        </div>
                     </div>
                 </div>
 
@@ -176,6 +209,42 @@ export default function RequestDetailsPage({ params }: { params: Promise<{ id: s
                                 </div>
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* Warehouse Drop-off Section */}
+                {request.handoverMethod === 'DROP_OFF' && (
+                    <div className="mb-8">
+                        {!request.warehouseDropOffLocation ? (
+                            <div className="bg-white border border-red-200 rounded-lg p-6 shadow-sm">
+                                <h3 className="text-lg font-medium text-red-700 mb-2">Warehouse Details Required</h3>
+                                <p className="text-sm text-zinc-600 mb-4">
+                                    The client has chosen to drop off the items. Please provide the warehouse address and instructions.
+                                </p>
+                                <div className="flex gap-4">
+                                    <textarea
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500/20 outline-none text-sm"
+                                        rows={2}
+                                        placeholder="Enter Warehouse Address & Instructions..."
+                                        value={warehouseLocation}
+                                        onChange={(e) => setWarehouseLocation(e.target.value)}
+                                    />
+                                    <button
+                                        onClick={handleSendWarehouseLocation}
+                                        className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors h-fit"
+                                    >
+                                        Send Location
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
+                                <h3 className="text-sm font-medium text-purple-800 mb-2">Warehouse Location Sent</h3>
+                                <p className="text-sm text-zinc-700 bg-white p-3 rounded border border-purple-100">
+                                    {request.warehouseDropOffLocation}
+                                </p>
+                            </div>
+                        )}
                     </div>
                 )}
 

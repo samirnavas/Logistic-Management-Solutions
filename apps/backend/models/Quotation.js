@@ -170,6 +170,17 @@ const quotationSchema = new mongoose.Schema({
         default: '',
     },
 
+    // --- Handover Method (Pickup or Drop-off) ---
+    handoverMethod: {
+        type: String,
+        enum: ['PICKUP', 'DROP_OFF'],
+        default: 'PICKUP',
+    },
+    warehouseDropOffLocation: {
+        type: String,
+        trim: true,
+    },
+
     // --- Product Photos (Cloudinary URLs) ---
     productPhotos: {
         type: [String],

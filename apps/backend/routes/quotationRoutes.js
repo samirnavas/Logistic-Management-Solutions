@@ -18,6 +18,9 @@ router.get('/', protect, quotationController.getAllQuotations);
 // Get quotation details by ID
 router.get('/:id', protect, quotationController.getQuotation);
 
+// Update quotation details (Generic update)
+router.put('/:id', protect, quotationController.updateQuotation);
+
 
 // ============================================
 // The "Perfect Flow" Actions (New Logic)
@@ -78,6 +81,9 @@ router.put('/:id/update-price', protect, quotationController.updateQuotePrice);
 
 // Send quotation to client app
 router.patch('/:id/send', protect, quotationController.sendToClient);
+
+// Send warehouse drop-off details to client (Admin only)
+router.put('/:id/warehouse-details', protect, quotationController.sendWarehouseDetails);
 
 
 module.exports = router;

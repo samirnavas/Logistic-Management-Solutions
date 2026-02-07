@@ -794,7 +794,9 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
               item.localPhotos,
             );
           } catch (e) {
-            print("Error uploading photos for item ${item.description}: $e");
+            debugPrint(
+              "Error uploading photos for item ${item.description}: $e",
+            );
           }
         }
 
@@ -837,12 +839,14 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
     } catch (e) {
       if (mounted) Navigator.of(context).pop();
       // Error handled by listener
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to prepare draft: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to prepare draft: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -944,7 +948,9 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
             );
             uploadedPhotoUrls.addAll(newUrls);
           } catch (e) {
-            print("Error uploading photos for item ${item.description}: $e");
+            debugPrint(
+              "Error uploading photos for item ${item.description}: $e",
+            );
           }
         }
 

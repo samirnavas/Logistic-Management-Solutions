@@ -244,6 +244,11 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
 
     return Column(
       children: [
+        // Drop-off Instructions Card (if applicable)
+        if (quotation.handoverMethod == 'DROP_OFF' &&
+            quotation.warehouseDropOffLocation != null)
+          _buildDropOffInstructionsCard(context, quotation),
+
         // Summary Header Card
         _buildSummaryCard(quotation),
 
@@ -277,6 +282,71 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
           _buildActionButtons(context, quotation),
       ],
     );
+  }
+
+  Widget _buildDropOffInstructionsCard(
+    BuildContext context,
+    Quotation quotation,
+  ) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.purple.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.purple.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.warehouse, color: Colors.purple.shade700),
+              const SizedBox(width: 8),
+              Text(
+                'Drop-off Instructions',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.purple.shade900,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            quotation.warehouseDropOffLocation!,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.purple.shade900,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Directions Button
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _launchMap(quotation.warehouseDropOffLocation!),
+              icon: const Icon(Icons.map, size: 18),
+              label: const Text('Get Directions'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.purple.shade700,
+                side: BorderSide(color: Colors.purple.shade300),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _launchMap(String address) async {
+    final query = Uri.encodeComponent(address);
+    final googleMapUrl =
+        "https://www.google.com/maps/search/?api=1&query=$query";
+    if (await canLaunchUrl(Uri.parse(googleMapUrl))) {
+      await launchUrl(Uri.parse(googleMapUrl));
+    }
   }
 
   Widget _buildSummaryCard(Quotation quotation) {
