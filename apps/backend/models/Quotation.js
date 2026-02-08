@@ -141,7 +141,17 @@ const quotationSchema = new mongoose.Schema({
     // --- Shipment Details ---
     origin: {
         type: addressSchema,
-        required: [function () { return this.status !== 'DRAFT'; }, 'Origin address is required'],
+        required: [function () {
+            // Origin required only if NOT Draft AND NOT Drop-off
+            return this.status !== 'DRAFT' && this.handoverMethod !== 'DROP_OFF';
+        }, 'Origin address is required'],
+    },
+    pickupAddress: {
+        type: String,
+        required: function () {
+            // Required if PICKUP and no origin provided (backward compatibility)
+            return this.handoverMethod === 'PICKUP' && (!this.origin || !this.origin.addressLine);
+        }
     },
     destination: {
         type: addressSchema,

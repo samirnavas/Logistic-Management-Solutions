@@ -129,17 +129,23 @@ exports.createQuotation = async (req, res) => {
             deliveryDate,
             cargoType,
             serviceType,
-            specialInstructions
+            specialInstructions,
+            handoverMethod,
+            pickupAddress,
+            warehouseDropOffLocation
             // Explicitly excluding 'status' from destructuring to prevent it from being passed
         } = req.body;
 
         // Validation for critical fields
-        if (!origin || !destination || !items || !Array.isArray(items) || items.length === 0) {
+        if (!items || !Array.isArray(items) || items.length === 0) {
             return res.status(400).json({
                 message: 'Missing required fields or invalid items format',
-                required: ['origin', 'destination', 'items (array)']
+                required: ['items (array)']
             });
         }
+
+        // Conditional validation for Origin/Destination based on handover method
+        // (Handled by Mongoose schema validation)
 
         const newQuotation = new Quotation({
             clientId: userId,
@@ -151,6 +157,9 @@ exports.createQuotation = async (req, res) => {
             cargoType,
             serviceType,
             specialInstructions,
+            handoverMethod,
+            pickupAddress,
+            warehouseDropOffLocation,
             status: 'PENDING_REVIEW', // Strict Default
             totalAmount: 0 // Initialize to 0
         });
@@ -177,32 +186,45 @@ exports.updateQuotation = async (req, res) => {
     try {
         const { id } = req.params;
         let updateData = { ...req.body };
-
+        // 1. Fetch Current State
         const currentQuotation = await Quotation.findById(id);
-        if (!currentQuotation) return res.status(404).json({ message: 'Not found' });
-
-        // LOGIC FIX: Handle Address Submission Loop
+        if (!currentQuotation) {
+            return res.status(404).json({ message: 'Quotation not found' });
+        }
+        console.log(`[Update] Request for ${id} by ${req.user.role}. Body:`, JSON.stringify(req.body));
+        // 2. CLIENT LOGIC
         if (req.user.role === 'client') {
-            // Allow handoverMethod to be updated by client (part of address submission)
-            // Keep it in updateData, don't delete it
 
-            // If the admin already verified it, and client is now adding details (Address)
+            // A) HANDLING DROP-OFF vs PICKUP
+            // If client selects DROP_OFF, we MUST provide a placeholder pickupAddress
+            // otherwise Mongoose validation (required: true) will fail silently or throw error.
+            if (updateData.handoverMethod === 'DROP_OFF') {
+                console.log('[Logic] Handling Drop-off: Setting placeholder pickup address');
+                updateData.pickupAddress = 'CLIENT WILL DROP OFF AT WAREHOUSE';
+            }
+            // B) FORCE STATUS UPDATE
+            // If we are adding address details to a Verified request, ALWAYS move forward.
             if (currentQuotation.status === 'VERIFIED') {
-                console.log('Client providing address for Verified request. Moving to ADDRESS_PROVIDED.');
-
-                // FORCE the status to move forward, ignoring whatever the app sent
+                console.log('[Logic] Verified Request + Address Update -> Moving to ADDRESS_PROVIDED');
                 updateData.status = 'ADDRESS_PROVIDED';
             }
-            // Security: Prevent Client from resetting to Pending if it's already past that stage
+            // Security: If not DRAFT/INFO_REQUIRED, block status tampering
             else if (currentQuotation.status !== 'DRAFT' && currentQuotation.status !== 'INFO_REQUIRED') {
                 delete updateData.status;
             }
         }
-
-        const updatedQuotation = await Quotation.findByIdAndUpdate(id, updateData, { new: true });
-        res.json(updatedQuotation);
+        // 3. Perform Update
+        // Note: runValidators is FALSE here to prevent 'required' errors on partial updates, 
+        // since we manually validated the Drop-off above.
+        const updatedQuotation = await Quotation.findByIdAndUpdate(
+            id,
+            updateData,
+            { new: true, runValidators: false }
+        );
+        res.status(200).json(updatedQuotation);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('[Error] Update failed:', error);
+        res.status(500).json({ message: 'Update failed', error: error.message });
     }
 };
 

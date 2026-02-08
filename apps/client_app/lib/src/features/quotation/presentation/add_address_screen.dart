@@ -64,26 +64,6 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
     try {
       // Prepare address data
       final Map<String, dynamic> updateData = {
-        'handoverMethod': _handoverMethod,
-        'origin': _handoverMethod == 'PICKUP'
-            ? {
-                'name': _originNameController.text,
-                'phone': _originPhoneController.text,
-                'addressLine': _originAddressController.text,
-                'city': _originCityController.text,
-                'state': _originStateController.text,
-                'zip': _originZipController.text,
-                'country': _originCountryController.text,
-              }
-            : {
-                'name': 'Self Drop-off',
-                'phone': 'N/A',
-                'addressLine': 'Self Drop-off to Warehouse',
-                'city': 'Warehouse City',
-                'state': 'N/A',
-                'zip': '00000',
-                'country': 'India',
-              },
         'destination': {
           'name': _destNameController.text,
           'phone': _destPhoneController.text,
@@ -94,6 +74,39 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
           'country': _destCountryController.text,
         },
       };
+
+      if (_handoverMethod == 'DROP_OFF') {
+        updateData['handoverMethod'] = 'DROP_OFF';
+        updateData['pickupAddress'] = 'Self Drop-off';
+        // Send placeholder origin for compatibility, though backend allows missing origin for Drop-off now
+        updateData['origin'] = {
+          'name': 'Self Drop-off',
+          'phone': 'N/A',
+          'addressLine': 'Self Drop-off to Warehouse',
+          'city': 'Warehouse City',
+          'state': 'N/A',
+          'zip': '00000',
+          'country': 'India',
+        };
+      } else {
+        updateData['handoverMethod'] = 'PICKUP';
+        updateData['pickupAddress'] = _originAddressController.text;
+        updateData['origin'] = {
+          'name': _originNameController.text,
+          'phone': _originPhoneController.text,
+          'addressLine': _originAddressController.text,
+          'city': _originCityController.text,
+          'state': _originStateController.text,
+          'zip': _originZipController.text,
+          'country': _originCountryController.text,
+        };
+      }
+
+      // Explicitly Remove Status: Ensure we NEVER send status from UI in this step.
+      updateData.remove('status');
+
+      // Debug Log: Print the payload to the console
+      debugPrint('Submitting Address Payload: $updateData');
 
       // Use general updateQuotation instead of updateAddress
       // Backend will handle status transition (VERIFIED -> ADDRESS_PROVIDED)
