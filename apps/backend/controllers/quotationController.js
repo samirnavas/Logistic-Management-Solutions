@@ -1436,38 +1436,4 @@ exports.sendWarehouseDetails = async (req, res) => {
         });
     }
 };
-// ============================================
-// Send Warehouse Drop-off Details (Admin)
-// ============================================
-exports.sendWarehouseDetails = async (req, res) => {
-    try {
-        const { warehouseLocation } = req.body;
-        const quotation = await Quotation.findById(req.params.id);
 
-        if (!quotation) {
-            return res.status(404).json({ message: 'Quotation not found' });
-        }
-
-        quotation.warehouseDropOffLocation = warehouseLocation;
-        await quotation.save();
-
-        // Notify client
-        await Notification.createNotification({
-            recipientId: quotation.clientId,
-            title: 'Warehouse Drop-off Details',
-            message: 'Warehouse drop-off details have been updated for your request. Please check the quotation details.',
-            type: 'info',
-            category: 'quotation',
-            relatedId: quotation._id,
-            relatedModel: 'Quotation',
-        });
-
-        res.json({
-            message: 'Warehouse details sent successfully',
-            quotation,
-        });
-    } catch (error) {
-        console.error('Send Warehouse Details Error:', error);
-        res.status(500).json({ message: 'Failed to send warehouse details', error: error.message });
-    }
-};
