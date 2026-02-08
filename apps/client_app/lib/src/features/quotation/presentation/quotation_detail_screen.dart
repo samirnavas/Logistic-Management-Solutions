@@ -212,9 +212,17 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
   }
 
   Widget _buildContent(BuildContext context, Quotation quotation) {
-    if (quotation.status == QuotationStatus.requestSent ||
-        quotation.status == QuotationStatus.approved ||
-        quotation.status == QuotationStatus.detailsSubmitted) {
+    // Check if we have drop-off instructions to show
+    // If so, we bypass the "Pending" state to show the main content with instructions
+    final hasDropOffInstructions =
+        quotation.handoverMethod == 'DROP_OFF' &&
+        quotation.warehouseDropOffLocation != null &&
+        quotation.warehouseDropOffLocation!.trim().isNotEmpty;
+
+    if (!hasDropOffInstructions &&
+        (quotation.status == QuotationStatus.requestSent ||
+            quotation.status == QuotationStatus.approved ||
+            quotation.status == QuotationStatus.detailsSubmitted)) {
       return Column(
         children: [
           _buildSummaryCard(quotation),

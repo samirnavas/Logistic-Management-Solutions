@@ -58,6 +58,7 @@ class QuotationItem {
   final double weight;
   final dynamic dimensions; // String "LxWxH" or map
   final List<String> images;
+  final double? declaredValue; // New field
   final String category;
   final bool isHazardous;
   final String? videoUrl;
@@ -72,6 +73,7 @@ class QuotationItem {
     this.weight = 0.0,
     this.dimensions = '',
     this.images = const [],
+    this.declaredValue,
     this.category = 'General',
     this.isHazardous = false,
     this.videoUrl,
@@ -87,6 +89,7 @@ class QuotationItem {
     double? weight,
     dynamic dimensions,
     List<String>? images,
+    double? declaredValue,
     String? category,
     bool? isHazardous,
     String? videoUrl,
@@ -101,6 +104,7 @@ class QuotationItem {
       weight: weight ?? this.weight,
       dimensions: dimensions ?? this.dimensions,
       images: images ?? this.images,
+      declaredValue: declaredValue ?? this.declaredValue,
       category: category ?? this.category,
       isHazardous: isHazardous ?? this.isHazardous,
       videoUrl: videoUrl ?? this.videoUrl,
@@ -119,6 +123,7 @@ class QuotationItem {
       weight: (json['weight'] as num?)?.toDouble() ?? 0.0,
       dimensions: json['dimensions'] ?? '',
       images: (json['images'] as List?)?.map((e) => e as String).toList() ?? [],
+      declaredValue: (json['declaredValue'] as num?)?.toDouble(),
       category: json['category'] as String? ?? 'General',
       isHazardous: json['isHazardous'] as bool? ?? false,
       videoUrl: json['videoUrl'] as String?,
@@ -137,6 +142,7 @@ class QuotationItem {
       'weight': weight,
       'dimensions': dimensions,
       'images': images,
+      'declaredValue': declaredValue,
       'category': category,
       'isHazardous': isHazardous,
       'videoUrl': videoUrl,
@@ -210,6 +216,7 @@ class Quotation {
   final DateTime? pickupDate;
   final DateTime? deliveryDate;
   final String? cargoType;
+  final String? serviceMode; // New field
   final String? serviceType;
   final String? specialInstructions;
 
@@ -232,6 +239,7 @@ class Quotation {
     this.pickupDate,
     this.deliveryDate,
     this.cargoType,
+    this.serviceMode,
     this.serviceType,
     this.specialInstructions,
 
@@ -255,6 +263,7 @@ class Quotation {
     DateTime? pickupDate,
     DateTime? deliveryDate,
     String? cargoType,
+    String? serviceMode,
     String? serviceType,
     String? specialInstructions,
     String? additionalNotes,
@@ -275,6 +284,7 @@ class Quotation {
       pickupDate: pickupDate ?? this.pickupDate,
       deliveryDate: deliveryDate ?? this.deliveryDate,
       cargoType: cargoType ?? this.cargoType,
+      serviceMode: serviceMode ?? this.serviceMode,
       serviceType: serviceType ?? this.serviceType,
       specialInstructions: specialInstructions ?? this.specialInstructions,
       additionalNotes: additionalNotes ?? this.additionalNotes,
@@ -317,6 +327,7 @@ class Quotation {
           ? DateTime.tryParse(json['deliveryDate'])
           : null,
       cargoType: json['cargoType'] as String?,
+      serviceMode: json['serviceMode'] as String?,
       serviceType: json['serviceType'] as String?,
       specialInstructions: json['specialInstructions'] as String?,
       additionalNotes: json['additionalNotes'] as String?,
@@ -439,6 +450,7 @@ class Quotation {
       'pickupDate': pickupDate?.toIso8601String(),
       'deliveryDate': deliveryDate?.toIso8601String(),
       'cargoType': cargoType,
+      'serviceMode': serviceMode,
       'serviceType': serviceType,
       'specialInstructions': specialInstructions,
       'additionalNotes': additionalNotes,

@@ -788,6 +788,8 @@ exports.approveRequest = async (req, res) => {
         }
 
         quotation.status = 'VERIFIED';
+        quotation.isApprovedByManager = true;
+        quotation.managerApprovedAt = new Date();
         await quotation.save();
 
         // Notify client
@@ -1125,6 +1127,8 @@ exports.markAsVerified = async (req, res) => {
         }
 
         quotation.status = 'VERIFIED';
+        quotation.isApprovedByManager = true;
+        quotation.managerApprovedAt = new Date();
 
         // Add to history
         quotation.statusHistory.push({

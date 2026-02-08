@@ -57,6 +57,11 @@ const lineItemSchema = new mongoose.Schema({
         default: 'Standard',
     },
     // Financial fields (populated by Manager)
+    declaredValue: {
+        type: Number,
+        default: 0,
+        min: [0, 'Declared value cannot be negative'],
+    },
     unitPrice: {
         type: Number,
         default: 0,
@@ -139,6 +144,7 @@ const quotationSchema = new mongoose.Schema({
     },
 
     // --- Shipment Details ---
+    // Can represent Client Address or Warehouse Address depending on serviceMode
     origin: {
         type: addressSchema,
         required: [function () {
@@ -153,6 +159,7 @@ const quotationSchema = new mongoose.Schema({
             return this.handoverMethod === 'PICKUP' && (!this.origin || !this.origin.addressLine);
         }
     },
+    // Can represent Client Address or Warehouse Address depending on serviceMode
     destination: {
         type: addressSchema,
         required: [function () { return this.status !== 'DRAFT'; }, 'Destination address is required'],
@@ -167,6 +174,11 @@ const quotationSchema = new mongoose.Schema({
         type: String,
         required: [function () { return this.status !== 'DRAFT'; }, 'Cargo type is required'],
         default: 'General Cargo'
+    },
+    serviceMode: {
+        type: String,
+        enum: ['door_to_door', 'door_to_warehouse', 'warehouse_to_door', 'warehouse_to_warehouse'],
+        default: 'door_to_door',
     },
     serviceType: {
         type: String,

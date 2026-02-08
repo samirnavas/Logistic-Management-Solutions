@@ -14,6 +14,7 @@ class ShipmentItemFormData {
   String? hsCode;
   String? videoUrl;
   double? targetRate;
+  double? declaredValue; // New field
   String targetCurrency;
   double? packingVolume;
   // Financials
@@ -31,6 +32,7 @@ class ShipmentItemFormData {
     this.hsCode,
     this.videoUrl,
     this.targetRate,
+    this.declaredValue,
     this.targetCurrency = 'USD',
     this.packingVolume,
     this.cost = 0.0,
@@ -48,6 +50,7 @@ class ShipmentItemFormData {
     String? hsCode,
     String? videoUrl,
     double? targetRate,
+    double? declaredValue,
     String? targetCurrency,
     double? packingVolume,
     double? cost,
@@ -64,6 +67,7 @@ class ShipmentItemFormData {
       hsCode: hsCode ?? this.hsCode,
       videoUrl: videoUrl ?? this.videoUrl,
       targetRate: targetRate ?? this.targetRate,
+      declaredValue: declaredValue ?? this.declaredValue,
       targetCurrency: targetCurrency ?? this.targetCurrency,
       packingVolume: packingVolume ?? this.packingVolume,
       cost: cost ?? this.cost,
@@ -76,12 +80,14 @@ class ShipmentFormState {
   final bool isLoading;
   final String? error;
   final String? successMessage;
+  final String selectedServiceMode;
 
   const ShipmentFormState({
     required this.items,
     this.isLoading = false,
     this.error,
     this.successMessage,
+    this.selectedServiceMode = 'door_to_door',
   });
 
   ShipmentFormState copyWith({
@@ -89,6 +95,7 @@ class ShipmentFormState {
     bool? isLoading,
     String? error,
     String? successMessage,
+    String? selectedServiceMode,
   }) {
     return ShipmentFormState(
       items: items ?? this.items,
@@ -96,6 +103,7 @@ class ShipmentFormState {
       error:
           error, // Pass null to clear if needed, but normally we explicitly manage it
       successMessage: successMessage,
+      selectedServiceMode: selectedServiceMode ?? this.selectedServiceMode,
     );
   }
 }
@@ -139,6 +147,10 @@ class ShipmentFormNotifier extends StateNotifier<ShipmentFormState> {
 
   void setItems(List<ShipmentItemFormData> items) {
     state = state.copyWith(items: items);
+  }
+
+  void setServiceMode(String mode) {
+    state = state.copyWith(selectedServiceMode: mode);
   }
 
   Future<void> saveDraft(Map<String, dynamic> data) async {

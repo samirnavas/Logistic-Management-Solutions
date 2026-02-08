@@ -15,7 +15,8 @@ import {
     Bell,
     BarChart3,
     Menu,
-    X
+    X,
+    Building // Icon for Warehouses
 } from 'lucide-react';
 
 const MENU_ITEMS = [
@@ -24,6 +25,7 @@ const MENU_ITEMS = [
     { name: 'Quotations', path: '/quotations', icon: Package },
     { name: 'Deliveries', path: '/deliveries', icon: Truck },
     { name: 'Customers', path: '/users', icon: Users },
+    { name: 'Warehouses', path: '/warehouses', icon: Building },
     { name: 'Reports', path: '/reports', icon: BarChart3 },
     { name: 'Settings & Roles', path: '/settings', icon: Settings },
 ];

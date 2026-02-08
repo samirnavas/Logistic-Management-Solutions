@@ -17,6 +17,7 @@ const shipmentRoutes = require('./routes/shipmentRoutes');
 const quotationRoutes = require('./routes/quotationRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const warehouseRoutes = require('./routes/warehouseRoutes');
 
 // Import cron jobs
 const { initScheduledJobs } = require('./utils/cronJobs');
@@ -54,6 +55,7 @@ app.use('/api/shipments', shipmentRoutes);
 app.use('/api/quotations', quotationRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/warehouses', warehouseRoutes);
 
 // ============================================
 // Health Check & Base Route
@@ -69,6 +71,7 @@ app.get('/', (req, res) => {
             quotations: '/api/quotations',
             notifications: '/api/notifications',
             upload: '/api/upload',
+            warehouses: '/api/warehouses',
         }
     });
 });

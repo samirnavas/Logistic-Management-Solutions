@@ -14,6 +14,9 @@ import 'package:bb_logistics/src/features/quotation/data/quotation_repository.da
 import 'package:bb_logistics/src/features/home/data/dashboard_repository.dart';
 import 'package:bb_logistics/src/features/quotation/domain/quotation.dart';
 
+import 'package:bb_logistics/src/features/shipment/data/warehouse_repository.dart';
+import 'package:bb_logistics/src/features/shipment/domain/warehouse.dart';
+
 class RequestShipmentScreen extends ConsumerStatefulWidget {
   final Quotation? existingQuotation;
   const RequestShipmentScreen({super.key, this.existingQuotation});
@@ -26,7 +29,6 @@ class RequestShipmentScreen extends ConsumerStatefulWidget {
 class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
   final _formKey = GlobalKey<FormState>();
   String _shippingMode = 'By Air';
-  String _deliveryType = 'Door to Door';
   String _servicePriority = 'Standard';
   String _countryCode = '+91'; // Default India
 
@@ -40,6 +42,25 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
   final _zipController = TextEditingController();
   final _addressTypeController = TextEditingController();
   final _notesController = TextEditingController();
+
+  // Controllers for Destination Address
+  final _destNameController = TextEditingController();
+  final _destPhoneController = TextEditingController();
+  final _destAddressController = TextEditingController();
+  final _destCityController = TextEditingController();
+  final _destStateController = TextEditingController();
+  final _destCountryController = TextEditingController();
+  final _destZipController = TextEditingController();
+
+  String? _selectedOriginWarehouseId;
+  String? _selectedDestinationWarehouseId;
+
+  final Map<String, String> _serviceModeLabels = {
+    'door_to_door': 'Door to Door',
+    'door_to_warehouse': 'Door to Warehouse',
+    'warehouse_to_door': 'Warehouse to Door',
+    'warehouse_to_warehouse': 'Warehouse to Warehouse',
+  };
 
   final UploadService _uploadService = UploadService();
 
@@ -58,7 +79,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
           _shippingMode = 'By Sea';
         }
         if (q.specialInstructions!.contains('Delivery: Warehouse Delivery')) {
-          _deliveryType = 'Warehouse Delivery';
+          // Legacy handling or ignore
         }
         // Extract notes? "Notes: ..."
         final notesIndex = q.specialInstructions!.indexOf('Notes: ');
@@ -67,6 +88,15 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
             notesIndex + 7,
           );
         }
+      }
+
+      if (q.serviceMode != null) {
+        Future.microtask(() {
+          if (mounted)
+            ref
+                .read(shipmentFormProvider.notifier)
+                .setServiceMode(q.serviceMode!);
+        });
       }
 
       _servicePriority = q.serviceType ?? 'Standard';
@@ -114,6 +144,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
           hsCode: '', // Not in QuotationItem?
           videoUrl: i.videoUrl,
           targetRate: i.targetRate,
+          declaredValue: i.declaredValue,
           packingVolume: i.packingVolume,
           cost: i.cost,
         );
@@ -137,6 +168,13 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
     _countryController.dispose();
     _zipController.dispose();
     _addressTypeController.dispose();
+    _destNameController.dispose();
+    _destPhoneController.dispose();
+    _destAddressController.dispose();
+    _destCityController.dispose();
+    _destStateController.dispose();
+    _destCountryController.dispose();
+    _destZipController.dispose();
     _notesController.dispose();
     // Manual dispose to clear form state when leaving
     // This allows us to use a regular Provider (avoiding Hot Reload errors)
@@ -190,6 +228,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
 
     final formState = ref.watch(shipmentFormProvider);
     final formNotifier = ref.read(shipmentFormProvider.notifier);
+    final warehousesAsync = ref.watch(warehousesProvider);
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -299,30 +338,37 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                             ).animate().fadeIn(delay: 150.ms).slideX(),
                             const SizedBox(height: 24),
 
-                            // 2. Delivery Type
+                            // 2. Service Mode (Replaces Delivery Type)
                             _buildSectionTitle(
-                              'Choose Delivery Type',
+                              'Service Mode',
                             ).animate().fadeIn(delay: 200.ms).slideX(),
                             const SizedBox(height: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildRadioOption(
-                                  'Shipment door to door',
-                                  _deliveryType,
-                                  (val) {
-                                    setState(() => _deliveryType = val!);
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey[300]!),
+                                borderRadius: BorderRadius.circular(12),
+                                color: AppTheme.background,
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: formState.selectedServiceMode,
+                                  isExpanded: true,
+                                  items: _serviceModeLabels.entries.map((e) {
+                                    return DropdownMenuItem(
+                                      value: e.key,
+                                      child: Text(e.value),
+                                    );
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      formNotifier.setServiceMode(val);
+                                    }
                                   },
                                 ),
-                                const SizedBox(height: 16),
-                                _buildRadioOption(
-                                  'Warehouse Delivery',
-                                  _deliveryType,
-                                  (val) {
-                                    setState(() => _deliveryType = val!);
-                                  },
-                                ),
-                              ],
+                              ),
                             ).animate().fadeIn(delay: 250.ms).slideX(),
                             const SizedBox(height: 24),
 
@@ -521,89 +567,267 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
 
                             const SizedBox(height: 24),
 
-                            // 5. Pickup Address
-                            _buildSectionTitle('Pickup Address'),
-                            const SizedBox(height: 16),
-                            _buildTextField(
-                              hint: 'Full Name',
-                              controller: _nameController,
-                              validator: (value) =>
-                                  value == null || value.isEmpty
-                                  ? 'Name is required'
-                                  : null,
-                            ),
-                            const SizedBox(height: 16),
-                            _buildPhoneField(),
-                            const SizedBox(height: 16),
-                            _buildTextField(
-                              hint: 'Address Line 1',
-                              controller: _addressController,
-                              validator: (value) =>
-                                  value == null || value.isEmpty
-                                  ? 'Address is required'
-                                  : null,
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildTextField(
-                                    hint: 'City',
-                                    controller: _cityController,
-                                    validator: (value) =>
-                                        value == null || value.isEmpty
-                                        ? 'Required'
-                                        : null,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildTextField(
-                                    hint: 'State',
-                                    controller: _stateController,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildTextField(
-                                    hint: 'Country',
-                                    controller: _countryController,
-                                    validator: (value) =>
-                                        value == null || value.isEmpty
-                                        ? 'Required'
-                                        : null,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildTextField(
-                                    hint: 'ZIP / Postal Code',
-                                    controller: _zipController,
-                                    keyboardType: TextInputType.number,
-                                    validator: (value) =>
-                                        value == null || value.isEmpty
-                                        ? 'Required'
-                                        : null,
-                                  ),
-                                ),
-                              ],
-                            ),
                             const SizedBox(height: 24),
 
-                            const SizedBox(height: 16),
-                            _buildTextField(
-                              hint:
-                                  'Address Type (e.g. Home, Office, Warehouse)',
-                              controller: _addressTypeController,
-                              validator: (value) =>
-                                  value == null || value.isEmpty
-                                  ? 'Address Type is required'
-                                  : null,
-                            ),
+                            // 5. Origin Details (Conditional)
+                            if (formState.selectedServiceMode.startsWith(
+                              'door',
+                            )) ...[
+                              _buildSectionTitle('Pickup Address'),
+                              const SizedBox(height: 16),
+                              _buildTextField(
+                                hint: 'Full Name',
+                                controller: _nameController,
+                                validator: (value) =>
+                                    value == null || value.isEmpty
+                                    ? 'Name is required'
+                                    : null,
+                              ),
+                              const SizedBox(height: 16),
+                              _buildPhoneField(_phoneController),
+                              const SizedBox(height: 16),
+                              _buildTextField(
+                                hint: 'Address Line 1',
+                                controller: _addressController,
+                                validator: (value) =>
+                                    value == null || value.isEmpty
+                                    ? 'Address is required'
+                                    : null,
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildTextField(
+                                      hint: 'City',
+                                      controller: _cityController,
+                                      validator: (value) =>
+                                          value == null || value.isEmpty
+                                          ? 'Required'
+                                          : null,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _buildTextField(
+                                      hint: 'State',
+                                      controller: _stateController,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildTextField(
+                                      hint: 'Country',
+                                      controller: _countryController,
+                                      validator: (value) =>
+                                          value == null || value.isEmpty
+                                          ? 'Required'
+                                          : null,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _buildTextField(
+                                      hint: 'ZIP / Postal Code',
+                                      controller: _zipController,
+                                      keyboardType: TextInputType.number,
+                                      validator: (value) =>
+                                          value == null || value.isEmpty
+                                          ? 'Required'
+                                          : null,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              _buildTextField(
+                                hint: 'Address Type (e.g. Home, Office)',
+                                controller: _addressTypeController,
+                              ),
+                            ] else ...[
+                              _buildSectionTitle('Origin Warehouse'),
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey[300]!),
+                                  borderRadius: BorderRadius.circular(16),
+                                  color: AppTheme.background,
+                                ),
+                                child: warehousesAsync.when(
+                                  data: (warehouses) =>
+                                      DropdownButtonHideUnderline(
+                                        child: DropdownButton<String>(
+                                          value: _selectedOriginWarehouseId,
+                                          hint: const Text(
+                                            'Select Origin Warehouse',
+                                          ),
+                                          isExpanded: true,
+                                          items: warehouses.map((w) {
+                                            return DropdownMenuItem(
+                                              value: w.id,
+                                              child: Text(
+                                                '${w.name} (${w.code})',
+                                              ),
+                                            );
+                                          }).toList(),
+                                          onChanged: (val) {
+                                            setState(
+                                              () => _selectedOriginWarehouseId =
+                                                  val,
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                  loading: () => const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(12.0),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  ),
+                                  error: (err, _) => Center(
+                                    child: Text('Error loading warehouses'),
+                                  ),
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 24),
+
+                            // 6. Destination Details (Conditional)
+                            if (formState.selectedServiceMode.endsWith(
+                              'door',
+                            )) ...[
+                              _buildSectionTitle('Destination Address'),
+                              const SizedBox(height: 16),
+                              _buildTextField(
+                                hint: 'Recipient Name',
+                                controller: _destNameController,
+                                validator: (value) =>
+                                    value == null || value.isEmpty
+                                    ? 'Name is required'
+                                    : null,
+                              ),
+                              const SizedBox(height: 16),
+                              _buildPhoneField(_destPhoneController),
+                              const SizedBox(height: 16),
+                              _buildTextField(
+                                hint: 'Address Line 1',
+                                controller: _destAddressController,
+                                validator: (value) =>
+                                    value == null || value.isEmpty
+                                    ? 'Address is required'
+                                    : null,
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildTextField(
+                                      hint: 'City',
+                                      controller: _destCityController,
+                                      validator: (value) =>
+                                          value == null || value.isEmpty
+                                          ? 'Required'
+                                          : null,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _buildTextField(
+                                      hint: 'State',
+                                      controller: _destStateController,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildTextField(
+                                      hint: 'Country',
+                                      controller: _destCountryController,
+                                      validator: (value) =>
+                                          value == null || value.isEmpty
+                                          ? 'Required'
+                                          : null,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _buildTextField(
+                                      hint: 'ZIP / Postal Code',
+                                      controller: _destZipController,
+                                      keyboardType: TextInputType.number,
+                                      validator: (value) =>
+                                          value == null || value.isEmpty
+                                          ? 'Required'
+                                          : null,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ] else ...[
+                              _buildSectionTitle('Destination Warehouse'),
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey[300]!),
+                                  borderRadius: BorderRadius.circular(16),
+                                  color: AppTheme.background,
+                                ),
+                                child: warehousesAsync.when(
+                                  data: (warehouses) =>
+                                      DropdownButtonHideUnderline(
+                                        child: DropdownButton<String>(
+                                          value:
+                                              _selectedDestinationWarehouseId,
+                                          hint: const Text(
+                                            'Select Destination Warehouse',
+                                          ),
+                                          isExpanded: true,
+                                          items: warehouses.map((w) {
+                                            return DropdownMenuItem(
+                                              value: w.id,
+                                              child: Text(
+                                                '${w.name} (${w.code})',
+                                              ),
+                                            );
+                                          }).toList(),
+                                          onChanged: (val) {
+                                            setState(
+                                              () =>
+                                                  _selectedDestinationWarehouseId =
+                                                      val,
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                  loading: () => const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(12.0),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  ),
+                                  error: (err, _) => Center(
+                                    child: Text('Error loading warehouses'),
+                                  ),
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: 24),
 
                             // 6. Notes
@@ -762,26 +986,70 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
     );
 
     try {
-      final pickupAddress = {
-        'name': _nameController.text,
-        'phone': '$_countryCode ${_phoneController.text}',
-        'addressLine': _addressController.text,
-        'city': _cityController.text,
-        'state': _stateController.text,
-        'country': _countryController.text,
-        'zip': _zipController.text,
-        'addressType': _addressTypeController.text,
-      };
+      final serviceMode = ref.read(shipmentFormProvider).selectedServiceMode;
 
-      final destinationAddress = {
-        'name': 'To Be Confirmed',
-        'phone': '9999999999',
-        'addressLine': 'To Be Confirmed',
-        'city': 'To Be Confirmed',
-        'state': '',
-        'country': 'To Be Confirmed',
-        'zip': '00000',
-      };
+      // Get warehouses list synchronously
+      final warehouses = ref.read(warehousesProvider).value ?? [];
+
+      // Construct Origin
+      Map<String, dynamic> pickupAddress;
+      if (serviceMode.startsWith('door')) {
+        pickupAddress = {
+          'name': _nameController.text,
+          'phone': '$_countryCode ${_phoneController.text}',
+          'addressLine': _addressController.text,
+          'city': _cityController.text,
+          'state': _stateController.text,
+          'country': _countryController.text,
+          'zip': _zipController.text,
+          'addressType': _addressTypeController.text,
+        };
+      } else {
+        final warehouse = warehouses.firstWhere(
+          (w) => w.id == _selectedOriginWarehouseId,
+          orElse: () => warehouses.first,
+        );
+        pickupAddress = {
+          'name': warehouse.name,
+          'phone': 'N/A',
+          'addressLine': warehouse.address.addressLine,
+          'city': warehouse.address.city,
+          'state': warehouse.address.state,
+          'country': warehouse.address.country,
+          'zip': warehouse.address.zip,
+          'addressType': 'Warehouse',
+        };
+      }
+
+      // Construct Destination
+      Map<String, dynamic> destinationAddress;
+      if (serviceMode.endsWith('door')) {
+        destinationAddress = {
+          'name': _destNameController.text,
+          'phone': '$_countryCode ${_destPhoneController.text}',
+          'addressLine': _destAddressController.text,
+          'city': _destCityController.text,
+          'state': _destStateController.text,
+          'country': _destCountryController.text,
+          'zip': _destZipController.text,
+          'addressType': 'Delivery Address',
+        };
+      } else {
+        final warehouse = warehouses.firstWhere(
+          (w) => w.id == _selectedDestinationWarehouseId,
+          orElse: () => warehouses.first,
+        );
+        destinationAddress = {
+          'name': warehouse.name,
+          'phone': 'N/A',
+          'addressLine': warehouse.address.addressLine,
+          'city': warehouse.address.city,
+          'state': warehouse.address.state,
+          'country': warehouse.address.country,
+          'zip': warehouse.address.zip,
+          'addressType': 'Warehouse',
+        };
+      }
 
       final formState = ref.read(shipmentFormProvider);
       List<Map<String, dynamic>> processedItems = [];
@@ -811,6 +1079,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
           'hsCode': item.hsCode,
           'videoUrl': item.videoUrl,
           'targetRate': item.targetRate,
+          'declaredValue': item.declaredValue,
           'packingVolume': item.packingVolume,
           'unitPrice': 0,
           'amount': 0,
@@ -822,9 +1091,10 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
         'destination': destinationAddress,
         'items': processedItems,
         'cargoType': 'General Cargo',
+        'serviceMode': serviceMode,
         'serviceType': _servicePriority,
         'specialInstructions':
-            'Mode: $_shippingMode, Delivery: $_deliveryType\nNotes: ${_notesController.text}',
+            'Mode: $_shippingMode\nNotes: ${_notesController.text}',
         'pickupDate': DateTime.now()
             .add(const Duration(days: 1))
             .toIso8601String(),
@@ -906,27 +1176,94 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      final pickupAddress = {
-        'name': _nameController.text,
-        'phone': '$_countryCode ${_phoneController.text}',
-        'addressLine': _addressController.text,
-        'city': _cityController.text,
-        'state': _stateController.text,
-        'country': _countryController.text,
-        'zip': _zipController.text,
-        'addressType': _addressTypeController.text,
-      };
+      final serviceMode = formState.selectedServiceMode;
 
-      final destinationAddress = {
-        // Using dummy destination as per current UI limitation
-        'name': 'To Be Confirmed',
-        'phone': '9999999999',
-        'addressLine': 'To Be Confirmed',
-        'city': 'To Be Confirmed',
-        'state': '',
-        'country': 'To Be Confirmed',
-        'zip': '00000',
-      };
+      // Get warehouses list synchronously (it should be loaded)
+      final warehouses = ref.read(warehousesProvider).value ?? [];
+
+      // Validate Warehouse selections
+      if (serviceMode.startsWith('warehouse') &&
+          (_selectedOriginWarehouseId == null ||
+              _selectedOriginWarehouseId!.isEmpty)) {
+        Navigator.pop(context); // Dismiss loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select an Origin Warehouse'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      if (serviceMode.endsWith('warehouse') &&
+          (_selectedDestinationWarehouseId == null ||
+              _selectedDestinationWarehouseId!.isEmpty)) {
+        Navigator.pop(context); // Dismiss loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select a Destination Warehouse'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      Map<String, dynamic> pickupAddress;
+      if (serviceMode.startsWith('door')) {
+        pickupAddress = {
+          'name': _nameController.text,
+          'phone': '$_countryCode ${_phoneController.text}',
+          'addressLine': _addressController.text,
+          'city': _cityController.text,
+          'state': _stateController.text,
+          'country': _countryController.text,
+          'zip': _zipController.text,
+          'addressType': _addressTypeController.text,
+        };
+      } else {
+        final warehouse = warehouses.firstWhere(
+          (w) => w.id == _selectedOriginWarehouseId,
+          orElse: () => warehouses.first,
+        );
+        pickupAddress = {
+          'name': warehouse.name,
+          'phone': 'N/A',
+          'addressLine': warehouse.address.addressLine,
+          'city': warehouse.address.city,
+          'state': warehouse.address.state,
+          'country': warehouse.address.country,
+          'zip': warehouse.address.zip,
+          'addressType': 'Warehouse',
+        };
+      }
+
+      Map<String, dynamic> destinationAddress;
+      if (serviceMode.endsWith('door')) {
+        destinationAddress = {
+          'name': _destNameController.text,
+          'phone': '$_countryCode ${_destPhoneController.text}',
+          'addressLine': _destAddressController.text,
+          'city': _destCityController.text,
+          'state': _destStateController.text,
+          'country': _destCountryController.text,
+          'zip': _destZipController.text,
+          'addressType': 'Delivery Address',
+        };
+      } else {
+        final warehouse = warehouses.firstWhere(
+          (w) => w.id == _selectedDestinationWarehouseId,
+          orElse: () => warehouses.first,
+        );
+        destinationAddress = {
+          'name': warehouse.name,
+          'phone': 'N/A',
+          'addressLine': warehouse.address.addressLine,
+          'city': warehouse.address.city,
+          'state': warehouse.address.state,
+          'country': warehouse.address.country,
+          'zip': warehouse.address.zip,
+          'addressType': 'Warehouse',
+        };
+      }
 
       // Process Items including photo uploads
       List<Map<String, dynamic>> processedItems = [];
@@ -968,6 +1305,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
           'hsCode': item.hsCode,
           'videoUrl': item.videoUrl,
           'targetRate': item.targetRate,
+          'declaredValue': item.declaredValue,
           'packingVolume': item.packingVolume,
 
           // Fallback/Legacy fields
@@ -984,9 +1322,10 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
         'items': processedItems,
         'cargoType':
             'General Cargo', // Consider making this dynamic if all items are same? Or just default
+        'serviceMode': serviceMode,
         'serviceType': _servicePriority, // Use global priority
         'specialInstructions':
-            'Mode: $_shippingMode, Delivery: $_deliveryType\nNotes: ${_notesController.text}',
+            'Mode: $_shippingMode\nNotes: ${_notesController.text}',
         'pickupDate': DateTime.now()
             .add(const Duration(days: 1))
             .toIso8601String(), // Default to tomorrow
@@ -1364,7 +1703,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
     );
   }
 
-  Widget _buildPhoneField() {
+  Widget _buildPhoneField(TextEditingController controller) {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.background,
@@ -1461,7 +1800,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: TextFormField(
-              controller: _phoneController,
+              controller: controller,
               keyboardType: TextInputType.phone,
               style: Theme.of(
                 context,
@@ -1485,4 +1824,4 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
       ),
     );
   }
-}
+} // End of class
