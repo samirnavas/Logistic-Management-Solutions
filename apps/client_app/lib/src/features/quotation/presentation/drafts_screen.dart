@@ -312,15 +312,29 @@ class DraftsScreen extends ConsumerWidget {
           TextButton(
             onPressed: () async {
               Navigator.of(context).pop();
-              // TODO: Implement delete draft API call
-              // For now, just refresh the list
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Draft deletion not yet implemented'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-              ref.invalidate(draftsProvider);
+              try {
+                await ref
+                    .read(quotationRepositoryProvider)
+                    .deleteQuotation(draftId);
+                ref.invalidate(draftsProvider);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Draft deleted successfully'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to delete draft: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),

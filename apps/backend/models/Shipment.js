@@ -327,7 +327,7 @@ const shipmentSchema = new mongoose.Schema({
 // ============================================
 // Indexes for Performance
 // ============================================
-shipmentSchema.index({ trackingNumber: 1 }, { unique: true });
+
 shipmentSchema.index({ clientId: 1, status: 1 });
 shipmentSchema.index({ status: 1, createdAt: -1 });
 shipmentSchema.index({ estimatedDelivery: 1 });

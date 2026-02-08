@@ -196,6 +196,11 @@ class QuotationRepository {
     }
     throw Exception('Failed to update quotation');
   }
+
+  /// Delete quotation (Drafts only recommended)
+  Future<void> deleteQuotation(String id) async {
+    await _apiService.deleteRequest('/api/quotations/$id');
+  }
 }
 
 @riverpod

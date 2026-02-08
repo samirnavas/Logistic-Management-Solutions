@@ -21,6 +21,9 @@ router.get('/:id', protect, quotationController.getQuotation);
 // Update quotation details (Generic update)
 router.put('/:id', protect, quotationController.updateQuotation);
 
+// Delete quotation (Admin/Client)
+router.delete('/:id', protect, quotationController.deleteQuotation);
+
 
 // ============================================
 // The "Perfect Flow" Actions (New Logic)

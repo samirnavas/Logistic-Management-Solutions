@@ -85,10 +85,18 @@ GoRouter goRouter(Ref ref) {
       // Add Address Screen
       GoRoute(
         path: '/quotations/:id/address',
+        name: 'addAddress',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) {
           final quotationId = state.pathParameters['id']!;
-          return AddAddressScreen(quotationId: quotationId);
+          final extra = state.extra as Map<String, dynamic>?;
+          final isPickup = extra?['isPickup'] as bool? ?? true;
+          final fromShipmentFlow = extra?['fromShipmentFlow'] as bool? ?? false;
+          return AddAddressScreen(
+            quotationId: quotationId,
+            isPickup: isPickup,
+            fromShipmentFlow: fromShipmentFlow,
+          );
         },
       ),
       // Tracking Screen - Root level route for full-screen map view

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:bb_logistics/src/core/errors/user_error.dart';
@@ -37,16 +38,19 @@ class ApiService {
   ) async {
     final url = Uri.parse('$baseUrl$endpoint');
     String? token = await _storage.read(key: 'jwt_token');
+    print('POST Request to: $url');
 
     try {
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(data),
-      );
+      final response = await http
+          .post(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              if (token != null) 'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode(data),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return jsonDecode(response.body);
@@ -57,6 +61,8 @@ class ApiService {
       rethrow;
     } on SocketException {
       throw UserError.connectionError();
+    } on TimeoutException {
+      throw UserError.unknown('Connection timed out');
     } catch (e) {
       throw UserError.unknown(e.toString());
     }
@@ -67,14 +73,16 @@ class ApiService {
     String? token = await _storage.read(key: 'jwt_token');
 
     try {
-      final response = await http.put(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(data),
-      );
+      final response = await http
+          .put(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              if (token != null) 'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode(data),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return jsonDecode(response.body);
@@ -85,6 +93,8 @@ class ApiService {
       rethrow;
     } on SocketException {
       throw UserError.connectionError();
+    } on TimeoutException {
+      throw UserError.unknown('Connection timed out');
     } catch (e) {
       throw UserError.unknown(e.toString());
     }
@@ -93,15 +103,18 @@ class ApiService {
   Future<dynamic> getRequest(String endpoint) async {
     final url = Uri.parse('$baseUrl$endpoint');
     String? token = await _storage.read(key: 'jwt_token');
+    print('GET Request to: $url');
 
     try {
-      final response = await http.get(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-      );
+      final response = await http
+          .get(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              if (token != null) 'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -112,6 +125,8 @@ class ApiService {
       rethrow;
     } on SocketException {
       throw UserError.connectionError();
+    } on TimeoutException {
+      throw UserError.unknown('Connection timed out');
     } catch (e) {
       throw UserError.unknown(e.toString());
     }
@@ -122,13 +137,15 @@ class ApiService {
     String? token = await _storage.read(key: 'jwt_token');
 
     try {
-      final response = await http.delete(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-      );
+      final response = await http
+          .delete(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              if (token != null) 'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -139,6 +156,8 @@ class ApiService {
       rethrow;
     } on SocketException {
       throw UserError.connectionError();
+    } on TimeoutException {
+      throw UserError.unknown('Connection timed out');
     } catch (e) {
       throw UserError.unknown(e.toString());
     }

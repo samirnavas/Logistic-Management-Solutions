@@ -15,7 +15,6 @@ import 'package:bb_logistics/src/features/home/data/dashboard_repository.dart';
 import 'package:bb_logistics/src/features/quotation/domain/quotation.dart';
 
 import 'package:bb_logistics/src/features/shipment/data/warehouse_repository.dart';
-import 'package:bb_logistics/src/features/shipment/domain/warehouse.dart';
 
 class RequestShipmentScreen extends ConsumerStatefulWidget {
   final Quotation? existingQuotation;
@@ -92,10 +91,11 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
 
       if (q.serviceMode != null) {
         Future.microtask(() {
-          if (mounted)
+          if (mounted) {
             ref
                 .read(shipmentFormProvider.notifier)
                 .setServiceMode(q.serviceMode!);
+          }
         });
       }
 
@@ -199,6 +199,47 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
     // Let's try invalidate in dispose for now, usually safe for global providers.
     ref.invalidate(shipmentFormProvider);
     super.deactivate();
+  }
+
+  Future<void> _selectAddress({required bool isPickup}) async {
+    final result = await context.pushNamed(
+      'addAddress', // Using named route added to app_router.dart
+      pathParameters: {
+        'id': 'new',
+      }, // Dummy ID since we're not binding to a specific quotation yet
+      extra: {'isPickup': isPickup, 'fromShipmentFlow': true},
+    );
+
+    if (result != null && result is Map<String, dynamic>) {
+      setState(() {
+        if (isPickup) {
+          final origin = result['origin'] as Map<String, dynamic>?;
+          if (origin != null) {
+            _nameController.text = origin['name'] ?? '';
+            // Handle phone - remove country code if doubled?
+            // AddAddressScreen returns full phone. RequestScreen usually composes it.
+            // For now, put full phone in controller and let user adjust or backend handle.
+            _phoneController.text = origin['phone'] ?? '';
+            _addressController.text = origin['addressLine'] ?? '';
+            _cityController.text = origin['city'] ?? '';
+            _stateController.text = origin['state'] ?? '';
+            _countryController.text = origin['country'] ?? '';
+            _zipController.text = origin['zip'] ?? '';
+          }
+        } else {
+          final dest = result['destination'] as Map<String, dynamic>?;
+          if (dest != null) {
+            _destNameController.text = dest['name'] ?? '';
+            _destPhoneController.text = dest['phone'] ?? '';
+            _destAddressController.text = dest['addressLine'] ?? '';
+            _destCityController.text = dest['city'] ?? '';
+            _destStateController.text = dest['state'] ?? '';
+            _destCountryController.text = dest['country'] ?? '';
+            _destZipController.text = dest['zip'] ?? '';
+          }
+        }
+      });
+    }
   }
 
   @override
@@ -575,74 +616,104 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                             )) ...[
                               _buildSectionTitle('Pickup Address'),
                               const SizedBox(height: 16),
-                              _buildTextField(
-                                hint: 'Full Name',
-                                controller: _nameController,
-                                validator: (value) =>
-                                    value == null || value.isEmpty
-                                    ? 'Name is required'
-                                    : null,
-                              ),
-                              const SizedBox(height: 16),
-                              _buildPhoneField(_phoneController),
-                              const SizedBox(height: 16),
-                              _buildTextField(
-                                hint: 'Address Line 1',
-                                controller: _addressController,
-                                validator: (value) =>
-                                    value == null || value.isEmpty
-                                    ? 'Address is required'
-                                    : null,
-                              ),
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildTextField(
-                                      hint: 'City',
-                                      controller: _cityController,
-                                      validator: (value) =>
-                                          value == null || value.isEmpty
-                                          ? 'Required'
-                                          : null,
+                              if (_nameController.text.isNotEmpty)
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: Colors.grey[300]!,
                                     ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: Colors.grey[50],
                                   ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: _buildTextField(
-                                      hint: 'State',
-                                      controller: _stateController,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              _nameController.text,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          ),
+                                          TextButton(
+                                            onPressed: () =>
+                                                _selectAddress(isPickup: true),
+                                            child: const Text('Change'),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.phone,
+                                            size: 16,
+                                            color: Colors.grey,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            _phoneController
+                                                .text, // Assuming full phone from selection
+                                            style: TextStyle(
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Icon(
+                                            Icons.location_on,
+                                            size: 16,
+                                            color: Colors.grey,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              '${_addressController.text}, ${_cityController.text}, ${_stateController.text} ${_zipController.text}, ${_countryController.text}',
+                                              style: TextStyle(
+                                                color: Colors.grey[700],
+                                                height: 1.3,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                OutlinedButton.icon(
+                                  onPressed: () =>
+                                      _selectAddress(isPickup: true),
+                                  icon: const Icon(
+                                    Icons.add_location_alt_outlined,
+                                  ),
+                                  label: const Text('Add Pickup Address'),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildTextField(
-                                      hint: 'Country',
-                                      controller: _countryController,
-                                      validator: (value) =>
-                                          value == null || value.isEmpty
-                                          ? 'Required'
-                                          : null,
+                                    side: BorderSide(color: Colors.grey[300]!),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
+                                    minimumSize: const Size(double.infinity, 0),
+                                    foregroundColor: AppTheme.primaryBlue,
                                   ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: _buildTextField(
-                                      hint: 'ZIP / Postal Code',
-                                      controller: _zipController,
-                                      keyboardType: TextInputType.number,
-                                      validator: (value) =>
-                                          value == null || value.isEmpty
-                                          ? 'Required'
-                                          : null,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
                               const SizedBox(height: 16),
                               _buildTextField(
                                 hint: 'Address Type (e.g. Home, Office)',
@@ -693,7 +764,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                                       ),
                                     ),
                                   ),
-                                  error: (err, _) => Center(
+                                  error: (err, _) => const Center(
                                     child: Text('Error loading warehouses'),
                                   ),
                                 ),
@@ -707,74 +778,103 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                             )) ...[
                               _buildSectionTitle('Destination Address'),
                               const SizedBox(height: 16),
-                              _buildTextField(
-                                hint: 'Recipient Name',
-                                controller: _destNameController,
-                                validator: (value) =>
-                                    value == null || value.isEmpty
-                                    ? 'Name is required'
-                                    : null,
-                              ),
-                              const SizedBox(height: 16),
-                              _buildPhoneField(_destPhoneController),
-                              const SizedBox(height: 16),
-                              _buildTextField(
-                                hint: 'Address Line 1',
-                                controller: _destAddressController,
-                                validator: (value) =>
-                                    value == null || value.isEmpty
-                                    ? 'Address is required'
-                                    : null,
-                              ),
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildTextField(
-                                      hint: 'City',
-                                      controller: _destCityController,
-                                      validator: (value) =>
-                                          value == null || value.isEmpty
-                                          ? 'Required'
-                                          : null,
+                              if (_destNameController.text.isNotEmpty)
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: Colors.grey[300]!,
                                     ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: Colors.grey[50],
                                   ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: _buildTextField(
-                                      hint: 'State',
-                                      controller: _destStateController,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              _destNameController.text,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          ),
+                                          TextButton(
+                                            onPressed: () =>
+                                                _selectAddress(isPickup: false),
+                                            child: const Text('Change'),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.phone,
+                                            size: 16,
+                                            color: Colors.grey,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            _destPhoneController.text,
+                                            style: TextStyle(
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Icon(
+                                            Icons.location_on,
+                                            size: 16,
+                                            color: Colors.grey,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              '${_destAddressController.text}, ${_destCityController.text}, ${_destStateController.text} ${_destZipController.text}, ${_destCountryController.text}',
+                                              style: TextStyle(
+                                                color: Colors.grey[700],
+                                                height: 1.3,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                OutlinedButton.icon(
+                                  onPressed: () =>
+                                      _selectAddress(isPickup: false),
+                                  icon: const Icon(
+                                    Icons.add_location_alt_outlined,
+                                  ),
+                                  label: const Text('Add Delivery Address'),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildTextField(
-                                      hint: 'Country',
-                                      controller: _destCountryController,
-                                      validator: (value) =>
-                                          value == null || value.isEmpty
-                                          ? 'Required'
-                                          : null,
+                                    side: BorderSide(color: Colors.grey[300]!),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
+                                    minimumSize: const Size(double.infinity, 0),
+                                    foregroundColor: AppTheme.primaryBlue,
                                   ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: _buildTextField(
-                                      hint: 'ZIP / Postal Code',
-                                      controller: _destZipController,
-                                      keyboardType: TextInputType.number,
-                                      validator: (value) =>
-                                          value == null || value.isEmpty
-                                          ? 'Required'
-                                          : null,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
                             ] else ...[
                               _buildSectionTitle('Destination Warehouse'),
                               const SizedBox(height: 16),
@@ -822,7 +922,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                                       ),
                                     ),
                                   ),
-                                  error: (err, _) => Center(
+                                  error: (err, _) => const Center(
                                     child: Text('Error loading warehouses'),
                                   ),
                                 ),
@@ -1699,128 +1799,6 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
           horizontal: 20,
           vertical: 18,
         ),
-      ),
-    );
-  }
-
-  Widget _buildPhoneField(TextEditingController controller) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.background,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          PopupMenuButton<String>(
-            onSelected: (value) => setState(() => _countryCode = value),
-            color: Colors.white,
-            surfaceTintColor: Colors.white,
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: '+1',
-                child: Row(
-                  children: [
-                    Text('🇺🇸', style: TextStyle(fontSize: 20)),
-                    SizedBox(width: 8),
-                    Text('+1'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: '+91',
-                child: Row(
-                  children: [
-                    Text('🇮🇳', style: TextStyle(fontSize: 20)),
-                    SizedBox(width: 8),
-                    Text('+91'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: '+971',
-                child: Row(
-                  children: [
-                    Text('🇦🇪', style: TextStyle(fontSize: 20)),
-                    SizedBox(width: 8),
-                    Text('+971'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: '+974',
-                child: Row(
-                  children: [
-                    Text('🇶🇦', style: TextStyle(fontSize: 20)),
-                    SizedBox(width: 8),
-                    Text('+974'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: '+973',
-                child: Row(
-                  children: [
-                    Text('🇧🇭', style: TextStyle(fontSize: 20)),
-                    SizedBox(width: 8),
-                    Text('+973'),
-                  ],
-                ),
-              ),
-            ],
-            child: Row(
-              children: [
-                Text(
-                  _countryCode == '+1'
-                      ? '🇺🇸'
-                      : _countryCode == '+91'
-                      ? '🇮🇳'
-                      : _countryCode == '+971'
-                      ? '🇦🇪'
-                      : _countryCode == '+974'
-                      ? '🇶🇦'
-                      : '🇧🇭',
-                  style: const TextStyle(fontSize: 24),
-                ),
-                const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                const SizedBox(width: 8),
-                Text(
-                  _countryCode,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Container(width: 1, height: 24, color: Colors.grey[300]),
-          const SizedBox(width: 12),
-          Expanded(
-            child: TextFormField(
-              controller: controller,
-              keyboardType: TextInputType.phone,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.black87),
-              decoration: InputDecoration(
-                hintText: 'Phone Number',
-                hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[400],
-                  fontSize: 13,
-                ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-                isDense: true,
-                filled: false,
-              ),
-              validator: (value) =>
-                  value == null || value.isEmpty ? 'Required' : null,
-            ),
-          ),
-        ],
       ),
     );
   }
