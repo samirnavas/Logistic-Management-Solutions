@@ -6,14 +6,17 @@ const shipmentController = require('../controllers/shipmentController');
 // client app Routes
 // ============================================
 
-// Get shipments for a specific client
-router.get('/client/:clientId', shipmentController.getClientShipments);
+// IMPORTANT: More specific routes MUST come before generic parameterized routes
+// Otherwise Express will match 'stats' or 'active' as the :clientId parameter
 
 // Get active shipments for a client
 router.get('/client/:clientId/active', shipmentController.getActiveShipments);
 
 // Get shipment statistics for a client
 router.get('/client/:clientId/stats', shipmentController.getClientStats);
+
+// Get shipments for a specific client (MUST be last in this group)
+router.get('/client/:clientId', shipmentController.getClientShipments);
 
 // ============================================
 // Tracking Routes

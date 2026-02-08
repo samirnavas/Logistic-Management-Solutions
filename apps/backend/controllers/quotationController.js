@@ -179,51 +179,89 @@ exports.createQuotation = async (req, res) => {
     }
 };
 
-// ==========================================
-// SECURE UPDATE QUOTATION (The Firewall Fix)
-// ==========================================
+// ============================================
+// Update Quotation (Debugged & Fixed v2)
+// ============================================
 exports.updateQuotation = async (req, res) => {
     try {
         const { id } = req.params;
         let updateData = { ...req.body };
+
+        console.log('\n========== UPDATE QUOTATION REQUEST ==========');
+        console.log('[1] Quotation ID:', id);
+        console.log('[2] User Role:', req.user.role);
+        console.log('[3] Request Body:', JSON.stringify(updateData, null, 2));
+
         // 1. Fetch Current State
         const currentQuotation = await Quotation.findById(id);
         if (!currentQuotation) {
+            console.log('[ERROR] Quotation not found!');
             return res.status(404).json({ message: 'Quotation not found' });
         }
-        console.log(`[Update] Request for ${id} by ${req.user.role}. Body:`, JSON.stringify(req.body));
+
+        console.log('[4] Current Status in DB:', currentQuotation.status);
+        console.log('[5] Current Handover Method:', currentQuotation.handoverMethod);
+
         // 2. CLIENT LOGIC
-        if (req.user.role === 'client') {
+        // FIX: Handle both 'client' and 'client app' role values
+        const isClient = req.user.role === 'client' || req.user.role === 'client app';
+
+        if (isClient) {
+            console.log('[6] Processing CLIENT update...');
 
             // A) HANDLING DROP-OFF vs PICKUP
-            // If client selects DROP_OFF, we MUST provide a placeholder pickupAddress
-            // otherwise Mongoose validation (required: true) will fail silently or throw error.
             if (updateData.handoverMethod === 'DROP_OFF') {
-                console.log('[Logic] Handling Drop-off: Setting placeholder pickup address');
+                console.log('[7] ✓ DROP_OFF detected - Setting placeholder pickup address');
                 updateData.pickupAddress = 'CLIENT WILL DROP OFF AT WAREHOUSE';
+            } else {
+                console.log('[7] Handover method is:', updateData.handoverMethod || 'not changing');
             }
+
             // B) FORCE STATUS UPDATE
-            // If we are adding address details to a Verified request, ALWAYS move forward.
+            // NOTE: 'APPROVED' is NOT in the enum - only 'VERIFIED' exists
+            console.log('[8] Checking if should update status...');
+            console.log('    Current status:', currentQuotation.status);
+            console.log('    Is VERIFIED?', currentQuotation.status === 'VERIFIED');
+
             if (currentQuotation.status === 'VERIFIED') {
-                console.log('[Logic] Verified Request + Address Update -> Moving to ADDRESS_PROVIDED');
+                console.log('[9] ✓✓✓ VERIFIED status confirmed - FORCING status to ADDRESS_PROVIDED');
                 updateData.status = 'ADDRESS_PROVIDED';
             }
-            // Security: If not DRAFT/INFO_REQUIRED, block status tampering
+            // C) SECURITY: Prevent changing status if not in Draft/Info phase
             else if (currentQuotation.status !== 'DRAFT' && currentQuotation.status !== 'INFO_REQUIRED') {
+                console.log('[9] ✗ Not in editable status - Removing any status field from update');
                 delete updateData.status;
+            } else {
+                console.log('[9] Status is editable (DRAFT or INFO_REQUIRED)');
             }
+        } else {
+            console.log('[6] Processing ADMIN/MANAGER update (no special logic)');
         }
+
+        console.log('[10] Final update data:', JSON.stringify(updateData, null, 2));
+
         // 3. Perform Update
-        // Note: runValidators is FALSE here to prevent 'required' errors on partial updates, 
-        // since we manually validated the Drop-off above.
         const updatedQuotation = await Quotation.findByIdAndUpdate(
             id,
             updateData,
             { new: true, runValidators: false }
         );
+
+        if (!updatedQuotation) {
+            console.log('[ERROR] Update returned null!');
+            return res.status(500).json({ message: 'Update failed - no document returned' });
+        }
+
+        console.log('[11] ✅ UPDATE SUCCESSFUL');
+        console.log('     New Status:', updatedQuotation.status);
+        console.log('     New Handover Method:', updatedQuotation.handoverMethod);
+        console.log('     Pickup Address:', updatedQuotation.pickupAddress);
+        console.log('==============================================\n');
+
         res.status(200).json(updatedQuotation);
     } catch (error) {
-        console.error('[Error] Update failed:', error);
+        console.error('[CRITICAL ERROR] Update failed:', error.message);
+        console.error('Stack trace:', error.stack);
         res.status(500).json({ message: 'Update failed', error: error.message });
     }
 };
@@ -774,29 +812,79 @@ exports.approveRequest = async (req, res) => {
 };
 
 // ============================================
-// Update Address (Client)
+// Update Address (Client) - FIXED FOR DROP-OFF
 // ============================================
 exports.updateAddress = async (req, res) => {
     try {
-        const { origin, destination } = req.body;
+        console.log('\n========== UPDATE ADDRESS REQUEST ==========');
+        console.log('[Address Update] ID:', req.params.id);
+        console.log('[Address Update] Body:', JSON.stringify(req.body, null, 2));
+
+        const { origin, destination, handoverMethod, warehouseDropOffLocation } = req.body;
         const quotation = await Quotation.findById(req.params.id);
 
         if (!quotation) {
+            console.log('[Address Update] ERROR: Quotation not found');
             return res.status(404).json({ message: 'Quotation not found' });
         }
 
-        if (origin) quotation.origin = origin;
-        if (destination) quotation.destination = destination;
+        console.log('[Address Update] Current Status:', quotation.status);
+        console.log('[Address Update] Current Handover Method:', quotation.handoverMethod);
 
-        quotation.status = 'PENDING_REVIEW';
+        // Update address fields
+        if (origin) {
+            console.log('[Address Update] Updating origin address');
+            quotation.origin = origin;
+        }
+        if (destination) {
+            console.log('[Address Update] Updating destination address');
+            quotation.destination = destination;
+        }
+
+        // Handle handover method change
+        if (handoverMethod) {
+            console.log('[Address Update] Handover method:', handoverMethod);
+            quotation.handoverMethod = handoverMethod;
+
+            // CRITICAL FIX: If Drop-off, set placeholder pickup address
+            if (handoverMethod === 'DROP_OFF') {
+                console.log('[Address Update] ✓ DROP_OFF detected - Setting placeholder pickup address');
+                quotation.pickupAddress = 'CLIENT WILL DROP OFF AT WAREHOUSE';
+            }
+        }
+
+        // Handle warehouse location for drop-off
+        if (warehouseDropOffLocation) {
+            console.log('[Address Update] Setting warehouse drop-off location');
+            quotation.warehouseDropOffLocation = warehouseDropOffLocation;
+        }
+
+        // CRITICAL FIX: Don't hardcode PENDING_REVIEW!
+        // Check current status and set appropriate next status
+        if (quotation.status === 'VERIFIED') {
+            console.log('[Address Update] ✓✓✓ Status is VERIFIED - Moving to ADDRESS_PROVIDED');
+            quotation.status = 'ADDRESS_PROVIDED';
+        } else if (quotation.status === 'DRAFT' || quotation.status === 'INFO_REQUIRED') {
+            console.log('[Address Update] Status is editable - Moving to PENDING_REVIEW');
+            quotation.status = 'PENDING_REVIEW';
+        } else {
+            console.log('[Address Update] Status unchanged -', quotation.status);
+        }
+
         const updatedQuotation = await quotation.save();
+
+        console.log('[Address Update] ✅ SUCCESS');
+        console.log('[Address Update] New Status:', updatedQuotation.status);
+        console.log('[Address Update] New Handover Method:', updatedQuotation.handoverMethod);
+        console.log('==============================================\n');
 
         res.json({
             message: 'Address details submitted successfully',
             quotation: updatedQuotation,
         });
     } catch (error) {
-        console.error('Update Address Error:', error);
+        console.error('[Address Update] CRITICAL ERROR:', error);
+        console.error('Stack trace:', error.stack);
         res.status(500).json({ message: 'Failed to update address', error: error.message });
     }
 };
