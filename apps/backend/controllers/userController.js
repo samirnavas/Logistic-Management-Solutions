@@ -332,7 +332,7 @@ exports.getAllUsers = async (req, res) => {
 
         const [users, total] = await Promise.all([
             User.find(query)
-                .select('-savedAddresses')
+                // .select('-savedAddresses') // Included addresses for dashboard display
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(parseInt(limit)),

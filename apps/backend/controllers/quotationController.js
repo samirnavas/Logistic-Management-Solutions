@@ -38,6 +38,67 @@ exports.getAllQuotations = async (req, res) => {
 };
 
 // ============================================
+// Get Quotation Statistics (Dashboard)
+// ============================================
+exports.getStats = async (req, res) => {
+    try {
+        const [
+            totalRequests,
+            pendingRequests,
+            totalQuotations,
+            pendingQuotations,
+            acceptedQuotations
+        ] = await Promise.all([
+            // 1. Total Requests: All submitted quotations (excluding drafts)
+            Quotation.countDocuments({ status: { $ne: 'DRAFT' } }),
+
+            // 2. Pending Requests: Requests waiting for admin action (before price generation)
+            // Includes: PENDING_REVIEW, INFO_REQUIRED, VERIFIED, ADDRESS_PROVIDED
+            Quotation.countDocuments({
+                status: { $in: ['PENDING_REVIEW', 'INFO_REQUIRED', 'VERIFIED', 'ADDRESS_PROVIDED'] }
+            }),
+
+            // 3. Total Quotations: Requests where a price/outcome has been generated
+            // Includes: QUOTATION_GENERATED, QUOTATION_SENT, NEGOTIATION_REQUESTED, ACCEPTED, BOOKED, REJECTED, EXPIRED
+            Quotation.countDocuments({
+                status: {
+                    $in: [
+                        'QUOTATION_GENERATED',
+                        'QUOTATION_SENT',
+                        'NEGOTIATION_REQUESTED',
+                        'ACCEPTED',
+                        'BOOKED',
+                        'REJECTED',
+                        'EXPIRED'
+                    ]
+                }
+            }),
+
+            // 4. Pending Quotations: Quotations sent to client, waiting for acceptance
+            Quotation.countDocuments({
+                status: { $in: ['QUOTATION_SENT', 'NEGOTIATION_REQUESTED'] }
+            }),
+
+            // 5. Accepted Quotations: Successfully booke or accepted
+            Quotation.countDocuments({
+                status: { $in: ['ACCEPTED', 'BOOKED'] }
+            })
+        ]);
+
+        res.json({
+            totalRequests,
+            pendingRequests,
+            totalQuotations,
+            pendingQuotations,
+            acceptedQuotations
+        });
+    } catch (error) {
+        console.error('Get Stats Error:', error);
+        res.status(500).json({ message: 'Failed to fetch statistics', error: error.message });
+    }
+};
+
+// ============================================
 // Get quotations for a specific client app
 // ============================================
 exports.getClientQuotations = async (req, res) => {

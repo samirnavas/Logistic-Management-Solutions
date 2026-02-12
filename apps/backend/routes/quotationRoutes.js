@@ -15,6 +15,9 @@ router.post('/', protect, quotationController.createQuotation);
 // but here we map root GET to getAllQuotations as requested.
 router.get('/', protect, quotationController.getAllQuotations);
 
+// Get quotation statistics (Dashboard) - MUST be before /:id
+router.get('/stats', protect, quotationController.getStats);
+
 // Get quotation details by ID
 router.get('/:id', protect, quotationController.getQuotation);
 

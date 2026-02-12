@@ -10,14 +10,14 @@ export default function UsersPage() {
         const fetchUsers = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch('/api/users', {
+                const res = await fetch('/api/users?role=client app', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (res.ok) {
                     const data = await res.json();
-                    // Filter client apps
-                    setUsers(data.filter((u: any) => u.role === 'client app'));
+                    // Access users array from response object
+                    setUsers(data.users || []);
                 }
             } catch (err) {
                 console.error(err);
@@ -43,10 +43,10 @@ export default function UsersPage() {
                         <thead className="bg-gray-50 text-xs uppercase font-semibold text-gray-500">
                             <tr>
                                 <th className="px-6 py-4">Name</th>
-                                <th className="px-6 py-4">Email</th>
-                                <th className="px-6 py-4">Code</th>
+                                <th className="px-6 py-4">Customer ID</th>
+                                <th className="px-6 py-4">Contact No</th>
+                                <th className="px-6 py-4">Place</th>
                                 <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4">Joined Date</th>
                                 <th className="px-6 py-4">Action</th>
                             </tr>
                         </thead>
@@ -58,16 +58,27 @@ export default function UsersPage() {
                             ) : (
                                 users.map((user) => (
                                     <tr key={user._id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4 text-zinc-800 font-medium">{user.fullName}</td>
-                                        <td className="px-6 py-4">{user.email}</td>
-                                        <td className="px-6 py-4 font-mono text-xs">{user.customerCode || 'N/A'}</td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-zinc-800 font-medium">{user.fullName}</span>
+                                                <span className="text-zinc-400 text-xs">{user.email}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 font-mono text-xs font-medium text-slate-600">
+                                            {user.customerCode || 'N/A'}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-slate-600">
+                                            {user.phone || user.savedAddresses?.find((a: any) => a.isDefault)?.contactPhone || user.savedAddresses?.[0]?.contactPhone || '-'}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-slate-600">
+                                            {user.location || user.country || user.savedAddresses?.find((a: any) => a.isDefault)?.city || user.savedAddresses?.[0]?.city || '-'}
+                                        </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-3 py-1 rounded-full text-xs font-medium 
                                                 ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                                 {user.isActive ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-zinc-500">{new Date(user.createdAt).toLocaleDateString()}</td>
                                         <td className="px-6 py-4">
                                             <button
                                                 className="text-sky-700 hover:underline text-sm font-medium"

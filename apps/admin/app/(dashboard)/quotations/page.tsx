@@ -19,9 +19,8 @@ export default function QuotationsPage() {
                     const responseData = await res.json();
                     const data = responseData.quotations || [];
 
-                    // Filter out 'request_sent' (as those are requests, not yet quotations)
-                    const sentQuotes = data.filter((q: any) => q.status !== 'request_sent');
-                    setQuotations(sentQuotes);
+                    // Show all quotations as requested
+                    setQuotations(data);
                 }
             } catch (err) {
                 console.error(err);
