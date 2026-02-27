@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
     Hourglass,
     CheckCircle,
@@ -11,6 +12,7 @@ import RequestDetailsModal from '../components/RequestDetailsModal';
 import { Quotation, QuotationStats } from '../../types';
 
 export default function DashboardPage() {
+    const router = useRouter();
     const [quotations, setQuotations] = useState<Quotation[]>([]);
     const [stats, setStats] = useState<QuotationStats>({
         totalRequests: 0,
@@ -35,6 +37,13 @@ export default function DashboardPage() {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
+
+            // Guard: if no token, redirect to login immediately
+            if (!token) {
+                router.push('/login');
+                return;
+            }
+
             const headers = { 'Authorization': `Bearer ${token}` };
 
             // Build query params
@@ -52,6 +61,15 @@ export default function DashboardPage() {
                 headers,
                 cache: 'no-store'
             });
+
+            // Guard: if unauthorized (token expired/invalid), clear storage and redirect
+            if (resQuotations.status === 401) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                router.push('/login');
+                return;
+            }
+
             if (resQuotations.ok) {
                 const data = await resQuotations.json();
                 setQuotations(data.quotations || []);
@@ -59,10 +77,7 @@ export default function DashboardPage() {
                 setCurrentPage(data.currentPage || 1);
             }
 
-            // Fetch Stats (Only need to fetch once or on refresh)
-            // Note: Stats usually reflect global state, checking if they should be filtered too?
-            // Usually stats are top-level summaries, so maybe keep them unfiltered or based on separate logic.
-            // For now, keeping them as is (global stats).
+            // Fetch Stats
             const resStats = await fetch('/api/quotations/stats', { headers });
             if (resStats.ok) {
                 const statsData = await resStats.json();
@@ -74,7 +89,7 @@ export default function DashboardPage() {
         } finally {
             setLoading(false);
         }
-    }, [itemsPerPage]);
+    }, [itemsPerPage, router]);
 
     useEffect(() => {
         fetchData(currentPage, statusFilter);

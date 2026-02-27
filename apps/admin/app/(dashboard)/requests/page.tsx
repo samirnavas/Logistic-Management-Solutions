@@ -1,11 +1,14 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import RequestDetailsModal from '../../components/RequestDetailsModal';
 
 export default function RequestsPage() {
+    const router = useRouter();
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
     // Pagination State
@@ -17,9 +20,25 @@ export default function RequestsPage() {
         const fetchRequests = async () => {
             try {
                 const token = localStorage.getItem('token');
+
+                // Guard: if no token, redirect to login immediately
+                if (!token) {
+                    router.push('/login');
+                    return;
+                }
+
                 const res = await fetch('/api/quotations', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+
+                // Guard: if unauthorized (token expired/invalid), clear storage and redirect
+                if (res.status === 401) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    router.push('/login');
+                    return;
+                }
+
                 if (res.ok) {
                     const responseData = await res.json();
                     const data = responseData.quotations || [];
@@ -30,15 +49,18 @@ export default function RequestsPage() {
 
                     setRequests(filteredRequests);
                     setTotalPages(Math.ceil(filteredRequests.length / itemsPerPage));
+                } else {
+                    setError(`Failed to load requests (${res.status})`);
                 }
             } catch (err) {
                 console.error(err);
+                setError('Network error — could not reach the server.');
             } finally {
                 setLoading(false);
             }
         };
         fetchRequests();
-    }, [itemsPerPage]);
+    }, [itemsPerPage, router]);
 
     const getStatusStyle = (status: string) => {
         const s = status?.toLowerCase() || '';
@@ -123,6 +145,10 @@ export default function RequestsPage() {
                             {loading ? (
                                 <tr>
                                     <td colSpan={13} className="px-4 py-8 text-center text-slate-400">Loading data...</td>
+                                </tr>
+                            ) : error ? (
+                                <tr>
+                                    <td colSpan={13} className="px-4 py-8 text-center text-red-500">{error}</td>
                                 </tr>
                             ) : requests.length === 0 ? (
                                 <tr>
