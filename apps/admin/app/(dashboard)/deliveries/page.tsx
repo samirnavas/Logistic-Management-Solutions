@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import StatusBadge from '../../components/StatusBadge';
 
 export default function DeliveriesPage() {
     const [shipments, setShipments] = useState<any[]>([]);
@@ -28,12 +29,12 @@ export default function DeliveriesPage() {
 
     return (
         <div className="flex flex-col gap-8">
-            <h1 className="text-2xl font-semibold text-zinc-800">Deliveries</h1>
+            <h1 className="text-3xl font-bold text-foreground">Deliveries</h1>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-gray-600">
-                        <thead className="bg-gray-50 text-xs uppercase font-semibold text-gray-500">
+            <div className="bg-card rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-border overflow-hidden">
+                <div className="overflow-x-auto p-4 md:p-6">
+                    <table className="w-full text-left text-sm text-muted-foreground border-collapse">
+                        <thead className="bg-muted text-xs uppercase font-bold text-muted-foreground tracking-wider">
                             <tr>
                                 <th className="px-6 py-4">Tracking ID</th>
                                 <th className="px-6 py-4">Client</th>
@@ -56,12 +57,7 @@ export default function DeliveriesPage() {
                                         <td className="px-6 py-4">{shipment.origin?.city}</td>
                                         <td className="px-6 py-4">{shipment.destination?.city}</td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-3 py-1 rounded-full text-xs font-medium 
-                                                ${shipment.status === 'Delivered' ? 'bg-green-100 text-green-700' :
-                                                    shipment.status === 'In Transit' ? 'bg-blue-100 text-blue-700' :
-                                                        'bg-gray-100 text-gray-700'}`}>
-                                                {shipment.status}
-                                            </span>
+                                            <StatusBadge status={shipment.status} />
                                         </td>
                                         <td className="px-6 py-4 text-zinc-500">{new Date(shipment.createdAt).toLocaleDateString()}</td>
                                     </tr>

@@ -32,7 +32,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     final shipmentsAsync = ref.watch(shipmentListProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1A2E),
+      backgroundColor: AppTheme.background,
       body: shipmentsAsync.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppTheme.primaryBlue),
@@ -178,12 +178,12 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             // Back Button
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 8,
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
                     offset: const Offset(0, 2),
                   ),
                 ],
@@ -191,7 +191,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               child: IconButton(
                 icon: const Icon(
                   Icons.chevron_left,
-                  color: Color(0xFF1A1A2E),
+                  color: AppTheme.textDark,
                   size: 28,
                 ),
                 onPressed: () => context.pop(),
@@ -201,7 +201,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             Text(
               'Location Tracking',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: const Color(0xFF1A1A2E),
+                color: AppTheme.textDark,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -224,14 +224,14 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A2E),
+            color: AppTheme.surface,
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(24),
               topRight: Radius.circular(24),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 20,
                 offset: const Offset(0, -5),
               ),
@@ -272,7 +272,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                     // Divider
                     Container(
                       height: 1,
-                      color: Colors.white.withValues(alpha: 0.1),
+                      color: Colors.grey.withValues(alpha: 0.2),
                     ),
 
                     const SizedBox(height: 20),
@@ -312,7 +312,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
         width: 48,
         height: 5,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.3),
+          color: Colors.grey.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(3),
         ),
       ),
@@ -331,15 +331,15 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
           children: [
             Text(
               'Booking ID',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.white.withValues(alpha: 0.6),
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
             ),
             const SizedBox(height: 4),
             Text(
               '#${shipment.trackingNumber.replaceAll('TRK-', 'RQ')}',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: const Color(0xFF4FC3F7),
+                color: AppTheme.primaryBlue,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -352,22 +352,24 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
           children: [
             Text(
               'Status',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.white.withValues(alpha: 0.6),
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
             ),
             const SizedBox(height: 4),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
+                color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                border: Border.all(
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.2),
+                ),
               ),
               child: Text(
                 shipment.status == 'In Transit' ? 'Transit' : shipment.status,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white,
+                  color: AppTheme.primaryBlue,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -421,14 +423,12 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                 width: 16,
                 height: 16,
                 decoration: BoxDecoration(
-                  color: isActive
-                      ? const Color(0xFF4FC3F7)
-                      : Colors.transparent,
+                  color: isActive ? AppTheme.primaryBlue : AppTheme.surface,
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: isActive
-                        ? const Color(0xFF4FC3F7)
-                        : Colors.white.withValues(alpha: 0.3),
+                        ? AppTheme.primaryBlue
+                        : Colors.grey.withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
@@ -442,8 +442,8 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                     child: CustomPaint(
                       painter: _DashedLinePainter(
                         color: isActive && index < currentStep
-                            ? const Color(0xFF4FC3F7)
-                            : Colors.white.withValues(alpha: 0.3),
+                            ? AppTheme.primaryBlue
+                            : Colors.grey.withValues(alpha: 0.3),
                       ),
                     ),
                   ),
@@ -470,7 +470,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               Text(
                 'Created ${_formatDate(createdDate)}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: AppTheme.textGrey,
                   fontSize: 11,
                 ),
               ),
@@ -478,7 +478,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               Text(
                 shipment.origin.split(',').first,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white,
+                  color: AppTheme.textDark,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -494,7 +494,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               Text(
                 'Estimated ${_formatDate(estimatedDate)}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: AppTheme.textGrey,
                   fontSize: 11,
                 ),
               ),
@@ -502,7 +502,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               Text(
                 shipment.destination.split(',').first,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white,
+                  color: AppTheme.textDark,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -524,15 +524,15 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             children: [
               Text(
                 'From',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.6),
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
               ),
               const SizedBox(height: 4),
               Text(
                 shipment.origin,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white,
+                  color: AppTheme.textDark,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -547,15 +547,15 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             children: [
               Text(
                 'To',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.6),
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
               ),
               const SizedBox(height: 4),
               Text(
                 shipment.destination,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white,
+                  color: AppTheme.textDark,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -577,15 +577,15 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             children: [
               Text(
                 'Customer',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.6),
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
               ),
               const SizedBox(height: 4),
               Text(
                 shipment.customerName,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white,
+                  color: AppTheme.textDark,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -600,15 +600,15 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             children: [
               Text(
                 'Order Cost',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.6),
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
               ),
               const SizedBox(height: 4),
               Text(
                 '\$${shipment.cost.toStringAsFixed(2)}',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white,
+                  color: AppTheme.textDark,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -630,15 +630,15 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             children: [
               Text(
                 'Quantity',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.6),
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
               ),
               const SizedBox(height: 4),
               Text(
                 '${shipment.packageCount} Box${shipment.packageCount != 1 ? 'es' : ''}',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white,
+                  color: AppTheme.textDark,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -653,15 +653,15 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             children: [
               Text(
                 'Weight',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.6),
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
               ),
               const SizedBox(height: 4),
               Text(
                 '${shipment.totalWeight} Kg',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white,
+                  color: AppTheme.textDark,
                   fontWeight: FontWeight.w600,
                 ),
               ),

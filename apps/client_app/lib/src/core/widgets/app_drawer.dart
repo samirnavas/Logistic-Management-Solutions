@@ -14,23 +14,37 @@ class AppDrawer extends ConsumerWidget {
     final userState = ref.watch(authRepositoryProvider);
     final user = userState.value;
 
+    // Get current path for active state highlighting
+    final String currentPath = GoRouterState.of(context).uri.path;
+
     return Drawer(
+      backgroundColor: AppTheme.surface,
+      elevation: 0,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.horizontal(right: Radius.circular(16)),
+      ),
       child: Column(
         children: [
           // Header
           UserAccountsDrawerHeader(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
                 colors: [AppTheme.gradientLightBlue, AppTheme.gradientDarkBlue],
               ),
             ),
             accountName: Text(
               user?.fullName ?? 'Guest User',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
-            accountEmail: Text(user?.email ?? 'guest@example.com'),
+            accountEmail: Text(
+              user?.email ?? 'guest@example.com',
+              style: const TextStyle(color: Colors.white70),
+            ),
             currentAccountPicture: CircleAvatar(
               backgroundColor: Colors.white,
               child: Text(
@@ -47,79 +61,93 @@ class AppDrawer extends ConsumerWidget {
           // Menu Items
           Expanded(
             child: ListView(
-              padding: EdgeInsets.zero,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               children: [
-                ListTile(
-                  leading: const Icon(Icons.dashboard_outlined),
-                  title: const Text('Home'),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    context.pop(); // Close drawer
-                    context.go('/home');
-                  },
+                _buildDrawerItem(
+                  context: context,
+                  icon: Icons.dashboard_outlined,
+                  title: 'Home',
+                  path: '/home',
+                  currentPath: currentPath,
+                ),
+                _buildDrawerItem(
+                  context: context,
+                  icon: Icons.add_box_outlined,
+                  title: 'New Shipment',
+                  path: '/request-shipment',
+                  currentPath: currentPath,
+                  isPush: true,
+                ),
+                _buildDrawerItem(
+                  context: context,
+                  icon: Icons.drafts_outlined,
+                  title: 'Saved Drafts',
+                  path: '/drafts',
+                  currentPath: currentPath,
+                  isPush: true,
+                ),
+                _buildDrawerItem(
+                  context: context,
+                  icon: Icons.location_searching,
+                  title: 'Track Shipment',
+                  path: '/shipment',
+                  currentPath: currentPath,
+                ),
+                _buildDrawerItem(
+                  context: context,
+                  icon: Icons.request_quote_outlined,
+                  title: 'Quotations',
+                  path: '/quotation',
+                  currentPath: currentPath,
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 12),
+                  child: Divider(color: Color(0xFFE2E8F0)),
+                ),
+                _buildDrawerItem(
+                  context: context,
+                  icon: Icons.person_outline,
+                  title: 'Profile',
+                  path: '/profile',
+                  currentPath: currentPath,
                 ),
                 ListTile(
-                  leading: const Icon(Icons.add_box_outlined),
-                  title: const Text('New Shipment'),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    context.pop();
-                    context.push('/request-shipment');
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.drafts_outlined),
-                  title: const Text('Saved Drafts'),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    context.pop();
-                    context.push('/drafts');
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.location_searching),
-                  title: const Text('Track Shipment'),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    context.pop();
-                    context.go('/shipment');
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.request_quote_outlined),
-                  title: const Text('Quotations'),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    context.pop();
-                    context.go('/quotation');
-                  },
-                ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.person_outline),
-                  title: const Text('Profile'),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    context.pop();
-                    context.go('/profile');
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.support_agent),
-                  title: const Text('Support'),
+                  leading: const Icon(
+                    Icons.support_agent,
+                    color: AppTheme.textGrey,
+                  ),
+                  title: const Text(
+                    'Support',
+                    style: TextStyle(
+                      color: AppTheme.textDark,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   onTap: () {
                     HapticFeedback.lightImpact();
                     context.pop();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Contacting Support...')),
+                      const SnackBar(
+                        content: Text('Contacting Support...'),
+                        backgroundColor: AppTheme.primaryBlue,
+                      ),
                     );
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.red),
+                  leading: const Icon(Icons.logout, color: AppTheme.error),
                   title: const Text(
                     'Logout',
-                    style: TextStyle(color: Colors.red),
+                    style: TextStyle(
+                      color: AppTheme.error,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   onTap: () {
                     HapticFeedback.lightImpact();
@@ -133,13 +161,59 @@ class AppDrawer extends ConsumerWidget {
 
           // Footer
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(24.0),
             child: Text(
               'B&B Logistics v1.0.0',
-              style: Theme.of(context).textTheme.bodySmall,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDrawerItem({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String path,
+    required String currentPath,
+    bool isPush = false,
+  }) {
+    final bool isActive = currentPath.startsWith(path);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      decoration: BoxDecoration(
+        color: isActive
+            ? AppTheme.primaryBlue.withValues(alpha: 0.1)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        leading: Icon(
+          icon,
+          color: isActive ? AppTheme.primaryBlue : AppTheme.textGrey,
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: isActive ? AppTheme.primaryBlue : AppTheme.textDark,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+          ),
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        onTap: () {
+          HapticFeedback.lightImpact();
+          context.pop(); // Close drawer
+          if (isPush) {
+            context.push(path);
+          } else {
+            context.go(path);
+          }
+        },
       ),
     );
   }

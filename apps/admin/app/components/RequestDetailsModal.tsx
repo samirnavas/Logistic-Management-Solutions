@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react';
+import StatusBadge from './StatusBadge';
 
 interface RequestDetailsModalProps {
     requestId: string;
@@ -433,28 +434,21 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
             {!showQuoteForm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 sm:p-6" onClick={onClose}>
                     <div
-                        className="bg-white rounded-xl shadow-2xl relative w-[95%] sm:w-full max-w-4xl h-[90vh] md:h-auto md:max-h-[90vh] flex flex-col overflow-hidden"
+                        className="bg-card rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] relative w-[95%] sm:w-full max-w-4xl h-[90vh] md:h-auto md:max-h-[90vh] flex flex-col overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header Section (Fixed) */}
-                        <div className="flex-none flex justify-between items-start p-6 border-b border-gray-100 bg-white z-10">
+                        <div className="flex-none flex justify-between items-start p-6 border-b border-border bg-card z-10">
                             <div>
                                 <h1 className="text-xl font-bold text-zinc-800 mb-2">Request Detail</h1>
                                 <div className="flex flex-wrap gap-2 text-sm">
                                     <span className="bg-slate-100 px-3 py-1 rounded-full text-zinc-600 font-medium border border-slate-200">
                                         ID: <span className="text-zinc-900">{request.quotationId}</span>
                                     </span>
-                                    <span className={`px-3 py-1 rounded-full font-medium border ${['request_sent', 'pending_review', 'PENDING_REVIEW'].includes(request.status) ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                                        ['cost_calculated', 'draft', 'DRAFT'].includes(request.status) ? 'bg-purple-50 text-purple-700 border-purple-100' :
-                                            ['approved', 'verified', 'VERIFIED'].includes(request.status) ? 'bg-green-50 text-green-700 border-green-100' :
-                                                request.status === 'ADDRESS_PROVIDED' ? 'bg-teal-50 text-teal-700 border-teal-100' :
-                                                    'bg-gray-50 text-gray-700 border-gray-100'
-                                        }`}>
-                                        {['request_sent', 'pending_review', 'PENDING_REVIEW'].includes(request.status) ? 'New Request' :
-                                            ['cost_calculated', 'draft', 'DRAFT'].includes(request.status) ? 'Draft' :
-                                                ['approved', 'verified', 'VERIFIED'].includes(request.status) ? 'Approved' :
-                                                    request.status === 'ADDRESS_PROVIDED' ? 'Address Provided' : request.status}
+                                    <span className="bg-slate-100 px-3 py-1 rounded-full text-zinc-600 font-medium border border-slate-200 text-xs">
+                                        ID: <span className="text-zinc-900">{request.quotationId}</span>
                                     </span>
+                                    <StatusBadge status={request.status} />
                                 </div>
                             </div>
                             {/* Close Button */}
@@ -472,9 +466,9 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                 {/* Top Row: Client & Route Info (2 Columns) */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     {/* Client Information */}
-                                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-full">
-                                        <h2 className="text-lg font-semibold text-zinc-800 mb-6 flex items-center gap-2">
-                                            <span className="w-1 h-6 bg-blue-600 rounded-full"></span>
+                                    <div className="bg-card rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-border p-6 h-full">
+                                        <h2 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-2">
+                                            <span className="w-1 h-6 bg-primary rounded-full"></span>
                                             Client Information
                                         </h2>
 
@@ -495,9 +489,9 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                     </div>
 
                                     {/* Route Information */}
-                                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-full">
-                                        <h2 className="text-lg font-semibold text-zinc-800 mb-6 flex items-center gap-2">
-                                            <span className="w-1 h-6 bg-indigo-600 rounded-full"></span>
+                                    <div className="bg-card rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-border p-6 h-full">
+                                        <h2 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-2">
+                                            <span className="w-1 h-6 bg-primary rounded-full"></span>
                                             Route Information
                                         </h2>
 
@@ -551,9 +545,9 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                 </div>
 
                                 {/* Bottom Full Width: Items & Specs */}
-                                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                                    <h2 className="text-lg font-semibold text-zinc-800 mb-6 flex items-center gap-2">
-                                        <span className="w-1 h-6 bg-orange-500 rounded-full"></span>
+                                <div className="bg-card rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-border p-6">
+                                    <h2 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-2">
+                                        <span className="w-1 h-6 bg-primary rounded-full"></span>
                                         Shipment Details
                                     </h2>
 
@@ -586,7 +580,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                             </h3>
                                             <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                                 {request.items?.map((item: any, index: number) => (
-                                                    <div key={index} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                                                    <div key={index} className="bg-card rounded-xl p-4 border border-border shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow">
                                                         <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4 mb-3">
                                                             <div>
                                                                 <div className="flex items-center gap-2 mb-1">
@@ -687,7 +681,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                             {['request_sent', 'pending_review', 'PENDING_REVIEW'].includes(request.status) && (
                                 <button
                                     onClick={handleApproveRequest}
-                                    className="w-full sm:w-auto bg-sky-700 text-white px-8 py-2.5 rounded-full text-sm font-medium hover:bg-sky-800 transition-colors shadow-sm shadow-sky-700/20"
+                                    className="w-full sm:w-auto bg-primary text-primary-foreground px-8 py-2.5 rounded-xl text-sm font-medium hover:bg-primary/90 transition-all shadow-sm hover:shadow-md"
                                 >
                                     Approve Request
                                 </button>
@@ -718,7 +712,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                         setShowQuoteForm(true);
                                         setQuotationViewMode('view');
                                     }}
-                                    className="w-full sm:w-auto bg-sky-700 text-white px-8 py-2.5 rounded-full text-sm font-medium hover:bg-sky-800 transition-colors shadow-sm shadow-sky-700/20"
+                                    className="w-full sm:w-auto bg-primary text-primary-foreground px-8 py-2.5 rounded-xl text-sm font-medium hover:bg-primary/90 transition-all shadow-sm hover:shadow-md"
                                 >
                                     View Quotation
                                 </button>
@@ -742,11 +736,11 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                     }}
                 >
                     <div
-                        className="w-full max-w-6xl bg-white rounded-2xl shadow-2xl relative h-[90vh] flex flex-col overflow-hidden"
+                        className="w-full max-w-6xl bg-card rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] relative h-[90vh] flex flex-col overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Modal Header */}
-                        <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-white z-10">
+                        <div className="px-8 py-5 border-b border-border flex justify-between items-center bg-card z-10">
                             <h1 className="text-xl font-bold text-[#333333] flex items-center gap-3">
                                 {quotationViewMode === 'create' ? (
                                     <>
@@ -797,7 +791,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                                         <label className="text-zinc-500 text-xs uppercase font-bold tracking-wide mb-1.5 block">Valid Until</label>
                                                         <input
                                                             type="date"
-                                                            className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#333333] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20 font-medium"
+                                                            className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium"
                                                             value={validUntil}
                                                             onChange={(e) => setValidUntil(e.target.value)}
                                                         />
@@ -806,8 +800,8 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                             </div>
 
                                             {/* Terms & Notes */}
-                                            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                                                <h2 className="text-sm font-bold text-zinc-800 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
+                                            <div className="bg-card rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-border p-6">
+                                                <h2 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4 border-b border-border pb-2">
                                                     Terms & Conditions
                                                 </h2>
                                                 <div className="space-y-4">
@@ -847,8 +841,8 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
 
                                         {/* Right Column (Financials) - Spans 7/12 */}
                                         <div className="lg:col-span-7">
-                                            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-full flex flex-col">
-                                                <h2 className="text-lg font-bold text-zinc-800 mb-6 flex items-center gap-2">
+                                            <div className="bg-card rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-border p-6 h-full flex flex-col">
+                                                <h2 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
                                                     <span className="w-8 h-8 rounded-lg bg-green-100 text-green-600 flex items-center justify-center">₹</span>
                                                     Price Breakdown
                                                 </h2>
@@ -1000,8 +994,8 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
 
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         {/* Financial Summary */}
-                                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                                            <h2 className="text-lg font-semibold text-zinc-800 mb-6 flex items-center gap-2">
+                                        <div className="bg-card rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-border p-6">
+                                            <h2 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-2">
                                                 <span className="w-1 h-6 bg-green-500 rounded-full"></span>
                                                 Financial Summary
                                             </h2>
@@ -1026,8 +1020,8 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                         </div>
 
                                         {/* Terms & Info */}
-                                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                                            <h2 className="text-lg font-semibold text-zinc-800 mb-6 flex items-center gap-2">
+                                        <div className="bg-card rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-border p-6">
+                                            <h2 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-2">
                                                 <span className="w-1 h-6 bg-blue-500 rounded-full"></span>
                                                 Terms & Validity
                                             </h2>
@@ -1054,7 +1048,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
 
                         {/* Modal Footer (Action Buttons) - Only for Create Mode or relevant actions */}
                         {quotationViewMode === 'create' && (
-                            <div className="p-6 bg-white border-t border-gray-100 flex justify-end gap-3 z-10">
+                            <div className="p-6 bg-card border-t border-border flex justify-end gap-3 z-10">
                                 <button
                                     onClick={() => setShowQuoteForm(false)}
                                     className="px-6 py-2.5 rounded-[20px] text-[#868686] hover:bg-gray-50 font-medium transition-colors"
@@ -1076,7 +1070,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                             </div>
                         )}
                         {quotationViewMode === 'view' && (
-                            <div className="p-6 bg-white border-t border-gray-100 flex justify-end gap-3 z-10">
+                            <div className="p-6 bg-card border-t border-border flex justify-end gap-3 z-10">
                                 <button
                                     onClick={onClose}
                                     className="px-6 py-2.5 rounded-xl bg-gray-100 text-zinc-700 hover:bg-gray-200 font-medium transition-colors"

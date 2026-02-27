@@ -1,4 +1,5 @@
 import 'package:bb_logistics/src/core/theme/theme.dart';
+import 'package:bb_logistics/src/core/widgets/status_badge.dart';
 import 'package:flutter/material.dart';
 
 class ShipmentCard extends StatelessWidget {
@@ -42,28 +43,22 @@ class ShipmentCard extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             boxShadow: [
-              // Subtle light blue glow for depth
+              // Soft, diffused drop shadow matching the new design language
               BoxShadow(
-                color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-                blurRadius: 12,
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 15,
                 spreadRadius: 0,
                 offset: const Offset(0, 4),
-              ),
-              BoxShadow(
-                color: AppTheme.primaryBlue.withValues(alpha: 0.04),
-                blurRadius: 20,
-                spreadRadius: 2,
-                offset: const Offset(0, 2),
               ),
             ],
           ),
           child: Material(
             color: Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             child: InkWell(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               onTap: onTap,
               child: Padding(
                 padding: EdgeInsets.all(isSmallScreen ? 8.0 : 12.0),
@@ -120,9 +115,6 @@ class ShipmentCard extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context, bool isSmallScreen) {
-    final statusColor = _getStatusColor(status);
-    final statusBgColor = statusColor.withValues(alpha: 0.1);
-
     return Wrap(
       spacing: 8,
       runSpacing: 4,
@@ -137,59 +129,9 @@ class ShipmentCard extends StatelessWidget {
             fontSize: isSmallScreen ? 12 : 14,
           ),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: statusBgColor,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            status.toUpperCase().replaceAll('_', ' '),
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: statusColor,
-              fontWeight: FontWeight.w600,
-              fontSize: isSmallScreen ? 10 : 12,
-            ),
-          ),
-        ),
+        StatusBadge(status: status),
       ],
     );
-  }
-
-  Color _getStatusColor(String status) {
-    // Normalize status
-    final s = status.toUpperCase().replaceAll(' ', '_');
-
-    // Status Badges:
-    // DRAFT: Grey color.
-    // INFO_REQUIRED: Red/Orange (Action Needed).
-    // PENDING_REVIEW: Yellow.
-    // VERIFIED: Blue.
-    // QUOTATION_SENT: Green (Ready to Book).
-
-    if (s.contains('DRAFT') || s.contains('COST_CALCULATED')) {
-      return Colors.grey[600]!;
-    } else if (s.contains('INFO') ||
-        s.contains('REQUIRED') ||
-        s.contains('ACTION')) {
-      return Colors.red[700]!;
-    } else if (s.contains('PENDING') ||
-        s.contains('REVIEW') ||
-        s.contains('REQUEST_SENT')) {
-      return Colors.orange[800]!; // Yellow/Orange
-    } else if (s.contains('VERIFIED') || s.contains('APPROVED')) {
-      return Colors.blue[700]!;
-    } else if (s.contains('SENT') ||
-        s.contains('RECEIVED') ||
-        s == 'QUOTATION_SENT') {
-      return Colors.green[700]!;
-    } else if (s.contains('DELIVERED')) {
-      return Colors.green[800]!;
-    } else if (s.contains('SHIPPED') || s.contains('TRANSIT')) {
-      return Colors.blue[800]!;
-    }
-
-    return AppTheme.primaryBlue;
   }
 
   Widget _buildButtons(BuildContext context, bool isSmallScreen) {
@@ -204,13 +146,14 @@ class ShipmentCard extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryBlue,
               foregroundColor: Colors.white,
+              elevation: 1, // tap/hover handles elevation internally in M3
               padding: EdgeInsets.symmetric(
                 horizontal: isSmallScreen ? 4 : 8,
                 vertical: 0,
               ),
               minimumSize: Size(0, buttonHeight),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
             child: FittedBox(
@@ -238,7 +181,7 @@ class ShipmentCard extends StatelessWidget {
               ),
               minimumSize: Size(0, buttonHeight),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
             child: FittedBox(

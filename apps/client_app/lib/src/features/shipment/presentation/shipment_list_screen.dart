@@ -53,7 +53,7 @@ class _ShipmentListScreenState extends ConsumerState<ShipmentListScreen> {
                             70,
                       ),
                       decoration: const BoxDecoration(
-                        color: Colors.white,
+                        color: AppTheme.surface,
                         borderRadius: BorderRadius.only(
                           topLeft: Radius.circular(30),
                           topRight: Radius.circular(30),

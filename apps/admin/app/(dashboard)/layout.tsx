@@ -65,7 +65,7 @@ export default function DashboardLayout({
     if (!user) return null;
 
     return (
-        <div className="flex h-screen bg-neutral-100 font-sans text-slate-800">
+        <div className="flex h-screen bg-background text-foreground">
             {/* --- Mobile Sidebar Overlay (Backdrop) --- */}
             {isMobileSidebarOpen && (
                 <div
@@ -76,31 +76,31 @@ export default function DashboardLayout({
 
             {/* --- Sidebar --- */}
             <aside className={`
-                fixed inset-y-0 left-0 z-50 w-64 bg-white flex-col border-r border-gray-200 transition-transform duration-300 ease-in-out
+                fixed inset-y-0 left-0 z-50 w-64 bg-card flex-col transition-transform duration-300 ease-in-out shadow-[1px_0_15px_rgba(0,0,0,0.03)] border-r-0
                 md:relative md:translate-x-0 md:flex
                 ${isMobileSidebarOpen ? 'translate-x-0 flex' : '-translate-x-full hidden md:flex'}
             `}>
-                <div className="h-24 flex items-center justify-between px-6 border-b border-gray-100 relative">
-                    <div className="flex items-center justify-center w-full md:w-auto">
+                <div className="h-20 flex items-center justify-between px-6 border-b border-border/50 relative">
+                    <div className="flex items-center justify-center w-full md:w-auto mt-2">
                         <Image
                             src="/bb_logo.png"
                             alt="B&B International"
-                            width={400}
-                            height={160}
-                            className="w-auto h-20 object-contain"
+                            width={350}
+                            height={140}
+                            className="w-auto h-16 object-contain"
                             priority
                         />
                     </div>
                     {/* Close Button Mobile */}
                     <button
                         onClick={() => setIsMobileSidebarOpen(false)}
-                        className="md:hidden text-gray-500 hover:text-gray-700 absolute right-4 top-1/2 -translate-y-1/2"
+                        className="md:hidden text-muted-foreground hover:text-foreground absolute right-4 top-1/2 -translate-y-1/2 transition-colors"
                     >
                         <X size={24} />
                     </button>
                 </div>
 
-                <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+                <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
                     {MENU_ITEMS.map((item) => {
                         const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
                         const Icon = item.icon;
@@ -108,13 +108,13 @@ export default function DashboardLayout({
                             <Link
                                 key={item.path}
                                 href={item.path}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                                    ? 'bg-sky-700 text-white shadow-md shadow-sky-700/20'
-                                    : 'text-zinc-500 hover:bg-gray-50 hover:text-zinc-800'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive
+                                    ? 'bg-primary/10 text-primary font-medium shadow-sm'
+                                    : 'text-muted-foreground hover:bg-secondary/10 hover:text-foreground'
                                     }`}
                             >
-                                <Icon size={20} />
-                                <span className="text-sm font-medium">{item.name}</span>
+                                <Icon size={20} className={isActive ? 'text-primary' : ''} />
+                                <span className="text-sm">{item.name}</span>
                             </Link>
                         );
                     })}
@@ -124,37 +124,37 @@ export default function DashboardLayout({
             {/* --- Main Content --- */}
             <div className="flex-1 flex flex-col overflow-hidden w-full">
                 {/* Header */}
-                <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8">
+                <header className="h-20 bg-card border-b-0 shadow-[0_1px_15px_rgba(0,0,0,0.03)] flex items-center justify-between px-4 md:px-8 z-10 relative">
 
                     <div className="flex items-center gap-4 flex-1">
                         {/* Mobile Menu Button */}
                         <button
                             onClick={() => setIsMobileSidebarOpen(true)}
-                            className="md:hidden text-gray-600 hover:text-gray-900 focus:outline-none"
+                            className="md:hidden text-muted-foreground hover:text-foreground focus:outline-none transition-colors"
                         >
                             <Menu size={24} />
                         </button>
 
                         {/* Search Bar (Left) */}
                         <div className="relative w-full max-w-sm hidden sm:block">
-                            <div className="absolute left-3 top-2.5 text-gray-400">
+                            <div className="absolute left-3 top-2.5 text-muted-foreground">
                                 <Search size={18} />
                             </div>
                             <input
                                 type="text"
                                 placeholder="Search here..."
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-700/20 bg-gray-50/50"
+                                className="w-full pl-10 pr-4 py-2 border border-input rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background/50 transition-all placeholder:text-muted-foreground"
                             />
                         </div>
                     </div>
 
                     {/* Right Icons */}
                     <div className="flex items-center gap-2 md:gap-4 ml-4">
-                        <button className="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors">
+                        <button className="w-10 h-10 rounded-full flex items-center justify-center text-muted-foreground hover:bg-secondary/10 transition-colors">
                             <Bell size={20} />
                         </button>
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gray-200 rounded-full overflow-hidden border border-gray-300 flex items-center justify-center bg-sky-100 text-sky-700 font-bold">
+                            <div className="w-10 h-10 bg-primary/10 rounded-full overflow-hidden border border-primary/20 flex items-center justify-center text-primary font-bold">
                                 {user.avatarUrl ? (
                                     <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
                                 ) : (

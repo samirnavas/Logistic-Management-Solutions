@@ -9,6 +9,7 @@ import {
     ChevronDown,
 } from 'lucide-react';
 import RequestDetailsModal from '../components/RequestDetailsModal';
+import StatusBadge from '../components/StatusBadge';
 import { Quotation, QuotationStats } from '../../types';
 
 export default function DashboardPage() {
@@ -165,7 +166,7 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-8 pb-10" onClick={() => setShowStatusMenu(false)}>
             {/* Header */}
             <div className="flex justify-between items-end">
-                <h1 className="text-3xl font-semibold text-zinc-800">Dashboard</h1>
+                <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
                 <Link
                     href="/requests"
                     className="bg-blue-700 hover:bg-blue-800 text-white px-6 py-2.5 rounded-full font-medium transition-colors shadow-sm text-sm"
@@ -177,63 +178,63 @@ export default function DashboardPage() {
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                 {/* Card 1: Total Quotation Requests (Blue) */}
-                <div className="bg-[#EBF5FF] border border-blue-100 rounded-xl p-5 flex flex-col justify-between h-32 relative overflow-hidden group">
+                <div className="bg-card border border-border shadow-[0_4px_20px_rgba(0,0,0,0.08)] rounded-xl p-5 flex flex-col justify-between h-32 relative overflow-hidden group">
                     <div className="z-10">
-                        <h3 className="text-3xl font-bold text-slate-800 mb-1">{stats.totalRequests}</h3>
-                        <p className="text-sm text-slate-500 font-medium whitespace-nowrap">Total Quotation Requests</p>
+                        <h3 className="text-3xl font-bold text-foreground mb-1">{stats.totalRequests}</h3>
+                        <p className="text-sm text-muted-foreground font-medium whitespace-nowrap">Total Quotation Requests</p>
                     </div>
-                    <div className="absolute right-4 top-4 text-blue-400 bg-white p-2 rounded-full shadow-sm">
-                        <div className="w-5 h-5 flex items-center justify-center border-2 border-blue-400 rounded-full text-[10px] font-bold">=</div>
+                    <div className="absolute right-4 top-4 text-primary bg-primary/10 p-2 rounded-full shadow-sm">
+                        <div className="w-5 h-5 flex items-center justify-center border-2 border-primary rounded-full text-[10px] font-bold">=</div>
                     </div>
                 </div>
 
                 {/* Card 2: Pending Requests (Cyan) */}
-                <div className="bg-[#E0F2F1] border border-cyan-100 rounded-xl p-5 flex flex-col justify-between h-32 relative overflow-hidden">
+                <div className="bg-card border border-border shadow-[0_4px_20px_rgba(0,0,0,0.08)] rounded-xl p-5 flex flex-col justify-between h-32 relative overflow-hidden">
                     <div className="z-10">
-                        <h3 className="text-3xl font-bold text-slate-800 mb-1">{stats.pendingRequests}</h3>
-                        <p className="text-sm text-slate-500 font-medium whitespace-nowrap">Pending Requests</p>
+                        <h3 className="text-3xl font-bold text-foreground mb-1">{stats.pendingRequests}</h3>
+                        <p className="text-sm text-muted-foreground font-medium whitespace-nowrap">Pending Requests</p>
                     </div>
-                    <div className="absolute right-4 top-4 text-cyan-500 bg-white p-2 rounded-full shadow-sm">
+                    <div className="absolute right-4 top-4 text-primary bg-primary/10 p-2 rounded-full shadow-sm">
                         <Hourglass size={18} />
                     </div>
                 </div>
 
                 {/* Card 3: Total Quotations (Peach/Orange) */}
-                <div className="bg-[#FFF3E0] border border-orange-100 rounded-xl p-5 flex flex-col justify-between h-32 relative overflow-hidden">
+                <div className="bg-card border border-border shadow-[0_4px_20px_rgba(0,0,0,0.08)] rounded-xl p-5 flex flex-col justify-between h-32 relative overflow-hidden">
                     <div className="z-10">
-                        <h3 className="text-3xl font-bold text-slate-800 mb-1">{stats.totalQuotations}</h3>
-                        <p className="text-sm text-slate-500 font-medium whitespace-nowrap">Total Quotations</p>
+                        <h3 className="text-3xl font-bold text-foreground mb-1">{stats.totalQuotations}</h3>
+                        <p className="text-sm text-muted-foreground font-medium whitespace-nowrap">Total Quotations</p>
                     </div>
-                    <div className="absolute right-4 top-4 text-orange-400 bg-white p-2 rounded-full shadow-sm">
-                        <div className="w-5 h-5 flex items-center justify-center border-2 border-orange-400 rounded-full text-[10px] font-bold">=</div>
+                    <div className="absolute right-4 top-4 text-primary bg-primary/10 p-2 rounded-full shadow-sm">
+                        <div className="w-5 h-5 flex items-center justify-center border-2 border-primary rounded-full text-[10px] font-bold">=</div>
                     </div>
                 </div>
 
                 {/* Card 4: Pending Quotations (Green/Light Green) */}
-                <div className="bg-[#E8F5E9] border border-green-100 rounded-xl p-5 flex flex-col justify-between h-32 relative overflow-hidden">
+                <div className="bg-card border border-border shadow-[0_4px_20px_rgba(0,0,0,0.08)] rounded-xl p-5 flex flex-col justify-between h-32 relative overflow-hidden">
                     <div className="z-10">
-                        <h3 className="text-3xl font-bold text-slate-800 mb-1">{stats.pendingQuotations}</h3>
-                        <p className="text-sm text-slate-500 font-medium whitespace-nowrap">Pending Quotations</p>
+                        <h3 className="text-3xl font-bold text-foreground mb-1">{stats.pendingQuotations}</h3>
+                        <p className="text-sm text-muted-foreground font-medium whitespace-nowrap">Pending Quotations</p>
                     </div>
-                    <div className="absolute right-4 top-4 text-green-500 bg-white p-2 rounded-full shadow-sm">
+                    <div className="absolute right-4 top-4 text-primary bg-primary/10 p-2 rounded-full shadow-sm">
                         <Hourglass size={18} />
                     </div>
                 </div>
 
                 {/* Card 5: Accepted Quotations (Pink) */}
-                <div className="bg-[#FCE4EC] border border-pink-100 rounded-xl p-5 flex flex-col justify-between h-32 relative overflow-hidden">
+                <div className="bg-card border border-border shadow-[0_4px_20px_rgba(0,0,0,0.08)] rounded-xl p-5 flex flex-col justify-between h-32 relative overflow-hidden">
                     <div className="z-10">
-                        <h3 className="text-3xl font-bold text-slate-800 mb-1">{stats.acceptedQuotations}</h3>
-                        <p className="text-sm text-slate-500 font-medium whitespace-nowrap">Accepted Quotations</p>
+                        <h3 className="text-3xl font-bold text-foreground mb-1">{stats.acceptedQuotations}</h3>
+                        <p className="text-sm text-muted-foreground font-medium whitespace-nowrap">Accepted Quotations</p>
                     </div>
-                    <div className="absolute right-4 top-4 text-pink-400 bg-white p-2 rounded-full shadow-sm">
+                    <div className="absolute right-4 top-4 text-primary bg-primary/10 p-2 rounded-full shadow-sm">
                         <CheckCircle size={18} />
                     </div>
                 </div>
             </div>
 
             {/* Table Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
+            <div className="bg-card rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-border p-4 md:p-6">
 
                 {/* Filters */}
                 <div className="flex flex-col sm:flex-row justify-end gap-4 mb-6 relative">
@@ -298,7 +299,7 @@ export default function DashboardPage() {
                 <div className="w-full overflow-x-auto shadow-sm rounded-lg border border-gray-100">
                     <table className="min-w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-[#F1F5F9] text-slate-500 text-xs uppercase font-bold tracking-wider">
+                            <tr className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
                                 <th className="px-4 py-4 whitespace-nowrap">SI No.</th>
                                 <th className="px-4 py-4 whitespace-nowrap">Name</th>
                                 <th className="px-4 py-4 whitespace-nowrap">Location</th>
@@ -350,9 +351,7 @@ export default function DashboardPage() {
                                         <td className="px-4 py-4 text-xs whitespace-nowrap">{row.quotationId?.split('-').pop() || row.quotationNumber?.slice(-6) || 'N/A'}</td>
                                         <td className="px-4 py-4 text-xs whitespace-nowrap">{row.validUntil ? formatDate(row.validUntil) : '-'}</td>
                                         <td className="px-4 py-4 whitespace-nowrap">
-                                            <span className={getStatusStyle(row.status)}>
-                                                {getStatusLabel(row.status)}
-                                            </span>
+                                            <StatusBadge status={row.status} />
                                         </td>
                                         <td className="px-4 py-4 relative whitespace-nowrap">
                                             <button

@@ -179,11 +179,11 @@ export default function GenerateQuotationModal({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="w-full max-w-[583px] bg-white rounded-lg shadow-2xl relative max-h-[95vh] overflow-y-auto">
+            <div className="w-full max-w-[583px] bg-card rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] relative max-h-[95vh] overflow-y-auto">
                 {/* Close Button */}
                 <button
                     onClick={onClose}
-                    className="absolute top-5 right-5 text-[#868686] hover:text-[#333333] transition-colors z-10"
+                    className="absolute top-5 right-5 text-muted-foreground hover:text-foreground transition-colors z-10"
                     aria-label="Close modal"
                 >
                     <X size={20} />
@@ -191,7 +191,7 @@ export default function GenerateQuotationModal({
 
                 <div className="p-8">
                     {/* Header */}
-                    <h1 className="text-[20px] font-medium text-[#333333] leading-7 mb-11">
+                    <h1 className="text-[20px] font-semibold text-foreground leading-7 mb-11">
                         {status === 'NEGOTIATION_REQUESTED' ? 'Revise Quotation' : 'Create Quotation'}
                     </h1>
 
@@ -219,7 +219,7 @@ export default function GenerateQuotationModal({
 
                     {/* Price Breakdown Section */}
                     <div className="mb-8">
-                        <h2 className="text-lg font-medium text-[#333333] leading-[25.2px] mb-4">
+                        <h2 className="text-lg font-medium text-foreground leading-[25.2px] mb-4">
                             Price Breakdown
                         </h2>
 
@@ -232,7 +232,7 @@ export default function GenerateQuotationModal({
                                 <input
                                     type="number"
                                     placeholder="Product Base Price"
-                                    className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#868686] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
+                                    className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                                     value={formData.productBasePrice || ''}
                                     onChange={(e) => handleInputChange('productBasePrice', Number(e.target.value))}
                                 />
@@ -246,7 +246,7 @@ export default function GenerateQuotationModal({
                                 <input
                                     type="number"
                                     placeholder="Delivery Charges"
-                                    className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#868686] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
+                                    className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                                     value={formData.deliveryCharges || ''}
                                     onChange={(e) => handleInputChange('deliveryCharges', Number(e.target.value))}
                                 />
@@ -260,7 +260,7 @@ export default function GenerateQuotationModal({
                                 <input
                                     type="number"
                                     placeholder="Packaging Charges"
-                                    className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#868686] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
+                                    className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                                     value={formData.packagingCharges || ''}
                                     onChange={(e) => handleInputChange('packagingCharges', Number(e.target.value))}
                                 />
@@ -274,7 +274,7 @@ export default function GenerateQuotationModal({
                                 <input
                                     type="number"
                                     placeholder="Insurance Charges"
-                                    className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#868686] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
+                                    className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                                     value={formData.insuranceCharges || ''}
                                     onChange={(e) => handleInputChange('insuranceCharges', Number(e.target.value))}
                                 />
@@ -288,7 +288,7 @@ export default function GenerateQuotationModal({
                                 <input
                                     type="number"
                                     placeholder="Taxes (GST, etc.)"
-                                    className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#868686] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
+                                    className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                                     value={formData.taxes || ''}
                                     onChange={(e) => handleInputChange('taxes', Number(e.target.value))}
                                 />
@@ -302,7 +302,7 @@ export default function GenerateQuotationModal({
                                 <input
                                     type="number"
                                     placeholder="Discount"
-                                    className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#868686] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
+                                    className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                                     value={formData.discount || ''}
                                     onChange={(e) => handleInputChange('discount', Number(e.target.value))}
                                 />
@@ -320,7 +320,7 @@ export default function GenerateQuotationModal({
 
                     {/* Validity Section */}
                     <div className="mb-8">
-                        <h2 className="text-lg font-medium text-[#333333] leading-[25.2px] mb-4">
+                        <h2 className="text-lg font-medium text-foreground leading-[25.2px] mb-4">
                             Validity
                         </h2>
                         <label className="block text-sm text-[#333333] mb-2">
@@ -328,7 +328,7 @@ export default function GenerateQuotationModal({
                         </label>
                         <input
                             type="date"
-                            className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
+                            className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium"
                             value={formData.validUntil}
                             onChange={(e) => handleInputChange('validUntil', e.target.value)}
                         />
@@ -349,7 +349,7 @@ export default function GenerateQuotationModal({
                                 <input
                                     type="text"
                                     placeholder="Text here...."
-                                    className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#868686] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
+                                    className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                                     value={formData.paymentTerms}
                                     onChange={(e) => handleInputChange('paymentTerms', e.target.value)}
                                 />
@@ -363,7 +363,7 @@ export default function GenerateQuotationModal({
                                 <input
                                     type="text"
                                     placeholder="Text here...."
-                                    className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#868686] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
+                                    className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                                     value={formData.deliveryConditions}
                                     onChange={(e) => handleInputChange('deliveryConditions', e.target.value)}
                                 />
@@ -377,7 +377,7 @@ export default function GenerateQuotationModal({
                                 <input
                                     type="text"
                                     placeholder="Text here...."
-                                    className="w-full bg-[#F5F5F5] rounded-[20px] px-5 py-2.5 text-sm text-[#868686] placeholder:text-[#868686] focus:outline-none focus:ring-2 focus:ring-[#0557A5]/20"
+                                    className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                                     value={formData.otherInformation}
                                     onChange={(e) => handleInputChange('otherInformation', e.target.value)}
                                 />
@@ -389,7 +389,7 @@ export default function GenerateQuotationModal({
                     <div className="flex gap-4">
                         <button
                             disabled={loading || !!error}
-                            className="flex-1 bg-[#0557A5] text-white rounded-[20px] h-10 text-sm font-normal leading-[19.6px] hover:bg-[#044580] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 bg-primary text-primary-foreground rounded-xl h-10 text-sm font-medium hover:bg-primary/90 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                             onClick={handleSubmit}
                         >
                             {loading ? 'Processing...' : 'Send Quotation'}

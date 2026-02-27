@@ -422,18 +422,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         color: AppTheme.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          // Subtle light blue glow for depth
+          // Soft, diffused drop shadow matching the new design language
           BoxShadow(
-            color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-            blurRadius: 12,
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 15,
             spreadRadius: 0,
             offset: const Offset(0, 4),
-          ),
-          BoxShadow(
-            color: AppTheme.primaryBlue.withValues(alpha: 0.04),
-            blurRadius: 20,
-            spreadRadius: 2,
-            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -599,19 +593,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
-        // Add navigation logic if needed
       },
       child: Container(
         decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(16),
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
           boxShadow: [
-            // Subtle light blue glow for depth
             BoxShadow(
-              color: AppTheme.primaryBlue.withValues(alpha: 0.06),
-              blurRadius: 8,
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 15,
               spreadRadius: 0,
-              offset: const Offset(0, 2),
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -622,10 +615,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(6),
-              decoration: const BoxDecoration(
-                color: AppTheme.surface,
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
               child: Icon(icon, size: 16, color: iconColor),
             ),
             const SizedBox(height: 8),
@@ -638,7 +628,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                Text(label, style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  label,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
+                ),
               ],
             ),
           ],
@@ -784,12 +779,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
             decoration: BoxDecoration(
-              color: AppTheme.background,
-              borderRadius: BorderRadius.circular(16),
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: AppTheme.textGrey.withValues(alpha: 0.2),
+                color: Colors.grey.withValues(alpha: 0.1),
                 width: 1,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 15,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
