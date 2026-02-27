@@ -88,7 +88,7 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex min-h-screen bg-white">
+        <div className="flex min-h-screen bg-slate-50">
             {/* Left Side - Image/Hero */}
             <div className="hidden lg:flex lg:w-1/2 relative bg-zinc-900 overflow-hidden">
                 <Image
@@ -112,8 +112,8 @@ export default function LoginPage() {
             </div>
 
             {/* Right Side - Form */}
-            <div className="flex-1 w-full flex flex-col justify-center items-center p-8 lg:p-24 bg-white">
-                <div className="w-full max-w-[420px] space-y-8">
+            <div className="flex-1 w-full flex flex-col justify-center items-center p-4 lg:p-8 bg-slate-50">
+                <div className="w-full max-w-[420px] bg-white p-8 sm:p-10 rounded-[12px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-8">
                     {/* Logo */}
                     <div className="flex justify-center mb-10">
                         <Image

@@ -4,6 +4,7 @@ import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:bb_logistics/src/features/shipment/presentation/shipment_form_notifier.dart';
 import 'package:bb_logistics/src/features/shipment/presentation/widgets/shipment_item_form.dart';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -1484,72 +1485,78 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(30.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 10),
-              Image.asset(
-                'assets/request_success_popup_image.png',
-                height: 120,
-                width: 120,
-              ),
-              const SizedBox(height: 24),
-              RichText(
-                textAlign: TextAlign.center,
-                text: TextSpan(
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.black87,
-                    height: 1.5,
+      barrierColor: Colors.black54,
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.all(30.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 10),
+                Image.asset(
+                  'assets/request_success_popup_image.png',
+                  height: 120,
+                  width: 120,
+                ),
+                const SizedBox(height: 24),
+                RichText(
+                  textAlign: TextAlign.center,
+                  text: TextSpan(
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.black87,
+                      height: 1.5,
+                    ),
+                    children: [
+                      const TextSpan(text: 'Your request '),
+                      TextSpan(
+                        text: '#PENDING',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textDark,
+                        ),
+                      ),
+                      const TextSpan(
+                        text:
+                            ' has been submitted to the Manager.\nYou will be notified once the quotation is approved and pricing is available.',
+                      ),
+                    ],
                   ),
-                  children: [
-                    const TextSpan(text: 'Your request '),
-                    TextSpan(
-                      text: '#PENDING',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textDark,
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Navigate to Quotation Screen
+                      context.go('/quotation');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryBlue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      'GO TO QUOTATIONS',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
                       ),
                     ),
-                    const TextSpan(
-                      text:
-                          ' has been submitted to the Manager.\nYou will be notified once the quotation is approved and pricing is available.',
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Navigate to Quotation Screen
-                    context.go('/quotation');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryBlue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    'GO TO QUOTATIONS',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
-            ],
+                const SizedBox(height: 10),
+              ],
+            ),
           ),
         ),
       ),
@@ -1567,28 +1574,41 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black54,
       builder: (context) {
-        return Scaffold(
-          backgroundColor: Colors.transparent,
-          body: StatefulBuilder(
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: StatefulBuilder(
             builder: (context, setModalState) {
-              return Padding(
+              return Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                ),
+                margin: EdgeInsets.only(top: kToolbarHeight),
                 padding: EdgeInsets.only(
                   bottom: MediaQuery.of(context).viewInsets.bottom,
-                  left: 16,
-                  right: 16,
-                  top: 16,
                 ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 16,
+                      ),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(12),
+                        ),
+                        border: Border(
+                          bottom: BorderSide(color: Color(0xFFEEEEEE)),
+                        ),
+                      ),
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
@@ -1602,92 +1622,95 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                           ),
                         ],
                       ),
-                      const Divider(),
-                      const SizedBox(height: 16),
-                      ShipmentItemForm(
-                        index: index ?? -1,
-                        item: tempItem,
-                        onChanged: (newItem) {
-                          setModalState(() {
-                            tempItem = newItem;
-                          });
-                        },
-                        onRemove: () {}, // Not used in modal
+                    ),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(24),
+                        child: ShipmentItemForm(
+                          index: index ?? -1,
+                          item: tempItem,
+                          onChanged: (newItem) {
+                            setModalState(() {
+                              tempItem = newItem;
+                            });
+                          },
+                          onRemove: () {}, // Not used in modal
+                        ),
                       ),
-                      const SizedBox(height: 24),
-                      ElevatedButton(
-                        onPressed: () {
-                          // Validation
-                          List<String> missingFields = [];
-                          if (tempItem.description.isEmpty) {
-                            missingFields.add('Description');
-                          }
-                          if (tempItem.quantity <= 0) {
-                            missingFields.add('Quantity');
-                          }
-                          if (tempItem.weight <= 0) {
-                            missingFields.add('Weight');
-                          }
-                          if (tempItem.hsCode == null ||
-                              tempItem.hsCode!.isEmpty) {
-                            missingFields.add('HS Code');
-                          }
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Validation
+                        List<String> missingFields = [];
+                        if (tempItem.description.isEmpty) {
+                          missingFields.add('Description');
+                        }
+                        if (tempItem.quantity <= 0) {
+                          missingFields.add('Quantity');
+                        }
+                        if (tempItem.weight <= 0) {
+                          missingFields.add('Weight');
+                        }
+                        if (tempItem.hsCode == null ||
+                            tempItem.hsCode!.isEmpty) {
+                          missingFields.add('HS Code');
+                        }
 
-                          if (missingFields.isNotEmpty) {
-                            ScaffoldMessenger.of(
-                              context,
-                            ).clearSnackBars(); // Clear existing
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Please fill required fields: ${missingFields.join(', ')}',
-                                ),
-                                backgroundColor: Colors.red,
-                                behavior: SnackBarBehavior
-                                    .floating, // Improve visibility in modal
-                                margin: EdgeInsets.only(
-                                  bottom:
-                                      MediaQuery.of(context).viewInsets.bottom +
-                                      10,
-                                  left: 16,
-                                  right: 16,
-                                ),
+                        if (missingFields.isNotEmpty) {
+                          ScaffoldMessenger.of(
+                            context,
+                          ).clearSnackBars(); // Clear existing
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Please fill required fields: ${missingFields.join(', ')}',
                               ),
-                            );
-                            return;
-                          }
-
-                          final notifier = ref.read(
-                            shipmentFormProvider.notifier,
+                              backgroundColor: Colors.red,
+                              behavior: SnackBarBehavior
+                                  .floating, // Improve visibility in modal
+                              margin: EdgeInsets.only(
+                                bottom:
+                                    MediaQuery.of(context).viewInsets.bottom +
+                                    10,
+                                left: 16,
+                                right: 16,
+                              ),
+                            ),
                           );
-                          if (index == null) {
-                            // Add new
-                            notifier.addItem(tempItem);
-                          } else {
-                            // Update existing
-                            notifier.updateItem(index, tempItem);
-                          }
-                          Navigator.pop(context);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryBlue,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          index == null ? 'ADD ITEM' : 'SAVE CHANGES',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1,
-                          ),
+                          return;
+                        }
+
+                        final notifier = ref.read(
+                          shipmentFormProvider.notifier,
+                        );
+                        if (index == null) {
+                          // Add new
+                          notifier.addItem(tempItem);
+                        } else {
+                          // Update existing
+                          notifier.updateItem(index, tempItem);
+                        }
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryBlue,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
+                      child: Text(
+                        index == null ? 'ADD ITEM' : 'SAVE CHANGES',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                 ),
               );
             },

@@ -2,6 +2,7 @@ import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:bb_logistics/src/features/address/data/address_repository.dart';
 import 'package:bb_logistics/src/features/address/domain/address.dart';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -154,12 +155,20 @@ class SavedAddressesScreen extends ConsumerWidget {
                 showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(20),
+                  backgroundColor: Colors.transparent,
+                  barrierColor: Colors.black54,
+                  builder: (context) => BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(12),
+                        ),
+                      ),
+                      child: const _AddAddressSheet(),
                     ),
                   ),
-                  builder: (context) => const _AddAddressSheet(),
                 );
               },
               backgroundColor: AppTheme.primaryBlue,
@@ -272,10 +281,20 @@ class _AddressCard extends ConsumerWidget {
               showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                backgroundColor: Colors.transparent,
+                barrierColor: Colors.black54,
+                builder: (context) => BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(12),
+                      ),
+                    ),
+                    child: _EditAddressSheet(address: address),
+                  ),
                 ),
-                builder: (context) => _EditAddressSheet(address: address),
               );
             },
           ),
@@ -286,38 +305,47 @@ class _AddressCard extends ConsumerWidget {
               HapticFeedback.lightImpact();
               showDialog(
                 context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Delete Address'),
-                  content: const Text(
-                    'Are you sure you want to delete this address?',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
+                barrierColor: Colors.black54,
+                builder: (context) => BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                  child: AlertDialog(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    TextButton(
-                      onPressed: () async {
-                        Navigator.pop(context);
-                        try {
-                          await ref
-                              .read(addressRepositoryProvider.notifier)
-                              .deleteAddress(address.id);
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Failed to delete: $e'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
+                    title: const Text('Delete Address'),
+                    content: const Text(
+                      'Are you sure you want to delete this address?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          try {
+                            await ref
+                                .read(addressRepositoryProvider.notifier)
+                                .deleteAddress(address.id);
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to delete: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
                           }
-                        }
-                      },
-                      style: TextButton.styleFrom(foregroundColor: Colors.red),
-                      child: const Text('Delete'),
-                    ),
-                  ],
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
+                        child: const Text('Delete'),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },

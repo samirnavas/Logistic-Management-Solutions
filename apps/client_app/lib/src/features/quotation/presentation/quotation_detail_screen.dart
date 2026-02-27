@@ -5,6 +5,7 @@ import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:bb_logistics/src/features/quotation/data/quotation_repository.dart';
 import 'package:bb_logistics/src/features/quotation/domain/quotation.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1300,289 +1301,302 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        insetPadding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  const Icon(Icons.pin_drop, color: AppTheme.primaryBlue),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Confirm Address Details',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
+      barrierColor: Colors.black54,
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          insetPadding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    const Icon(Icons.pin_drop, color: AppTheme.primaryBlue),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Confirm Address Details',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const Divider(height: 1),
+              const Divider(height: 1),
 
-            // Scrollable Content
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Pickup Section
-                      _buildSectionHeader('Pickup Details'),
-                      const SizedBox(height: 20),
-                      _buildStyledTextField(
-                        label: 'Contact Name',
-                        controller: pickupNameController,
-                        icon: Icons.person,
-                        inputType: TextInputType.name,
-                        validator: (v) =>
-                            v?.isEmpty == true ? 'Required' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildStyledTextField(
-                        label: 'Phone Number',
-                        controller: pickupPhoneController,
-                        icon: Icons.phone,
-                        inputType: TextInputType.phone,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(
-                            RegExp(r'[0-9+\-\(\)\s]'),
-                          ),
-                        ],
-                        validator: (v) =>
-                            v?.isEmpty == true ? 'Required' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildStyledTextField(
-                        label: 'Address Line',
-                        controller: pickupAddressController,
-                        icon: Icons.home,
-                        inputType: TextInputType.text,
-                        validator: (v) =>
-                            v?.isEmpty == true ? 'Required' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildStyledTextField(
-                              label: 'City',
-                              controller: pickupCityController,
-                              icon: Icons.location_city,
-                              inputType: TextInputType.text,
-                              validator: (v) =>
-                                  v?.isEmpty == true ? 'Required' : null,
+              // Scrollable Content
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Pickup Section
+                        _buildSectionHeader('Pickup Details'),
+                        const SizedBox(height: 20),
+                        _buildStyledTextField(
+                          label: 'Contact Name',
+                          controller: pickupNameController,
+                          icon: Icons.person,
+                          inputType: TextInputType.name,
+                          validator: (v) =>
+                              v?.isEmpty == true ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildStyledTextField(
+                          label: 'Phone Number',
+                          controller: pickupPhoneController,
+                          icon: Icons.phone,
+                          inputType: TextInputType.phone,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'[0-9+\-\(\)\s]'),
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildStyledTextField(
-                              label: 'Zip/Postal Code',
-                              controller: pickupZipController,
-                              icon: Icons.map,
-                              inputType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
-                              validator: (v) =>
-                                  v?.isEmpty == true ? 'Required' : null,
+                          ],
+                          validator: (v) =>
+                              v?.isEmpty == true ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildStyledTextField(
+                          label: 'Address Line',
+                          controller: pickupAddressController,
+                          icon: Icons.home,
+                          inputType: TextInputType.text,
+                          validator: (v) =>
+                              v?.isEmpty == true ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildStyledTextField(
+                                label: 'City',
+                                controller: pickupCityController,
+                                icon: Icons.location_city,
+                                inputType: TextInputType.text,
+                                validator: (v) =>
+                                    v?.isEmpty == true ? 'Required' : null,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      _buildStyledTextField(
-                        label: 'Country',
-                        controller: pickupCountryController,
-                        icon: Icons.public,
-                        inputType: TextInputType.text,
-                        validator: (v) =>
-                            v?.isEmpty == true ? 'Required' : null,
-                      ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _buildStyledTextField(
+                                label: 'Zip/Postal Code',
+                                controller: pickupZipController,
+                                icon: Icons.map,
+                                inputType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                validator: (v) =>
+                                    v?.isEmpty == true ? 'Required' : null,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        _buildStyledTextField(
+                          label: 'Country',
+                          controller: pickupCountryController,
+                          icon: Icons.public,
+                          inputType: TextInputType.text,
+                          validator: (v) =>
+                              v?.isEmpty == true ? 'Required' : null,
+                        ),
 
-                      const SizedBox(height: 32),
+                        const SizedBox(height: 32),
 
-                      // Delivery Section
-                      _buildSectionHeader('Delivery Details'),
-                      const SizedBox(height: 20),
-                      _buildStyledTextField(
-                        label: 'Recipient Name',
-                        controller: deliveryNameController,
-                        icon: Icons.person,
-                        inputType: TextInputType.name,
-                        validator: (v) =>
-                            v?.isEmpty == true ? 'Required' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildStyledTextField(
-                        label: 'Phone Number',
-                        controller: deliveryPhoneController,
-                        icon: Icons.phone,
-                        inputType: TextInputType.phone,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(
-                            RegExp(r'[0-9+\-\(\)\s]'),
-                          ),
-                        ],
-                        validator: (v) =>
-                            v?.isEmpty == true ? 'Required' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildStyledTextField(
-                        label: 'Address Line',
-                        controller: deliveryAddressController,
-                        icon: Icons.home,
-                        inputType: TextInputType.text,
-                        validator: (v) =>
-                            v?.isEmpty == true ? 'Required' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildStyledTextField(
-                              label: 'City',
-                              controller: deliveryCityController,
-                              icon: Icons.location_city,
-                              inputType: TextInputType.text,
-                              validator: (v) =>
-                                  v?.isEmpty == true ? 'Required' : null,
+                        // Delivery Section
+                        _buildSectionHeader('Delivery Details'),
+                        const SizedBox(height: 20),
+                        _buildStyledTextField(
+                          label: 'Recipient Name',
+                          controller: deliveryNameController,
+                          icon: Icons.person,
+                          inputType: TextInputType.name,
+                          validator: (v) =>
+                              v?.isEmpty == true ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildStyledTextField(
+                          label: 'Phone Number',
+                          controller: deliveryPhoneController,
+                          icon: Icons.phone,
+                          inputType: TextInputType.phone,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'[0-9+\-\(\)\s]'),
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildStyledTextField(
-                              label: 'Zip/Postal Code',
-                              controller: deliveryZipController,
-                              icon: Icons.map,
-                              inputType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
-                              validator: (v) =>
-                                  v?.isEmpty == true ? 'Required' : null,
+                          ],
+                          validator: (v) =>
+                              v?.isEmpty == true ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildStyledTextField(
+                          label: 'Address Line',
+                          controller: deliveryAddressController,
+                          icon: Icons.home,
+                          inputType: TextInputType.text,
+                          validator: (v) =>
+                              v?.isEmpty == true ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildStyledTextField(
+                                label: 'City',
+                                controller: deliveryCityController,
+                                icon: Icons.location_city,
+                                inputType: TextInputType.text,
+                                validator: (v) =>
+                                    v?.isEmpty == true ? 'Required' : null,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      _buildStyledTextField(
-                        label: 'Country',
-                        controller: deliveryCountryController,
-                        icon: Icons.public,
-                        inputType: TextInputType.text,
-                        validator: (v) =>
-                            v?.isEmpty == true ? 'Required' : null,
-                      ),
-                    ],
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _buildStyledTextField(
+                                label: 'Zip/Postal Code',
+                                controller: deliveryZipController,
+                                icon: Icons.map,
+                                inputType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                validator: (v) =>
+                                    v?.isEmpty == true ? 'Required' : null,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        _buildStyledTextField(
+                          label: 'Country',
+                          controller: deliveryCountryController,
+                          icon: Icons.public,
+                          inputType: TextInputType.text,
+                          validator: (v) =>
+                              v?.isEmpty == true ? 'Required' : null,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            const Divider(height: 1),
+              const Divider(height: 1),
 
-            // Footer
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (formKey.currentState?.validate() == true) {
-                      try {
-                        // Show loading
-                        showDialog(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (c) =>
-                              const Center(child: CircularProgressIndicator()),
-                        );
-
-                        final pickupAddress = {
-                          'name': pickupNameController.text,
-                          'phone': pickupPhoneController.text,
-                          'addressLine': pickupAddressController.text,
-                          'city': pickupCityController.text,
-                          'zip': pickupZipController.text,
-                          'country': pickupCountryController.text,
-                        };
-
-                        final deliveryAddress = {
-                          'name': deliveryNameController.text,
-                          'phone': deliveryPhoneController.text,
-                          'addressLine': deliveryAddressController.text,
-                          'city': deliveryCityController.text,
-                          'zip': deliveryZipController.text,
-                          'country': deliveryCountryController.text,
-                        };
-
-                        await ref
-                            .read(quotationRepositoryProvider)
-                            .confirmAddress(
-                              quotation.id,
-                              pickupAddress,
-                              deliveryAddress,
-                            );
-
-                        // Close loading
-                        if (context.mounted) Navigator.pop(context);
-
-                        // Close dialog
-                        if (context.mounted) Navigator.pop(context);
-
-                        // Refresh
-                        ref.invalidate(quotationByIdProvider(quotation.id));
-                        ref.invalidate(quotationsProvider);
-
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Address confirmed! Request sent for pickup.',
-                              ),
-                              backgroundColor: AppTheme.success,
+              // Footer
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (formKey.currentState?.validate() == true) {
+                        try {
+                          // Show loading
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (c) => const Center(
+                              child: CircularProgressIndicator(),
                             ),
                           );
-                        }
-                      } catch (e) {
-                        // Close loading
-                        if (context.mounted) Navigator.pop(context);
 
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                          final pickupAddress = {
+                            'name': pickupNameController.text,
+                            'phone': pickupPhoneController.text,
+                            'addressLine': pickupAddressController.text,
+                            'city': pickupCityController.text,
+                            'zip': pickupZipController.text,
+                            'country': pickupCountryController.text,
+                          };
+
+                          final deliveryAddress = {
+                            'name': deliveryNameController.text,
+                            'phone': deliveryPhoneController.text,
+                            'addressLine': deliveryAddressController.text,
+                            'city': deliveryCityController.text,
+                            'zip': deliveryZipController.text,
+                            'country': deliveryCountryController.text,
+                          };
+
+                          await ref
+                              .read(quotationRepositoryProvider)
+                              .confirmAddress(
+                                quotation.id,
+                                pickupAddress,
+                                deliveryAddress,
+                              );
+
+                          // Close loading
+                          if (context.mounted) Navigator.pop(context);
+
+                          // Close dialog
+                          if (context.mounted) Navigator.pop(context);
+
+                          // Refresh
+                          ref.invalidate(quotationByIdProvider(quotation.id));
+                          ref.invalidate(quotationsProvider);
+
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Address confirmed! Request sent for pickup.',
+                                ),
+                                backgroundColor: AppTheme.success,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          // Close loading
+                          if (context.mounted) Navigator.pop(context);
+
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error: $e')),
+                            );
+                          }
                         }
                       }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryBlue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryBlue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
                     ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Confirm & Submit',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    child: const Text(
+                      'Confirm & Submit',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

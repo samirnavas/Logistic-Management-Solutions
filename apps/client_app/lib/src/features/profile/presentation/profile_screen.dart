@@ -7,6 +7,7 @@ import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
 import 'package:bb_logistics/src/features/auth/domain/user.dart';
 import 'package:bb_logistics/src/features/profile/presentation/saved_addresses_screen.dart';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -77,13 +78,23 @@ class ProfileScreen extends ConsumerWidget {
                                     showModalBottomSheet(
                                       context: context,
                                       isScrollControlled: true,
-                                      shape: const RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.vertical(
-                                          top: Radius.circular(20),
+                                      backgroundColor: Colors.transparent,
+                                      barrierColor: Colors.black54,
+                                      builder: (context) => BackdropFilter(
+                                        filter: ImageFilter.blur(
+                                          sigmaX: 5,
+                                          sigmaY: 5,
+                                        ),
+                                        child: Container(
+                                          decoration: const BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.vertical(
+                                              top: Radius.circular(12),
+                                            ),
+                                          ),
+                                          child: _EditProfileSheet(user: user),
                                         ),
                                       ),
-                                      builder: (context) =>
-                                          _EditProfileSheet(user: user),
                                     );
                                   }
                                 },
@@ -210,36 +221,48 @@ class ProfileScreen extends ConsumerWidget {
                                   HapticFeedback.lightImpact();
                                   showDialog(
                                     context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: const Text('Logout'),
-                                      content: const Text(
-                                        'Are you sure you want to logout?',
+                                    barrierColor: Colors.black54,
+                                    builder: (context) => BackdropFilter(
+                                      filter: ImageFilter.blur(
+                                        sigmaX: 5,
+                                        sigmaY: 5,
                                       ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context),
-                                          child: const Text('Cancel'),
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(
-                                              context,
-                                            ); // Close dialog
-                                            ref
-                                                .read(
-                                                  authRepositoryProvider
-                                                      .notifier,
-                                                )
-                                                .signOut();
-                                            context.go('/login');
-                                          },
-                                          style: TextButton.styleFrom(
-                                            foregroundColor: Colors.red,
+                                      child: AlertDialog(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
                                           ),
-                                          child: const Text('Logout'),
                                         ),
-                                      ],
+                                        title: const Text('Logout'),
+                                        content: const Text(
+                                          'Are you sure you want to logout?',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.pop(
+                                                context,
+                                              ); // Close dialog
+                                              ref
+                                                  .read(
+                                                    authRepositoryProvider
+                                                        .notifier,
+                                                  )
+                                                  .signOut();
+                                              context.go('/login');
+                                            },
+                                            style: TextButton.styleFrom(
+                                              foregroundColor: Colors.red,
+                                            ),
+                                            child: const Text('Logout'),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   );
                                 },
@@ -382,63 +405,71 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
     HapticFeedback.lightImpact();
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Change Profile Picture',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black54,
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Change Profile Picture',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        color: AppTheme.primaryBlue,
+                      ),
+                    ),
+                    title: const Text('Take Photo'),
+                    subtitle: const Text('Use your camera'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickAndUploadImage(ImageSource.camera);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.photo_library,
+                        color: AppTheme.primaryBlue,
+                      ),
+                    ),
+                    title: const Text('Choose from Gallery'),
+                    subtitle: const Text('Select an existing photo'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickAndUploadImage(ImageSource.gallery);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
               ),
-              const SizedBox(height: 20),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.camera_alt,
-                    color: AppTheme.primaryBlue,
-                  ),
-                ),
-                title: const Text('Take Photo'),
-                subtitle: const Text('Use your camera'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickAndUploadImage(ImageSource.camera);
-                },
-              ),
-              const SizedBox(height: 8),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.photo_library,
-                    color: AppTheme.primaryBlue,
-                  ),
-                ),
-                title: const Text('Choose from Gallery'),
-                subtitle: const Text('Select an existing photo'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickAndUploadImage(ImageSource.gallery);
-                },
-              ),
-              const SizedBox(height: 12),
-            ],
+            ),
           ),
         ),
       ),

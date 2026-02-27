@@ -434,13 +434,13 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
             {!showQuoteForm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 sm:p-6" onClick={onClose}>
                     <div
-                        className="bg-card rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] relative w-[95%] sm:w-full max-w-4xl h-[90vh] md:h-auto md:max-h-[90vh] flex flex-col overflow-hidden"
+                        className="bg-card rounded-[12px] shadow-[0_4px_20px_rgba(0,0,0,0.08)] relative w-[95%] sm:w-full max-w-4xl h-[90vh] md:h-auto md:max-h-[90vh] flex flex-col overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header Section (Fixed) */}
-                        <div className="flex-none flex justify-between items-start p-6 border-b border-border bg-card z-10">
+                        <div className="flex-none flex justify-between items-center py-5 px-6 border-b border-gray-100 bg-white z-10">
                             <div>
-                                <h1 className="text-xl font-bold text-zinc-800 mb-2">Request Detail</h1>
+                                <h1 className="text-lg font-bold text-zinc-800 mb-1">Request Detail</h1>
                                 <div className="flex flex-wrap gap-2 text-sm">
                                     <span className="bg-slate-100 px-3 py-1 rounded-full text-zinc-600 font-medium border border-slate-200">
                                         ID: <span className="text-zinc-900">{request.quotationId}</span>
@@ -452,9 +452,12 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                 </div>
                             </div>
                             {/* Close Button */}
-                            <button onClick={onClose} className="p-2 -mr-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors">
-                                <span className="sr-only">Close</span>
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <button
+                                onClick={onClose}
+                                className="text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 p-1.5 rounded-full transition-colors"
+                                aria-label="Close modal"
+                            >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
@@ -725,7 +728,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
             {/* Quotation Form/Details Modal (Overlay) */}
             {showQuoteForm && (
                 <div
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[60] p-4 sm:p-6"
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-[60] p-4 sm:p-6"
                     onClick={(e) => {
                         e.stopPropagation();
                         if (quotationViewMode === 'view') {
@@ -736,12 +739,12 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                     }}
                 >
                     <div
-                        className="w-full max-w-6xl bg-card rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] relative h-[90vh] flex flex-col overflow-hidden"
+                        className="w-full max-w-6xl bg-card rounded-[12px] shadow-[0_4px_20px_rgba(0,0,0,0.08)] relative h-[90vh] flex flex-col overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Modal Header */}
-                        <div className="px-8 py-5 border-b border-border flex justify-between items-center bg-card z-10">
-                            <h1 className="text-xl font-bold text-[#333333] flex items-center gap-3">
+                        <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white z-10">
+                            <h1 className="text-lg font-bold text-zinc-800 flex items-center gap-3">
                                 {quotationViewMode === 'create' ? (
                                     <>
                                         <span className="w-2 h-8 bg-[#0557A5] rounded-full"></span>

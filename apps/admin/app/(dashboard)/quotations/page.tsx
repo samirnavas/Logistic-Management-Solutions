@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import RequestDetailsModal from '../../components/RequestDetailsModal';
+import StatusBadge from '../../components/StatusBadge';
+import TableSkeleton from '../../components/TableSkeleton';
+import TableEmptyState from '../../components/TableEmptyState';
 
 export default function QuotationsPage() {
     const [quotations, setQuotations] = useState<any[]>([]);
@@ -33,12 +36,12 @@ export default function QuotationsPage() {
 
     return (
         <div className="flex flex-col gap-8">
-            <h1 className="text-2xl font-semibold text-zinc-800">All Quotations</h1>
+            <h1 className="text-3xl font-bold text-foreground">All Quotations</h1>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.05)] overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-gray-600">
-                        <thead className="bg-gray-50 text-xs uppercase font-semibold text-gray-500">
+                    <table className="w-full text-left text-sm text-gray-600 border-collapse">
+                        <thead className="bg-gray-50 text-xs uppercase font-medium text-gray-500 tracking-wider">
                             <tr>
                                 <th className="px-6 py-4">ID</th>
                                 <th className="px-6 py-4">Client</th>
@@ -51,29 +54,28 @@ export default function QuotationsPage() {
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {loading ? (
-                                <tr><td colSpan={7} className="px-6 py-8 text-center text-zinc-500">Loading...</td></tr>
+                                <TableSkeleton columns={7} />
                             ) : quotations.length === 0 ? (
-                                <tr><td colSpan={7} className="px-6 py-8 text-center text-zinc-500">No quotations found.</td></tr>
+                                <TableEmptyState
+                                    colSpan={7}
+                                    title="No quotations found"
+                                    description="You don't have any generated quotations yet."
+                                />
                             ) : (
-                                quotations.map((q) => (
-                                    <tr key={q._id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4 font-mono text-xs text-sky-700">{q.quotationId}</td>
-                                        <td className="px-6 py-4 text-zinc-800 font-medium">{q.clientId?.fullName}</td>
+                                quotations.map((q, index) => (
+                                    <tr key={q._id || q.quotationId || index} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4 font-medium text-sky-700">{q.quotationId}</td>
+                                        <td className="px-6 py-4 text-gray-800 font-medium">{q.clientId?.fullName}</td>
                                         <td className="px-6 py-4">{q.destination?.city}</td>
-                                        <td className="px-6 py-4 text-zinc-800 font-medium">{q.currency} {q.totalAmount?.toLocaleString()}</td>
+                                        <td className="px-6 py-4 text-gray-800 font-medium">{q.currency} {q.totalAmount?.toLocaleString()}</td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-3 py-1 rounded-full text-xs font-medium 
-                                                ${q.status === 'Accepted' ? 'bg-green-100 text-green-700' :
-                                                    q.status === 'Rejected' ? 'bg-red-100 text-red-700' :
-                                                        'bg-amber-100 text-amber-800'}`}>
-                                                {q.status}
-                                            </span>
+                                            <StatusBadge status={q.status} />
                                         </td>
-                                        <td className="px-6 py-4 text-zinc-500">{new Date(q.createdAt).toLocaleDateString()}</td>
+                                        <td className="px-6 py-4 text-gray-500">{new Date(q.createdAt).toLocaleDateString()}</td>
                                         <td className="px-6 py-4">
                                             <button
                                                 onClick={() => setSelectedRequestId(q._id)}
-                                                className="text-gray-400 hover:text-sky-700 transition-colors"
+                                                className="text-sky-700 font-medium hover:underline transition-colors"
                                             >
                                                 View Details
                                             </button>

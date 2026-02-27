@@ -179,21 +179,23 @@ export default function GenerateQuotationModal({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="w-full max-w-[583px] bg-card rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] relative max-h-[95vh] overflow-y-auto">
-                {/* Close Button */}
-                <button
-                    onClick={onClose}
-                    className="absolute top-5 right-5 text-muted-foreground hover:text-foreground transition-colors z-10"
-                    aria-label="Close modal"
-                >
-                    <X size={20} />
-                </button>
-
-                <div className="p-8">
-                    {/* Header */}
-                    <h1 className="text-[20px] font-semibold text-foreground leading-7 mb-11">
+            <div className="w-full max-w-[583px] bg-card rounded-[12px] shadow-[0_4px_20px_rgba(0,0,0,0.08)] relative max-h-[95vh] flex flex-col overflow-hidden">
+                {/* Header */}
+                <div className="flex-none flex justify-between items-center px-6 py-5 border-b border-gray-100 bg-white z-10">
+                    <h1 className="text-lg font-bold text-zinc-800">
                         {status === 'NEGOTIATION_REQUESTED' ? 'Revise Quotation' : 'Create Quotation'}
                     </h1>
+                    <button
+                        onClick={onClose}
+                        className="text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 p-1.5 rounded-full transition-colors"
+                        aria-label="Close modal"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
+
+                {/* Scrollable Body */}
+                <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50 custom-scrollbar">
 
                     {error && (
                         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
@@ -385,7 +387,10 @@ export default function GenerateQuotationModal({
                         </div>
                     </div>
 
-                    {/* Action Buttons */}
+                </div>
+
+                {/* Sticky Footer */}
+                <div className="flex-none p-6 border-t border-gray-100 bg-white z-10">
                     <div className="flex gap-4">
                         <button
                             disabled={loading || !!error}

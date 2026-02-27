@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import StatusBadge from '../../components/StatusBadge';
+import TableSkeleton from '../../components/TableSkeleton';
+import TableEmptyState from '../../components/TableEmptyState';
 
 export default function UsersPage() {
     const [users, setUsers] = useState<any[]>([]);
@@ -37,10 +40,10 @@ export default function UsersPage() {
         <div className="flex flex-col gap-8">
             <h1 className="text-2xl font-semibold text-zinc-800">Customers</h1>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.05)] overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-gray-600">
-                        <thead className="bg-gray-50 text-xs uppercase font-semibold text-gray-500">
+                    <table className="w-full text-left text-sm text-gray-600 border-collapse">
+                        <thead className="bg-gray-50 text-xs uppercase font-medium text-gray-500 tracking-wider">
                             <tr>
                                 <th className="px-6 py-4">Name</th>
                                 <th className="px-6 py-4">Customer ID</th>
@@ -52,9 +55,13 @@ export default function UsersPage() {
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {loading ? (
-                                <tr><td colSpan={6} className="px-6 py-8 text-center text-zinc-500">Loading...</td></tr>
+                                <TableSkeleton columns={6} />
                             ) : users.length === 0 ? (
-                                <tr><td colSpan={6} className="px-6 py-8 text-center text-zinc-500">No users found.</td></tr>
+                                <TableEmptyState
+                                    colSpan={6}
+                                    title="No customers yet"
+                                    description="Customers will appear here when they register on the client app."
+                                />
                             ) : (
                                 users.map((user) => (
                                     <tr key={user._id} className="hover:bg-gray-50 transition-colors">
@@ -74,10 +81,7 @@ export default function UsersPage() {
                                             {user.location || user.country || user.savedAddresses?.find((a: any) => a.isDefault)?.city || user.savedAddresses?.[0]?.city || '-'}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-3 py-1 rounded-full text-xs font-medium 
-                                                ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                {user.isActive ? 'Active' : 'Inactive'}
-                                            </span>
+                                            <StatusBadge status={user.isActive ? 'ACTIVE' : 'INACTIVE'} />
                                         </td>
                                         <td className="px-6 py-4">
                                             <button

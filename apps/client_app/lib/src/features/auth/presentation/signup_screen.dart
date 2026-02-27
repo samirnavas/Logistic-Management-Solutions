@@ -80,6 +80,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: const Text('Create Account'),
         backgroundColor: Colors.transparent,
@@ -87,185 +88,264 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         elevation: 0,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Join B&B International',
-                  style: GoogleFonts.poppins(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth > 800;
+
+            final formContent = Container(
+              constraints: const BoxConstraints(maxWidth: 500),
+              padding: const EdgeInsets.all(32.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 24,
+                    offset: const Offset(0, 8),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Fill in your details to get started',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 32),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Full Name',
-                    prefixIcon: Icon(Icons.person_outline),
-                  ),
-                  validator: (value) =>
-                      value == null || value.isEmpty ? 'Required' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: Icon(Icons.email_outlined),
-                  ),
-                  validator: (value) =>
-                      value == null || value.isEmpty ? 'Required' : null,
-                ),
-                const SizedBox(height: 16),
-                Row(
+                ],
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SizedBox(
-                      width: 120,
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _countryCode,
-                        isExpanded: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Code',
-                          prefixIcon: Icon(Icons.public, size: 20),
-                        ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: '+1',
-                            child: Text(
-                              '🇺🇸 +1',
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                    // Added Logo specifically as requested "prominently displayed with generous padding"
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 24.0),
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: const BoxDecoration(
+                            color: AppTheme.primaryBlue,
+                            shape: BoxShape.circle,
                           ),
-                          DropdownMenuItem(
-                            value: '+91',
-                            child: Text(
-                              '🇮🇳 +91',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          DropdownMenuItem(
-                            value: '+971',
-                            child: Text(
-                              '🇦🇪 +971',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          DropdownMenuItem(
-                            value: '+974',
-                            child: Text(
-                              '🇶🇦 +974',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          DropdownMenuItem(
-                            value: '+973',
-                            child: Text(
-                              '🇧🇭 +973',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                        onChanged: (val) {
-                          if (val != null) setState(() => _countryCode = val);
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _phoneController,
-                        decoration: const InputDecoration(
-                          labelText: 'Mobile Number',
-                          prefixIcon: Icon(Icons.phone_outlined),
-                        ),
-                        validator: (value) =>
-                            value == null || value.isEmpty ? 'Required' : null,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _countryController,
-                  decoration: const InputDecoration(
-                    labelText: 'Country',
-                    prefixIcon: Icon(Icons.public),
-                  ),
-                  validator: (value) =>
-                      value == null || value.isEmpty ? 'Required' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    prefixIcon: Icon(Icons.lock_outline),
-                  ),
-                  validator: (value) => value == null || value.length < 6
-                      ? 'Min 6 characters'
-                      : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _locationController,
-                  decoration: const InputDecoration(
-                    labelText: 'City / Location',
-                    prefixIcon: Icon(Icons.location_on_outlined),
-                  ),
-                  validator: (value) =>
-                      value == null || value.isEmpty ? 'Required' : null,
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _acceptTerms,
-                      activeColor: AppTheme.primaryBlue,
-                      onChanged: (val) {
-                        setState(() {
-                          _acceptTerms = val ?? false;
-                        });
-                      },
-                    ),
-                    Expanded(
-                      child: Text(
-                        'I accept the Terms & Privacy Policy',
-                        style: GoogleFonts.poppins(fontSize: 12),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _signup,
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
+                          child: const Icon(
+                            Icons.local_shipping,
+                            size: 40,
                             color: Colors.white,
                           ),
-                        )
-                      : const Text('Create Account'),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'Join B&B International',
+                      style: GoogleFonts.inter(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Fill in your details to get started',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: AppTheme.textGrey,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Full Name',
+                        prefixIcon: Icon(Icons.person_outline),
+                      ),
+                      validator: (value) =>
+                          value == null || value.isEmpty ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        prefixIcon: Icon(Icons.email_outlined),
+                      ),
+                      validator: (value) =>
+                          value == null || value.isEmpty ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 120,
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _countryCode,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Code',
+                              prefixIcon: Icon(Icons.public, size: 20),
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: '+1',
+                                child: Text(
+                                  '🇺🇸 +1',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: '+91',
+                                child: Text(
+                                  '🇮🇳 +91',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: '+971',
+                                child: Text(
+                                  '🇦🇪 +971',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: '+974',
+                                child: Text(
+                                  '🇶🇦 +974',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: '+973',
+                                child: Text(
+                                  '🇧🇭 +973',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                            onChanged: (val) {
+                              if (val != null)
+                                setState(() => _countryCode = val);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _phoneController,
+                            decoration: const InputDecoration(
+                              labelText: 'Mobile Number',
+                              prefixIcon: Icon(Icons.phone_outlined),
+                            ),
+                            validator: (value) => value == null || value.isEmpty
+                                ? 'Required'
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _countryController,
+                      decoration: const InputDecoration(
+                        labelText: 'Country',
+                        prefixIcon: Icon(Icons.public),
+                      ),
+                      validator: (value) =>
+                          value == null || value.isEmpty ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Password',
+                        prefixIcon: Icon(Icons.lock_outline),
+                      ),
+                      validator: (value) => value == null || value.length < 6
+                          ? 'Min 6 characters'
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _locationController,
+                      decoration: const InputDecoration(
+                        labelText: 'City / Location',
+                        prefixIcon: Icon(Icons.location_on_outlined),
+                      ),
+                      validator: (value) =>
+                          value == null || value.isEmpty ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: _acceptTerms,
+                          activeColor: AppTheme.primaryBlue,
+                          onChanged: (val) {
+                            setState(() {
+                              _acceptTerms = val ?? false;
+                            });
+                          },
+                        ),
+                        Expanded(
+                          child: Text(
+                            'I accept the Terms & Privacy Policy',
+                            style: GoogleFonts.inter(fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : _signup,
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('Create Account'),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+
+            if (isWide) {
+              return Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      color: AppTheme.primaryBlue,
+                      child: Center(
+                        child: Image.asset(
+                          'assets/B&B Logo.png',
+                          width: 300,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(
+                                Icons.local_shipping,
+                                size: 100,
+                                color: Colors.white,
+                              ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Center(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(24.0),
+                        child: formContent,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            return Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: formContent,
+              ),
+            );
+          },
         ),
       ),
     );

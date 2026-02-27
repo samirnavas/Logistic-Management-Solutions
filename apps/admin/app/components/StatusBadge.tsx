@@ -17,9 +17,9 @@ export default function StatusBadge({ status, className = '' }: StatusBadgeProps
         type = 'warning';
     } else if (['COST_CALCULATED', 'DRAFT'].includes(normalizedStatus)) {
         type = 'draft';
-    } else if (['APPROVED', 'VERIFIED', 'QUOTATION_SENT', 'ACCEPTED', 'BOOKED', 'SHIPPED', 'DELIVERED', 'ADDRESS_PROVIDED'].includes(normalizedStatus)) {
+    } else if (['APPROVED', 'VERIFIED', 'QUOTATION_SENT', 'ACCEPTED', 'BOOKED', 'SHIPPED', 'DELIVERED', 'ADDRESS_PROVIDED', 'ACTIVE'].includes(normalizedStatus)) {
         type = 'success';
-    } else if (['INFO_REQUIRED', 'REJECTED', 'CANCELLED'].includes(normalizedStatus)) {
+    } else if (['INFO_REQUIRED', 'REJECTED', 'CANCELLED', 'INACTIVE'].includes(normalizedStatus)) {
         type = 'error';
     }
 

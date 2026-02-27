@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Search, MapPin, CheckCircle, XCircle } from 'lucide-react';
+import StatusBadge from '../../components/StatusBadge';
+import TableSkeleton from '../../components/TableSkeleton';
+import TableEmptyState from '../../components/TableEmptyState';
 // import axios from 'axios'; // Removing axios dependency
 
 interface Warehouse {
@@ -218,88 +221,71 @@ export default function WarehousesPage() {
             </div>
 
             {/* Warehouse List */}
-            {isLoading ? (
-                <div className="text-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-500">Loading warehouses...</p>
+            <div className="bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.05)] overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm text-gray-600 border-collapse">
+                        <thead className="bg-gray-50 text-xs uppercase font-medium text-gray-500 tracking-wider">
+                            <tr>
+                                <th className="px-6 py-4">Code</th>
+                                <th className="px-6 py-4">Name</th>
+                                <th className="px-6 py-4">Location</th>
+                                <th className="px-6 py-4">Status</th>
+                                <th className="px-6 py-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {isLoading ? (
+                                <TableSkeleton columns={5} />
+                            ) : warehouses.length === 0 ? (
+                                <TableEmptyState
+                                    colSpan={5}
+                                    title="No warehouses found"
+                                    description="Get started by adding your first warehouse location."
+                                    actionLabel="Add Warehouse"
+                                    onAction={() => handleOpenModal()}
+                                />
+                            ) : filteredWarehouses.length === 0 ? (
+                                <TableEmptyState
+                                    colSpan={5}
+                                    title="No results"
+                                    description="No warehouses match your search terms."
+                                />
+                            ) : (
+                                filteredWarehouses.map(warehouse => (
+                                    <tr key={warehouse._id} className="hover:bg-gray-50 transition-colors group">
+                                        <td className="px-6 py-4 font-medium text-sky-700">{warehouse.code}</td>
+                                        <td className="px-6 py-4 text-gray-800 font-medium">{warehouse.name}</td>
+                                        <td className="px-6 py-4">
+                                            {warehouse.address.city}, {warehouse.address.country}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <StatusBadge status={warehouse.isActive ? 'ACTIVE' : 'INACTIVE'} />
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity flex-wrap sm:flex-nowrap">
+                                                <button
+                                                    onClick={() => handleOpenModal(warehouse)}
+                                                    className="p-2 text-gray-400 hover:text-sky-700 hover:bg-sky-50 rounded-lg transition-colors"
+                                                    title="Edit"
+                                                >
+                                                    <Edit size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(warehouse._id)}
+                                                    className="p-2 text-gray-400 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-            ) : filteredWarehouses.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300">
-                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <MapPin className="text-gray-400" size={32} />
-                    </div>
-                    <h3 className="text-lg font-medium text-gray-900">No warehouses found</h3>
-                    <p className="text-gray-500 max-w-sm mx-auto mt-2">
-                        Get started by adding your first warehouse location.
-                    </p>
-                    <button
-                        onClick={() => handleOpenModal()}
-                        className="mt-6 text-blue-600 font-medium hover:text-blue-700 hover:underline"
-                    >
-                        Add Warehouse
-                    </button>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredWarehouses.map(warehouse => (
-                        <div key={warehouse._id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                            <div className="p-6">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 font-bold text-lg">
-                                            {warehouse.code.substring(0, 2)}
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold text-gray-900">{warehouse.name}</h3>
-                                            <p className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded-full inline-block mt-1">
-                                                {warehouse.code}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                            onClick={() => handleOpenModal(warehouse)}
-                                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                            title="Edit"
-                                        >
-                                            <Edit size={16} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(warehouse._id)}
-                                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                            title="Delete"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <div className="flex items-start gap-3">
-                                        <MapPin className="text-gray-400 mt-0.5 shrink-0" size={16} />
-                                        <p className="text-sm text-gray-600">
-                                            {warehouse.address.addressLine}<br />
-                                            {warehouse.address.city}, {warehouse.address.state} {warehouse.address.zip}<br />
-                                            {warehouse.address.country}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center text-xs text-gray-500">
-                                    <span>
-                                        Status:
-                                        {warehouse.isActive ? (
-                                            <span className="text-green-600 font-medium ml-1">Active</span>
-                                        ) : (
-                                            <span className="text-gray-400 font-medium ml-1">Inactive</span>
-                                        )}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+            </div>
 
             {/* Modal */}
             {isModalOpen && (

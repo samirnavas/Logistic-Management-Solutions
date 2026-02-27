@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import RequestDetailsModal from '../../components/RequestDetailsModal';
+import TableSkeleton from '../../components/TableSkeleton';
+import TableEmptyState from '../../components/TableEmptyState';
 
 export default function RequestsPage() {
     const router = useRouter();
@@ -143,17 +145,17 @@ export default function RequestsPage() {
                         </thead>
                         <tbody className="text-sm text-slate-600 divide-y divide-gray-100">
                             {loading ? (
-                                <tr>
-                                    <td colSpan={13} className="px-4 py-8 text-center text-slate-400">Loading data...</td>
-                                </tr>
+                                <TableSkeleton columns={13} />
                             ) : error ? (
                                 <tr>
                                     <td colSpan={13} className="px-4 py-8 text-center text-red-500">{error}</td>
                                 </tr>
                             ) : requests.length === 0 ? (
-                                <tr>
-                                    <td colSpan={13} className="px-4 py-8 text-center text-slate-400">No new requests found.</td>
-                                </tr>
+                                <TableEmptyState
+                                    colSpan={13}
+                                    title="No requests found"
+                                    description="You don't have any pending quotation requests at the moment."
+                                />
                             ) : (
                                 currentRequests.map((req, index) => (
                                     <tr key={req.id || req._id} className="hover:bg-gray-50 transition-colors group">

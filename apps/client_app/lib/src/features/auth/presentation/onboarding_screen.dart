@@ -67,7 +67,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -110,7 +110,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   decoration: BoxDecoration(
                     color: _currentPage == index
                         ? AppTheme.primaryBlue
-                        : const Color(0xFFE0E0E0),
+                        : AppTheme.accentOrange,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -139,10 +139,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         _content[_currentPage].title,
                         key: ValueKey<String>(_content[_currentPage].title),
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.poppins(
-                          fontSize: 24,
+                        style: GoogleFonts.inter(
+                          fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1E1E1E),
+                          color: AppTheme.textDark,
                         ),
                       ),
                     ),
@@ -162,9 +162,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           _content[_currentPage].description,
                         ),
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.inter(
                           fontSize: 16,
-                          color: Colors.grey[600],
+                          color: AppTheme.textGrey,
                           height: 1.5,
                         ),
                       ),
@@ -183,7 +183,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     onPressed: _onFinish,
                     child: Text(
                       'SKIP',
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: AppTheme.primaryBlue,
@@ -206,7 +206,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     ),
                     child: Text(
                       _currentPage == _content.length - 1 ? 'START' : 'NEXT',
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.inter(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                         letterSpacing: 0.5,

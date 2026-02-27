@@ -1,3 +1,4 @@
+import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -72,7 +73,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.background,
       body: Stack(
         fit: StackFit.expand,
         children: [

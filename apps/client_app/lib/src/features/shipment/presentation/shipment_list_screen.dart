@@ -64,12 +64,53 @@ class _ShipmentListScreenState extends ConsumerState<ShipmentListScreen> {
                       ),
                       child: shipmentsAsync.when(
                         // Loading State
-                        loading: () => const Padding(
-                          padding: EdgeInsets.only(top: 100),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              color: AppTheme.primaryBlue,
-                            ),
+                        // Loading State
+                        loading: () => Padding(
+                          padding: const EdgeInsets.only(top: 20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                    width: 150,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[200],
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  )
+                                  .animate(
+                                    onPlay: (controller) => controller.repeat(),
+                                  )
+                                  .shimmer(
+                                    duration: 1200.ms,
+                                    color: Colors.white54,
+                                  ),
+                              const SizedBox(height: 16),
+                              ...List.generate(
+                                3,
+                                (index) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 16.0),
+                                  child:
+                                      Container(
+                                            width: double.infinity,
+                                            height: 160,
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[200],
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                            ),
+                                          )
+                                          .animate(
+                                            onPlay: (controller) =>
+                                                controller.repeat(),
+                                          )
+                                          .shimmer(
+                                            duration: 1200.ms,
+                                            color: Colors.white54,
+                                          ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
 
@@ -111,24 +152,85 @@ class _ShipmentListScreenState extends ConsumerState<ShipmentListScreen> {
                             // Empty State
                             return Center(
                               child: Padding(
-                                padding: const EdgeInsets.only(top: 50),
-                                child: Column(
-                                  children: [
-                                    Icon(
-                                      Icons.local_shipping_outlined,
-                                      size: 80,
-                                      color: Colors.grey[300],
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'No shipments found',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyLarge
-                                          ?.copyWith(color: Colors.grey[500]),
-                                    ),
-                                  ],
-                                ),
+                                padding: const EdgeInsets.only(top: 40),
+                                child:
+                                    Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Container(
+                                              width: 120,
+                                              height: 120,
+                                              decoration: BoxDecoration(
+                                                color: AppTheme.primaryBlue
+                                                    .withOpacity(0.05),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Icon(
+                                                Icons.inventory_2_outlined,
+                                                size: 60,
+                                                color: AppTheme.primaryBlue
+                                                    .withOpacity(0.5),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 24),
+                                            Text(
+                                              'No Active Shipments',
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .titleLarge
+                                                  ?.copyWith(
+                                                    color: AppTheme.textDark,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              'Get started by creating your first shipment request.',
+                                              textAlign: TextAlign.center,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyMedium
+                                                  ?.copyWith(
+                                                    color: Colors.grey[500],
+                                                  ),
+                                            ),
+                                            const SizedBox(height: 32),
+                                            ElevatedButton.icon(
+                                              onPressed: () {
+                                                HapticFeedback.lightImpact();
+                                                context.push(
+                                                  '/request-shipment',
+                                                );
+                                              },
+                                              icon: const Icon(
+                                                Icons.add,
+                                                color: Colors.white,
+                                              ),
+                                              label: const Text(
+                                                'Create First Shipment',
+                                              ),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    AppTheme.primaryBlue,
+                                                foregroundColor: Colors.white,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 24,
+                                                      vertical: 14,
+                                                    ),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                elevation: 2,
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                        .animate()
+                                        .fadeIn(duration: 400.ms)
+                                        .slideY(begin: 0.1, end: 0),
                               ),
                             );
                           }
