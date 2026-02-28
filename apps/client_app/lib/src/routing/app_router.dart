@@ -11,7 +11,6 @@ import 'package:bb_logistics/src/features/quotation/presentation/drafts_screen.d
 import 'package:bb_logistics/src/features/quotation/presentation/quotation_detail_screen.dart';
 import 'package:bb_logistics/src/features/quotation/presentation/quotation_screen.dart';
 import 'package:bb_logistics/src/features/shipment/presentation/request_shipment_screen.dart';
-import 'package:bb_logistics/src/features/shipment/presentation/shipment_list_screen.dart';
 import 'package:bb_logistics/src/features/shipment/presentation/tracking_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -71,7 +70,11 @@ GoRouter goRouter(Ref ref) {
       GoRoute(
         path: '/request-shipment',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const RequestShipmentScreen(),
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final existingQuotation = extra?['existingQuotation'];
+          return RequestShipmentScreen(existingQuotation: existingQuotation);
+        },
       ),
       // Quotation Detail - Root level route for full-screen PDF viewing
       GoRoute(
@@ -138,12 +141,12 @@ GoRouter goRouter(Ref ref) {
               ),
             ],
           ),
-          // Shipment Branch
+          // Requests Branch (Drafts + Active Quotations)
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/shipment',
-                builder: (context, state) => const ShipmentListScreen(),
+                path: '/requests',
+                builder: (context, state) => const DraftsScreen(),
               ),
             ],
           ),

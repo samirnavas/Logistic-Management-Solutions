@@ -61,9 +61,9 @@ class ScaffoldWithNavBar extends StatelessWidget {
                 label: 'Quotation',
               ),
               NavigationDestination(
-                icon: Icon(Icons.local_shipping_outlined),
-                selectedIcon: Icon(Icons.local_shipping),
-                label: 'Shipment',
+                icon: Icon(Icons.assignment_outlined),
+                selectedIcon: Icon(Icons.assignment),
+                label: 'Requests',
               ),
               NavigationDestination(
                 icon: Icon(Icons.person_outline),

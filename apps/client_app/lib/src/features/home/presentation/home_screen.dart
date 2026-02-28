@@ -118,7 +118,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Track, manage, and review all your shipments in one place.',
+                                'Track, manage, and review all your shipment requests in one place.',
                                 style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(
                                       color: AppTheme.textGrey,
@@ -179,7 +179,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 children: [
                                   Flexible(
                                     child: Text(
-                                      'Recent Shipments',
+                                      'Recent Requests',
                                       style: Theme.of(
                                         context,
                                       ).textTheme.titleLarge,
@@ -195,7 +195,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     child: InkWell(
                                       onTap: () {
                                         HapticFeedback.lightImpact();
-                                        context.go('/shipment');
+                                        context.go('/requests');
                                       },
                                       borderRadius: BorderRadius.circular(20),
                                       child: Padding(

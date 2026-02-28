@@ -1,6 +1,5 @@
 import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:bb_logistics/src/features/quotation/data/quotation_repository.dart';
-import 'package:bb_logistics/src/features/shipment/presentation/request_shipment_screen.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -112,12 +111,13 @@ class DraftsScreen extends ConsumerWidget {
                   elevation: 2,
                   child: InkWell(
                     onTap: () {
-                      // Navigate to edit the draft
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              RequestShipmentScreen(existingQuotation: draft),
-                        ),
+                      HapticFeedback.lightImpact();
+                      // Continue editing the draft — navigate to the request form
+                      // GoRouter will instantiate RequestShipmentScreen with the draft
+                      // passed via extra parameters
+                      context.push(
+                        '/request-shipment',
+                        extra: {'existingQuotation': draft},
                       );
                     },
                     borderRadius: BorderRadius.circular(16),
@@ -249,13 +249,10 @@ class DraftsScreen extends ConsumerWidget {
                               const Spacer(),
                               TextButton.icon(
                                 onPressed: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          RequestShipmentScreen(
-                                            existingQuotation: draft,
-                                          ),
-                                    ),
+                                  HapticFeedback.lightImpact();
+                                  context.push(
+                                    '/request-shipment',
+                                    extra: {'existingQuotation': draft},
                                   );
                                 },
                                 icon: const Icon(Icons.edit, size: 16),
