@@ -63,7 +63,7 @@ export default function QuotationsPage() {
                                 />
                             ) : (
                                 quotations.map((q, index) => (
-                                    <tr key={q._id || q.quotationId || index} className="hover:bg-gray-50 transition-colors">
+                                    <tr key={q._id || q.id || q.quotationId || index} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 font-medium text-sky-700">{q.quotationId}</td>
                                         <td className="px-6 py-4 text-gray-800 font-medium">{q.clientId?.fullName}</td>
                                         <td className="px-6 py-4">{q.destination?.city}</td>
@@ -74,7 +74,7 @@ export default function QuotationsPage() {
                                         <td className="px-6 py-4 text-gray-500">{new Date(q.createdAt).toLocaleDateString()}</td>
                                         <td className="px-6 py-4">
                                             <button
-                                                onClick={() => setSelectedRequestId(q._id)}
+                                                onClick={() => setSelectedRequestId(q.id || q._id)}
                                                 className="text-sky-700 font-medium hover:underline transition-colors"
                                             >
                                                 View Details
