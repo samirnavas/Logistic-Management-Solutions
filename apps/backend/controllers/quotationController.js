@@ -340,9 +340,19 @@ exports.updateQuotePrice = async (req, res) => {
         }
 
         // Update fields
-        if (items) quotation.items = items;
-        if (taxRate !== undefined) quotation.taxRate = taxRate;
-        if (discount !== undefined) quotation.discount = discount;
+        if (items) {
+            // Fix: Preserve existing goods items and append new charge items
+            // because frontend only sends the financial breakdown items under updateQuotePrice.
+            const chargeCategories = ['freight', 'insurance', 'packaging', 'handling', 'tax', 'other'];
+            const preservedGoodsItems = (quotation.items || []).filter(item => {
+                const cat = (item.category || '').toLowerCase();
+                return !chargeCategories.includes(cat);
+            });
+            quotation.items = [...preservedGoodsItems, ...items];
+        }
+
+        if (taxRate !== undefined) quotation.taxRate = Number(taxRate) || 0;
+        if (discount !== undefined) quotation.discount = Math.max(0, Number(discount) || 0); // Clamp: shield against floating-point negatives
         if (internalNotes !== undefined) quotation.internalNotes = internalNotes;
         if (additionalNotes !== undefined) quotation.additionalNotes = additionalNotes;
         if (validUntil !== undefined) quotation.validUntil = validUntil;
@@ -361,7 +371,8 @@ exports.updateQuotePrice = async (req, res) => {
         });
     } catch (error) {
         console.error('Update Quote Price Error:', error);
-        res.status(400).json({ message: 'Failed to update quotation price', error: error.message });
+        require('fs').writeFileSync('C:/Programming/Logistic-Management-Solutions/apps/backend/error-log.json', JSON.stringify({ message: error.message, stack: error.stack, errors: error.errors, requestBody: req.body }, null, 2));
+        res.status(400).json({ message: 'Failed to update quotation price', error: error.message, details: error.errors });
     }
 };
 

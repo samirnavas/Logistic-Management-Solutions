@@ -1,0 +1,74 @@
+{
+  "message": "Quotation validation failed: discount: Discount cannot be negative",
+  "stack": "ValidationError: Quotation validation failed: discount: Discount cannot be negative\n    at Document.invalidate (C:\\Programming\\Logistic-Management-Solutions\\apps\\backend\\node_modules\\mongoose\\lib\\document.js:3379:32)\n    at validatePath (C:\\Programming\\Logistic-Management-Solutions\\apps\\backend\\node_modules\\mongoose\\lib\\document.js:3154:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async Promise.all (index 17)\n    at async model.$__validate (C:\\Programming\\Logistic-Management-Solutions\\apps\\backend\\node_modules\\mongoose\\lib\\document.js:3095:3)\n    at async model.validate (C:\\Programming\\Logistic-Management-Solutions\\apps\\backend\\node_modules\\mongoose\\lib\\document.js:2672:5)\n    at async model.validateBeforeSave (C:\\Programming\\Logistic-Management-Solutions\\apps\\backend\\node_modules\\mongoose\\lib\\plugins\\validateBeforeSave.js:34:7)\n    at async Kareem.execPre (C:\\Programming\\Logistic-Management-Solutions\\apps\\backend\\node_modules\\kareem\\index.js:65:24)\n    at async model.$__save (C:\\Programming\\Logistic-Management-Solutions\\apps\\backend\\node_modules\\mongoose\\lib\\model.js:369:5)\n    at async model.save (C:\\Programming\\Logistic-Management-Solutions\\apps\\backend\\node_modules\\mongoose\\lib\\model.js:609:5)",
+  "errors": {
+    "discount": {
+      "name": "ValidatorError",
+      "message": "Discount cannot be negative",
+      "properties": {
+        "message": "Discount cannot be negative",
+        "type": "min",
+        "min": 0,
+        "path": "discount",
+        "value": -3.02
+      },
+      "kind": "min",
+      "path": "discount",
+      "value": -3.02
+    }
+  },
+  "requestBody": {
+    "items": [
+      {
+        "description": "Product Base Price",
+        "quantity": 1,
+        "unitPrice": 213,
+        "amount": 213,
+        "weight": 0,
+        "dimensions": "N/A",
+        "category": "freight"
+      },
+      {
+        "description": "Delivery/Transportation Charges",
+        "quantity": 1,
+        "unitPrice": 34,
+        "amount": 34,
+        "weight": 0,
+        "dimensions": "N/A",
+        "category": "freight"
+      },
+      {
+        "description": "Packaging Charges",
+        "quantity": 1,
+        "unitPrice": 45,
+        "amount": 45,
+        "weight": 0,
+        "dimensions": "N/A",
+        "category": "handling"
+      },
+      {
+        "description": "Insurance Charges",
+        "quantity": 1,
+        "unitPrice": 10,
+        "amount": 10,
+        "weight": 0,
+        "dimensions": "N/A",
+        "category": "insurance"
+      },
+      {
+        "description": "Taxes (GST 18%)",
+        "quantity": 1,
+        "unitPrice": 54.36,
+        "amount": 54.36,
+        "weight": 0,
+        "dimensions": "N/A",
+        "category": "other"
+      }
+    ],
+    "taxRate": 18,
+    "discount": -3.02,
+    "additionalNotes": "",
+    "validUntil": "2026-03-07T06:54:16.492Z",
+    "status": "QUOTATION_GENERATED"
+  }
+}
