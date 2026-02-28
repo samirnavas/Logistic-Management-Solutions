@@ -159,9 +159,16 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     return Column(
       children: [
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Center(child: LiveQuotationLedger(quotation: quotation)),
+          child: RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(quotationByIdProvider(widget.quotationId));
+              return Future<void>.delayed(const Duration(milliseconds: 500));
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              child: Center(child: LiveQuotationLedger(quotation: quotation)),
+            ),
           ),
         ),
         _buildActionBottomBar(context, quotation),
@@ -1238,5 +1245,4 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
       ],
     );
   }
-
 }
