@@ -89,12 +89,37 @@ export interface Quotation {
     // Financial Details
     items: LineItem[];
     subtotal: number;
+    baseFreightCharge?: number;
+    estimatedHandlingFee?: number;
+    firstMileCharge?: number;
+    lastMileCharge?: number;
     taxRate: number;
     tax: number;
     discount: number;
     discountReason?: string;
     totalAmount: number;
     currency: 'USD' | 'EUR' | 'GBP' | 'CNY' | 'JPY' | 'AED' | 'INR';
+
+    // Logistics specific
+    routingData?: {
+        sourceRegion?: string;
+        sourceCity?: string;
+        destinationRegion?: string;
+        destinationCity?: string;
+    };
+    fulfillmentDetails?: {
+        recipientName?: string;
+        recipientPhone?: string;
+        deliveryAddressLine?: string;
+        deliveryCity?: string;
+        deliveryState?: string;
+        deliveryCountry?: string;
+        deliveryZip?: string;
+        deliveryType?: string;
+        senderName?: string;
+        senderPhone?: string;
+        pickupAddressLine?: string;
+    };
 
     // Approval Workflow
     isApprovedByManager: boolean;
@@ -113,13 +138,15 @@ export interface Quotation {
 
     // Notes
     internalNotes?: string;
+    additionalNotes?: string;
     termsAndConditions?: string;
 
     // Status
     status: QuotationStatus;
 
     // Revision Tracking
-    revisionNumber: number;
+    revisionNumber?: number;
+    revisionCount?: number;
     previousVersionId?: string | Quotation;
 
     createdAt: Date | string;

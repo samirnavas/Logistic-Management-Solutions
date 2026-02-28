@@ -1685,10 +1685,21 @@ exports.adminPriceQuotation = async (req, res) => {
         if (validUntil !== undefined) quotation.validUntil = validUntil;
         if (internalNotes !== undefined) quotation.internalNotes = internalNotes;
         if (additionalNotes !== undefined) quotation.additionalNotes = additionalNotes;
+        if (req.body.pricingNotes !== undefined) quotation.additionalNotes = req.body.pricingNotes;
 
-        // Admin may update line-item unit prices / amounts during pricing
+        // Admin sets shippingCharge per item — declaredValue (commercial value) is NEVER overwritten.
         if (items && Array.isArray(items) && items.length > 0) {
-            quotation.items = items;
+            quotation.items = quotation.items.map((existingItem, i) => {
+                const adminInput = items[i] || {};
+                return {
+                    ...existingItem.toObject(),            // keep all client fields intact
+                    shippingCharge: Number(adminInput.shippingCharge ?? adminInput.unitPrice ?? 0),
+                    // Also mirror into legacy fields for backward compat
+                    unitPrice: Number(adminInput.shippingCharge ?? adminInput.unitPrice ?? 0),
+                    amount: Number(adminInput.shippingCharge ?? adminInput.unitPrice ?? 0) * (existingItem.quantity || 1),
+                    // declaredValue is NOT updated here — stays as client provided it
+                };
+            });
         }
 
         // Mark as approved by this admin
@@ -1781,7 +1792,13 @@ exports.customerReviseQuotation = async (req, res) => {
 
         // --- Apply customer changes ---
         if (items && Array.isArray(items) && items.length > 0) {
-            quotation.items = items;
+            // Preserve client fields; reset admin pricing on each item
+            quotation.items = items.map(item => ({
+                ...item,
+                shippingCharge: 0,
+                unitPrice: 0,
+                amount: 0,
+            }));
         }
         if (specialInstructions !== undefined) quotation.specialInstructions = specialInstructions;
         if (additionalNotes !== undefined) quotation.additionalNotes = additionalNotes;

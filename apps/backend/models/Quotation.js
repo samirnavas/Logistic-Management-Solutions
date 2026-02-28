@@ -62,6 +62,13 @@ const lineItemSchema = new mongoose.Schema({
         default: 0,
         min: [0, 'Declared value cannot be negative'],
     },
+    // Admin-set shipping charge for this specific line item
+    shippingCharge: {
+        type: Number,
+        default: 0,
+        min: [0, 'Shipping charge cannot be negative'],
+    },
+    // Legacy fields kept for backward compatibility
     unitPrice: {
         type: Number,
         default: 0,
@@ -762,8 +769,9 @@ quotationSchema.pre('save', async function () {
  * as the basis for tax calculation — it is NOT stored separately any more.
  */
 quotationSchema.methods.calculateTotals = function () {
-    // Sum of line-item amounts (for tax base)
-    const itemsSubtotal = (this.items || []).reduce((sum, item) => sum + (item.amount || 0), 0);
+    // Sum of per-item shipping charges (admin-set) — falls back to legacy 'amount' for old data
+    const itemsSubtotal = (this.items || []).reduce((sum, item) =>
+        sum + (item.shippingCharge || item.amount || 0), 0);
 
     // Tax on items subtotal
     this.tax = (itemsSubtotal * (this.taxRate || 0)) / 100;

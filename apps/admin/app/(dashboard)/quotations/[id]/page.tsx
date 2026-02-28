@@ -64,7 +64,8 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
     const [baseFreightCharge, setBaseFreightCharge] = useState(0);
     const [estimatedHandlingFee, setEstimatedHandlingFee] = useState(0);
     const [pricingNotes, setPricingNotes] = useState('');
-    const [itemPrices, setItemPrices] = useState<Record<number, ItemPrice>>({});
+    // keyed by item index — holds the admin-set SHIPPING CHARGE (not commercial value)
+    const [itemPrices, setItemPrices] = useState<Record<number, { shippingCharge: number }>>({});
 
     // Final charges state (AWAITING_FINAL_CHARGE_SHEET)
     const [firstMileCharge, setFirstMileCharge] = useState(0);
@@ -87,9 +88,10 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                 setQuotation(data);
                 // Pre-fill item prices if available
                 if (data.items?.length) {
-                    const prices: Record<number, ItemPrice> = {};
+                    const prices: Record<number, { shippingCharge: number }> = {};
                     data.items.forEach((item: any, i: number) => {
-                        prices[i] = { unitPrice: item.unitPrice || item.amount || 0 };
+                        // Pre-fill from saved shippingCharge (or legacy unitPrice)
+                        prices[i] = { shippingCharge: item.shippingCharge || item.unitPrice || 0 };
                     });
                     setItemPrices(prices);
                 }
@@ -108,10 +110,6 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
 
     useEffect(() => { fetchQuotation(); }, [fetchQuotation]);
 
-    // ── Live total calculation ─────────────────────────────────────────────
-    const itemsTotal = Object.values(itemPrices).reduce((sum, ip) => sum + (ip.unitPrice || 0), 0);
-    const subtotal = Number(baseFreightCharge) + Number(estimatedHandlingFee) + itemsTotal;
-
     // ── PENDING_ADMIN_REVIEW: Submit pricing → PENDING_CUSTOMER_APPROVAL ──
     const handlePriceQuotation = async () => {
         if (baseFreightCharge <= 0 && estimatedHandlingFee <= 0 && itemsTotal <= 0) {
@@ -122,9 +120,18 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
         try {
             const token = localStorage.getItem('token');
             const updatedItems = quotation.items?.map((item: any, i: number) => ({
-                ...item,
-                unitPrice: itemPrices[i]?.unitPrice || 0,
-                amount: (itemPrices[i]?.unitPrice || 0) * (item.quantity || 1),
+                description: item.description,
+                quantity: item.quantity,
+                weight: item.weight,
+                category: item.category,
+                isHazardous: item.isHazardous,
+                // Preserve client commercial value — admin only sets shippingCharge
+                declaredValue: item.declaredValue || 0,
+                targetRate: item.targetRate || 0,
+                shippingCharge: itemPrices[i]?.shippingCharge || 0,
+                // Legacy mirrors
+                unitPrice: itemPrices[i]?.shippingCharge || 0,
+                amount: (itemPrices[i]?.shippingCharge || 0) * (item.quantity || 1),
             })) || [];
 
             const body = {
@@ -200,6 +207,10 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
 
     const rd = quotation.routingData;
     const fd = quotation.fulfillmentDetails;
+    const currency = quotation.currency || 'USD';
+    const currencySymbol = currency === 'AED' ? 'AED ' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
+    const itemsTotal = Object.values(itemPrices).reduce((sum, ip) => sum + ((ip as any).shippingCharge || 0), 0);
+    const subtotal = Number(baseFreightCharge) + Number(estimatedHandlingFee) + itemsTotal;
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -378,63 +389,83 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                                 </div>
                             </div>
 
-                            {/* Per-item pricing */}
+                            {/* Per-item shipping charges */}
                             {quotation.items?.length > 0 && (
                                 <div>
-                                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">
-                                        Itemized Pricing (Unit Price per Item Line)
+                                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                                        Itemized Shipping Charges
                                     </h3>
+                                    <p className="text-xs text-gray-400 mb-3">
+                                        Enter the <strong>freight/shipping cost</strong> for each item. The client's declared commercial value is shown as read-only context.
+                                    </p>
                                     <div className="border border-gray-200 rounded-xl overflow-hidden">
                                         <table className="w-full text-sm">
                                             <thead className="bg-gray-50 text-xs font-semibold text-gray-500 uppercase">
                                                 <tr>
-                                                    <th className="px-4 py-3 text-left">Item Description</th>
+                                                    <th className="px-4 py-3 text-left">Item</th>
                                                     <th className="px-4 py-3 text-center">Qty</th>
-                                                    <th className="px-4 py-3 text-center">Weight</th>
-                                                    <th className="px-4 py-3 text-right w-36">Unit Price (USD)</th>
+                                                    <th className="px-4 py-3 text-right text-blue-600">Client Declared Value</th>
+                                                    <th className="px-4 py-3 text-right text-blue-400">Target Rate</th>
+                                                    <th className="px-4 py-3 text-right w-40 text-amber-700">Shipping Charge ↓ Set This</th>
                                                     <th className="px-4 py-3 text-right w-32">Line Total</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-100">
                                                 {quotation.items.map((item: any, i: number) => {
-                                                    const unitPrice = itemPrices[i]?.unitPrice || 0;
-                                                    const lineTotal = unitPrice * (item.quantity || 1);
+                                                    const sc = itemPrices[i]?.shippingCharge || 0;
+                                                    const lineTotal = sc * (item.quantity || 1);
+                                                    const cur = quotation.currency || 'USD';
                                                     return (
                                                         <tr key={i} className="hover:bg-amber-50/30 transition-colors">
-                                                            <td className="px-4 py-3 font-medium text-gray-800">
-                                                                {item.description}
-                                                                {item.isHazardous && <span className="ml-2 text-red-500 text-xs">⚠</span>}
+                                                            <td className="px-4 py-3">
+                                                                <div className="font-medium text-gray-800">
+                                                                    {item.description}
+                                                                    {item.isHazardous && <span className="ml-1.5 text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">⚠ Hazardous</span>}
+                                                                </div>
+                                                                <div className="text-xs text-gray-400 mt-0.5">{item.category} · {item.weight ? `${item.weight} kg` : '—'}</div>
                                                             </td>
-                                                            <td className="px-4 py-3 text-center text-gray-600">{item.quantity}</td>
-                                                            <td className="px-4 py-3 text-center text-gray-500 text-xs">{item.weight ? `${item.weight}kg` : '—'}</td>
+                                                            <td className="px-4 py-3 text-center text-gray-600 font-medium">{item.quantity}</td>
+                                                            {/* Read-only: client's commercial value */}
+                                                            <td className="px-4 py-3 text-right">
+                                                                <span className="text-blue-700 font-medium">
+                                                                    {item.declaredValue ? `${cur} ${Number(item.declaredValue).toFixed(2)}` : '—'}
+                                                                </span>
+                                                            </td>
+                                                            {/* Read-only: client's target rate */}
+                                                            <td className="px-4 py-3 text-right">
+                                                                <span className="text-gray-400 text-xs">
+                                                                    {item.targetRate ? `${cur} ${Number(item.targetRate).toFixed(2)}` : '—'}
+                                                                </span>
+                                                            </td>
+                                                            {/* Admin-set: shipping charge */}
                                                             <td className="px-4 py-3 text-right">
                                                                 <div className="flex items-center justify-end gap-1">
-                                                                    <span className="text-gray-400 text-xs">$</span>
+                                                                    <span className="text-gray-400 text-xs">{currencySymbol}</span>
                                                                     <input
                                                                         type="number"
                                                                         min="0"
                                                                         step="0.01"
                                                                         placeholder="0.00"
-                                                                        value={unitPrice || ''}
+                                                                        value={sc || ''}
                                                                         onChange={e => setItemPrices(prev => ({
                                                                             ...prev,
-                                                                            [i]: { unitPrice: e.target.value ? Number(e.target.value) : 0 }
+                                                                            [i]: { shippingCharge: e.target.value ? Number(e.target.value) : 0 }
                                                                         }))}
-                                                                        className="w-24 text-right border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400"
+                                                                        className="w-28 text-right border-2 border-amber-300 rounded-lg px-2 py-1.5 text-sm bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-500 font-semibold"
                                                                     />
                                                                 </div>
                                                             </td>
-                                                            <td className="px-4 py-3 text-right font-medium text-gray-700">
-                                                                ${lineTotal.toFixed(2)}
+                                                            <td className="px-4 py-3 text-right font-semibold text-gray-800">
+                                                                {lineTotal > 0 ? `${currencySymbol}${lineTotal.toFixed(2)}` : '—'}
                                                             </td>
                                                         </tr>
                                                     );
                                                 })}
                                             </tbody>
-                                            <tfoot className="bg-gray-50 border-t border-gray-200">
+                                            <tfoot className="bg-amber-50 border-t border-amber-200">
                                                 <tr>
-                                                    <td colSpan={4} className="px-4 py-2 text-right text-xs font-semibold text-gray-500">Items Subtotal</td>
-                                                    <td className="px-4 py-2 text-right font-bold text-gray-800">${itemsTotal.toFixed(2)}</td>
+                                                    <td colSpan={5} className="px-4 py-2 text-right text-xs font-bold text-amber-800">Itemized Shipping Subtotal</td>
+                                                    <td className="px-4 py-2 text-right font-bold text-amber-900">{currencySymbol}{itemsTotal.toFixed(2)}</td>
                                                 </tr>
                                             </tfoot>
                                         </table>
@@ -458,21 +489,22 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
 
                             {/* Live Total Preview */}
                             <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                                <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-3">Quote Summary ({currency})</p>
                                 <div className="flex justify-between text-sm mb-1 text-gray-600">
-                                    <span>Base Freight</span>
-                                    <span className="font-medium">${Number(baseFreightCharge).toFixed(2)}</span>
+                                    <span>Base Freight Charge</span>
+                                    <span className="font-medium">{currencySymbol}{Number(baseFreightCharge).toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-sm mb-1 text-gray-600">
                                     <span>Handling Fee</span>
-                                    <span className="font-medium">${Number(estimatedHandlingFee).toFixed(2)}</span>
+                                    <span className="font-medium">{currencySymbol}{Number(estimatedHandlingFee).toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-sm mb-2 text-gray-600">
-                                    <span>Itemized Total</span>
-                                    <span className="font-medium">${itemsTotal.toFixed(2)}</span>
+                                    <span>Itemized Shipping ({quotation.items?.length || 0} items)</span>
+                                    <span className="font-medium">{currencySymbol}{itemsTotal.toFixed(2)}</span>
                                 </div>
-                                <div className="flex justify-between font-bold text-base border-t border-blue-200 pt-2">
+                                <div className="flex justify-between font-bold text-lg border-t border-blue-200 pt-2">
                                     <span className="text-blue-900">Estimated Grand Total</span>
-                                    <span className="text-blue-700">${subtotal.toFixed(2)}</span>
+                                    <span className="text-blue-700">{currencySymbol}{subtotal.toFixed(2)}</span>
                                 </div>
                             </div>
 

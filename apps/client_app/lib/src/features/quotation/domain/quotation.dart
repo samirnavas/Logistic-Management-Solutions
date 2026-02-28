@@ -58,7 +58,8 @@ class QuotationItem {
   final double weight;
   final dynamic dimensions; // String "LxWxH" or map
   final List<String> images;
-  final double? declaredValue; // New field
+  final double? declaredValue; // New field (commercial)
+  final double? shippingCharge; // New field (freight)
   final String category;
   final bool isHazardous;
   final String? videoUrl;
@@ -74,6 +75,7 @@ class QuotationItem {
     this.dimensions = '',
     this.images = const [],
     this.declaredValue,
+    this.shippingCharge,
     this.category = 'General',
     this.isHazardous = false,
     this.videoUrl,
@@ -90,6 +92,7 @@ class QuotationItem {
     dynamic dimensions,
     List<String>? images,
     double? declaredValue,
+    double? shippingCharge,
     String? category,
     bool? isHazardous,
     String? videoUrl,
@@ -105,6 +108,7 @@ class QuotationItem {
       dimensions: dimensions ?? this.dimensions,
       images: images ?? this.images,
       declaredValue: declaredValue ?? this.declaredValue,
+      shippingCharge: shippingCharge ?? this.shippingCharge,
       category: category ?? this.category,
       isHazardous: isHazardous ?? this.isHazardous,
       videoUrl: videoUrl ?? this.videoUrl,
@@ -124,6 +128,7 @@ class QuotationItem {
       dimensions: json['dimensions'] ?? '',
       images: (json['images'] as List?)?.map((e) => e as String).toList() ?? [],
       declaredValue: (json['declaredValue'] as num?)?.toDouble(),
+      shippingCharge: (json['shippingCharge'] as num?)?.toDouble(),
       category: json['category'] as String? ?? 'General',
       isHazardous: json['isHazardous'] as bool? ?? false,
       videoUrl: json['videoUrl'] as String?,
@@ -143,6 +148,7 @@ class QuotationItem {
       'dimensions': dimensions,
       'images': images,
       'declaredValue': declaredValue,
+      'shippingCharge': shippingCharge,
       'category': category,
       'isHazardous': isHazardous,
       'videoUrl': videoUrl,
@@ -209,6 +215,7 @@ class Quotation {
   final QuotationStatus status;
   final String? pdfUrl;
   final List<QuotationItem> items;
+  final String? currency;
 
   // New Fields
   final QuotationAddress? origin;
@@ -239,6 +246,7 @@ class Quotation {
     required this.status,
     this.pdfUrl,
     required this.items,
+    this.currency,
     this.origin,
     this.destination,
     this.pickupDate,
@@ -265,6 +273,7 @@ class Quotation {
     QuotationStatus? status,
     String? pdfUrl,
     List<QuotationItem>? items,
+    String? currency,
     QuotationAddress? origin,
     QuotationAddress? destination,
     DateTime? pickupDate,
@@ -289,6 +298,7 @@ class Quotation {
       status: status ?? this.status,
       pdfUrl: pdfUrl ?? this.pdfUrl,
       items: items ?? this.items,
+      currency: currency ?? this.currency,
       origin: origin ?? this.origin,
       destination: destination ?? this.destination,
       pickupDate: pickupDate ?? this.pickupDate,
@@ -330,6 +340,7 @@ class Quotation {
               )
               .toList() ??
           [],
+      currency: json['currency'] as String?,
       origin: json['origin'] != null
           ? QuotationAddress.fromJson(json['origin'])
           : null,
@@ -471,6 +482,7 @@ class Quotation {
       'status': statusStr,
       'pdfUrl': pdfUrl,
       'items': items.map((item) => item.toJson()).toList(),
+      'currency': currency,
       'origin': origin?.toJson(),
       'destination': destination?.toJson(),
       'pickupDate': pickupDate?.toIso8601String(),

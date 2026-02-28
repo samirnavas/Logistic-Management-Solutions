@@ -14,10 +14,11 @@ class LiveQuotationLedger extends StatelessWidget {
   }
 
   String _renderPrice(double? price) {
-    if (_isPendingReview || price == null || price == 0) {
+    if (_isPendingReview || price == null || price <= 0) {
       return 'TBD';
     }
-    final formatCurrency = NumberFormat.simpleCurrency(name: 'USD');
+    final currencyName = quotation.currency ?? 'USD';
+    final formatCurrency = NumberFormat.simpleCurrency(name: currencyName);
     return formatCurrency.format(price);
   }
 
@@ -162,6 +163,7 @@ class LiveQuotationLedger extends StatelessWidget {
                     _formatDate(quotation.createdDate),
                   ),
                   _buildMetaRow('Revision:', '0'),
+                  _buildMetaRow('Currency:', quotation.currency ?? 'USD'),
                   _buildMetaRow(
                     'Validity:',
                     _formatDate(
@@ -179,24 +181,26 @@ class LiveQuotationLedger extends StatelessWidget {
           Table(
             border: TableBorder.all(color: Colors.grey.shade300, width: 1),
             columnWidths: const {
-              0: FixedColumnWidth(50), // ITEM NO.
-              1: FlexColumnWidth(3), // COMMODITY DESCRIPTION
-              2: FlexColumnWidth(1), // VOL / WGT
-              3: FixedColumnWidth(50), // QTY
-              4: FlexColumnWidth(1.2), // UNIT PRICE
-              5: FlexColumnWidth(1.2), // TTL VALUE
+              0: FixedColumnWidth(40), // ITEM NO.
+              1: FlexColumnWidth(2.5), // COMMODITY DESCRIPTION
+              2: FixedColumnWidth(50), // QTY
+              3: FlexColumnWidth(1), // VOL / WGT
+              4: FlexColumnWidth(1.2), // DECLARED VALUE
+              5: FlexColumnWidth(1.2), // SHIPPING CHARGE
+              6: FlexColumnWidth(1.2), // TTL VALUE
             },
             children: [
               // Header Row
               TableRow(
                 decoration: BoxDecoration(color: Colors.grey.shade50),
                 children: [
-                  _buildTableHeader('ITEM NO.', TextAlign.center),
-                  _buildTableHeader('COMMODITY DESCRIPTION', TextAlign.left),
-                  _buildTableHeader('VOL / WGT', TextAlign.center),
+                  _buildTableHeader('NO.', TextAlign.center),
+                  _buildTableHeader('DESCRIPTION', TextAlign.left),
                   _buildTableHeader('QTY', TextAlign.center),
-                  _buildTableHeader('UNIT PRICE', TextAlign.right),
-                  _buildTableHeader('TTL VALUE', TextAlign.right),
+                  _buildTableHeader('WGT/VOL', TextAlign.center),
+                  _buildTableHeader('DECLARED\nVALUE', TextAlign.right),
+                  _buildTableHeader('SHIPPING\nCHARGE', TextAlign.right),
+                  _buildTableHeader('LINE\nTOTAL', TextAlign.right),
                 ],
               ),
               // Item Rows
@@ -223,17 +227,37 @@ class LiveQuotationLedger extends StatelessWidget {
                                 color: Colors.grey.shade500,
                               ),
                             ),
+                          if (item.isHazardous)
+                            const Text(
+                              '⚠ Hazardous',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                         ],
                       ),
                     ),
+                    _buildTableCell('${item.quantity}', TextAlign.center),
                     _buildTableCell(
                       '${item.weight} kg\n${item.packingVolume != null ? '${item.packingVolume} cbm' : ''}',
                       TextAlign.center,
                     ),
-                    _buildTableCell('${item.quantity}', TextAlign.center),
-                    _buildTableCell(_renderPrice(item.cost), TextAlign.right),
                     _buildTableCell(
-                      _renderPrice(item.cost * item.quantity),
+                      item.declaredValue != null
+                          ? _renderPrice(item.declaredValue)
+                          : '—',
+                      TextAlign.right,
+                    ),
+                    _buildTableCell(
+                      _renderPrice(item.shippingCharge ?? item.cost),
+                      TextAlign.right,
+                    ),
+                    _buildTableCell(
+                      _renderPrice(
+                        (item.shippingCharge ?? item.cost) * item.quantity,
+                      ),
                       TextAlign.right,
                       isBold: true,
                     ),
@@ -255,6 +279,7 @@ class LiveQuotationLedger extends StatelessWidget {
                         ),
                       ),
                     ),
+                    const SizedBox(),
                     const SizedBox(),
                     const SizedBox(),
                     const SizedBox(),
