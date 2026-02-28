@@ -1,8 +1,10 @@
-import 'package:flutter/services.dart';
+﻿import 'package:flutter/services.dart';
 
 import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:bb_logistics/src/features/quotation/data/quotation_repository.dart';
 import 'package:bb_logistics/src/features/quotation/domain/quotation.dart';
+import 'package:bb_logistics/src/features/shipment/presentation/shipment_form_notifier.dart';
+import 'package:bb_logistics/src/features/shipment/presentation/widgets/shipment_item_form.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -224,14 +226,13 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
       );
     }
 
-    // PENDING_CUSTOMER_APPROVAL -> maps to costCalculated based on quotation.dart mapping logic
-    // Actually from backend we get "cost_calculated" or "QUOTATION_GENERATED"
+    // PENDING_CUSTOMER_APPROVAL â†’ costCalculated: Admin priced, client decides
     if (status == QuotationStatus.costCalculated) {
       return Row(
         children: [
           Expanded(
             child: OutlinedButton(
-              onPressed: () => _handleModifyRequest(context, quotation),
+              onPressed: () => _handleEditRequest(context, quotation),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 side: const BorderSide(color: AppTheme.primaryBlue),
@@ -239,14 +240,13 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text('Modify Request'),
+              child: const Text('Edit Request'),
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: ElevatedButton(
-              onPressed: () =>
-                  _showAddressConfirmationDialog(context, quotation),
+              onPressed: () => _showFulfillmentDialog(context, quotation),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.success,
                 foregroundColor: Colors.white,
@@ -344,77 +344,806 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     );
   }
 
-  void _handleModifyRequest(BuildContext context, Quotation quotation) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        final notesController = TextEditingController();
-        return AlertDialog(
-          title: const Text('Modify Request'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Provide details on what needs to be changed.'),
-              const SizedBox(height: 16),
-              TextField(
-                controller: notesController,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'I need to add 2 more items...',
-                ),
-              ),
-            ],
+  // â”€â”€ Edit Request: open item editor â†’ PATCH /workflow/revise â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  void _handleEditRequest(BuildContext context, Quotation quotation) {
+    // Start with the current items from the quotation
+    List<ShipmentItemFormData> editableItems = quotation.items
+        .map(
+          (i) => ShipmentItemFormData(
+            description: i.description,
+            quantity: i.quantity,
+            weight: i.weight,
+            dimensions: i.dimensions,
+            images: i.images,
+            category: i.category,
+            isHazardous: i.isHazardous,
+            videoUrl: i.videoUrl,
+            targetRate: i.targetRate,
+            declaredValue: i.declaredValue,
+            packingVolume: i.packingVolume,
+            cost: i.cost,
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final text = notesController.text.trim();
-                Navigator.pop(context);
-                if (text.isEmpty) return;
+        )
+        .toList();
 
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (c) =>
-                      const Center(child: CircularProgressIndicator()),
-                );
+    final notesController = TextEditingController();
 
-                try {
-                  await ref
-                      .read(quotationRepositoryProvider)
-                      .customerReviseQuotation(quotation.id, {
-                        'revisionNotes': text,
-                      });
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black54,
+      builder: (ctx) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: DraggableScrollableSheet(
+            initialChildSize: 0.85,
+            maxChildSize: 0.95,
+            minChildSize: 0.4,
+            builder: (ctx, scrollCtrl) {
+              return Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: StatefulBuilder(
+                  builder: (ctx, setSheetState) {
+                    return Column(
+                      children: [
+                        const SizedBox(height: 12),
+                        Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
+                          ),
+                          child: Row(
+                            children: [
+                              const Text(
+                                'Edit Request Items',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const Spacer(),
+                              IconButton(
+                                icon: const Icon(Icons.close),
+                                onPressed: () => Navigator.pop(ctx),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Divider(height: 1),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            controller: scrollCtrl,
+                            padding: EdgeInsets.fromLTRB(
+                              16,
+                              16,
+                              16,
+                              MediaQuery.of(context).viewInsets.bottom + 24,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Item list
+                                ...editableItems.asMap().entries.map((entry) {
+                                  int i = entry.key;
+                                  ShipmentItemFormData itm = entry.value;
+                                  return Card(
+                                    elevation: 0,
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                      side: BorderSide(
+                                        color: Colors.grey.shade200,
+                                      ),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: ShipmentItemForm(
+                                        index: i,
+                                        item: itm,
+                                        onChanged: (updated) {
+                                          setSheetState(() {
+                                            editableItems[i] = updated;
+                                          });
+                                        },
+                                        onRemove: () {
+                                          setSheetState(() {
+                                            editableItems.removeAt(i);
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                }),
+                                // Add item
+                                OutlinedButton.icon(
+                                  onPressed: () {
+                                    setSheetState(() {
+                                      editableItems.add(
+                                        ShipmentItemFormData(
+                                          description: '',
+                                          quantity: 1,
+                                          weight: 0,
+                                          dimensions: '',
+                                          images: const [],
+                                          category: 'General',
+                                          isHazardous: false,
+                                        ),
+                                      );
+                                    });
+                                  },
+                                  icon: const Icon(Icons.add),
+                                  label: const Text('Add Item'),
+                                  style: OutlinedButton.styleFrom(
+                                    minimumSize: const Size(
+                                      double.infinity,
+                                      44,
+                                    ),
+                                    foregroundColor: AppTheme.primaryBlue,
+                                    side: const BorderSide(
+                                      color: AppTheme.primaryBlue,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                // Revision notes
+                                const Text(
+                                  'Revision Notes',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                TextField(
+                                  controller: notesController,
+                                  maxLines: 3,
+                                  decoration: InputDecoration(
+                                    hintText:
+                                        'Explain what you changed or why...',
+                                    hintStyle: TextStyle(
+                                      color: Colors.grey.shade400,
+                                      fontSize: 13,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    contentPadding: const EdgeInsets.all(14),
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                // Submit
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 50,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppTheme.primaryBlue,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    onPressed: () async {
+                                      // Build revised items payload
+                                      final itemsPayload = editableItems
+                                          .map(
+                                            (it) => {
+                                              'description': it.description,
+                                              'quantity': it.quantity,
+                                              'weight': it.weight,
+                                              'dimensions':
+                                                  it.dimensions ?? 'N/A',
+                                              'category': it.category,
+                                              'isHazardous': it.isHazardous,
+                                              'images': it.images,
+                                              if (it.targetRate != null)
+                                                'targetRate': it.targetRate,
+                                              if (it.packingVolume != null)
+                                                'packingVolume':
+                                                    it.packingVolume,
+                                              if (it.declaredValue != null)
+                                                'declaredValue':
+                                                    it.declaredValue,
+                                              if (it.videoUrl != null &&
+                                                  it.videoUrl!.isNotEmpty)
+                                                'videoUrl': it.videoUrl,
+                                            },
+                                          )
+                                          .toList();
 
-                  if (context.mounted) {
-                    Navigator.pop(context); // close loader
-                    ref.invalidate(quotationByIdProvider(quotation.id));
-                    ref.invalidate(quotationsProvider);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Modification request sent.'),
-                      ),
+                                      Navigator.pop(ctx);
+                                      // Show loader
+                                      if (context.mounted) {
+                                        showDialog(
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (_) => const Center(
+                                            child: CircularProgressIndicator(),
+                                          ),
+                                        );
+                                      }
+                                      try {
+                                        await ref
+                                            .read(quotationRepositoryProvider)
+                                            .customerReviseQuotation(
+                                              quotation.id,
+                                              {
+                                                'items': itemsPayload,
+                                                'revisionNotes': notesController
+                                                    .text
+                                                    .trim(),
+                                              },
+                                            );
+                                        if (context.mounted) {
+                                          Navigator.pop(
+                                            context,
+                                          ); // close loader
+                                          ref.invalidate(
+                                            quotationByIdProvider(quotation.id),
+                                          );
+                                          ref.invalidate(quotationsProvider);
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'âœ“ Revision submitted. Admin will re-price.',
+                                              ),
+                                              backgroundColor: Colors.green,
+                                            ),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          Navigator.pop(
+                                            context,
+                                          ); // close loader
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Error: $e'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    child: const Text(
+                                      'SUBMIT REVISION',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    Navigator.pop(context); // close loader
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('Error: $e')));
-                  }
-                }
-              },
-              child: const Text('Submit'),
-            ),
-          ],
+                  },
+                ),
+              );
+            },
+          ),
         );
       },
+    );
+  }
+
+  // â”€â”€ Accept Quotation: collect fulfillmentDetails â†’ PATCH /workflow/accept â”€â”€
+  void _showFulfillmentDialog(BuildContext context, Quotation quotation) {
+    final formKey = GlobalKey<FormState>();
+
+    // Pickup fields
+    final pickupCityCtrl = TextEditingController(
+      text: quotation.routingSourceCity ?? quotation.origin?.city ?? '',
+    );
+    final pickupAddressCtrl = TextEditingController(
+      text: quotation.origin?.addressLine ?? '',
+    );
+    final pickupStateCtrl = TextEditingController(
+      text: quotation.origin?.state ?? '',
+    );
+    final pickupCountryCtrl = TextEditingController(
+      text: quotation.origin?.country ?? '',
+    );
+    final pickupZipCtrl = TextEditingController(
+      text: quotation.origin?.zip ?? '',
+    );
+    final senderNameCtrl = TextEditingController(
+      text: quotation.origin?.name ?? '',
+    );
+    final senderPhoneCtrl = TextEditingController(
+      text: quotation.origin?.phone ?? '',
+    );
+    String pickupType = 'HOME_PICKUP'; // or WAREHOUSE_DROP
+
+    // Delivery fields
+    final deliveryCityCtrl = TextEditingController(
+      text:
+          quotation.routingDestinationCity ?? quotation.destination?.city ?? '',
+    );
+    final deliveryAddressCtrl = TextEditingController(
+      text: quotation.destination?.addressLine ?? '',
+    );
+    final deliveryStateCtrl = TextEditingController(
+      text: quotation.destination?.state ?? '',
+    );
+    final deliveryCountryCtrl = TextEditingController(
+      text: quotation.destination?.country ?? '',
+    );
+    final deliveryZipCtrl = TextEditingController(
+      text: quotation.destination?.zip ?? '',
+    );
+    final recipientNameCtrl = TextEditingController(
+      text: quotation.destination?.name ?? '',
+    );
+    final recipientPhoneCtrl = TextEditingController(
+      text: quotation.destination?.phone ?? '',
+    );
+    String deliveryType = 'HOME_DELIVERY'; // or WAREHOUSE_PICKUP
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black54,
+      builder: (ctx) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return Dialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              insetPadding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 12, 12),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.pin_drop, color: AppTheme.primaryBlue),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Confirm Fulfillment Details',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  // Scrollable form
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Form(
+                        key: formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // â”€â”€ PICKUP TYPE â”€â”€
+                            _buildSectionHeader('Origin / Pickup'),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'How will you hand over the goods?',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildPickupTypeChip(
+                                    ctx,
+                                    setDialogState,
+                                    label: 'Home/Office Pickup',
+                                    value: 'HOME_PICKUP',
+                                    current: pickupType,
+                                    icon: Icons.home_outlined,
+                                    onTap: () => setDialogState(
+                                      () => pickupType = 'HOME_PICKUP',
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildPickupTypeChip(
+                                    ctx,
+                                    setDialogState,
+                                    label: 'Drop at Warehouse',
+                                    value: 'WAREHOUSE_DROP',
+                                    current: pickupType,
+                                    icon: Icons.warehouse_outlined,
+                                    onTap: () => setDialogState(
+                                      () => pickupType = 'WAREHOUSE_DROP',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            _buildStyledTextField(
+                              label: 'Sender Name',
+                              controller: senderNameCtrl,
+                              icon: Icons.person,
+                              validator: (v) =>
+                                  v?.isEmpty == true ? 'Required' : null,
+                            ),
+                            const SizedBox(height: 12),
+                            _buildStyledTextField(
+                              label: 'Sender Phone',
+                              controller: senderPhoneCtrl,
+                              icon: Icons.phone,
+                              inputType: TextInputType.phone,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                  RegExp(r'[0-9+\-\(\)\s]'),
+                                ),
+                              ],
+                              validator: (v) =>
+                                  v?.isEmpty == true ? 'Required' : null,
+                            ),
+                            const SizedBox(height: 12),
+                            if (pickupType == 'HOME_PICKUP') ...[
+                              _buildStyledTextField(
+                                label: 'Pickup Address Line',
+                                controller: pickupAddressCtrl,
+                                icon: Icons.home,
+                                validator: (v) =>
+                                    v?.isEmpty == true ? 'Required' : null,
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildStyledTextField(
+                                    label: 'City *',
+                                    controller: pickupCityCtrl,
+                                    icon: Icons.location_city,
+                                    validator: (v) =>
+                                        v?.isEmpty == true ? 'Required' : null,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildStyledTextField(
+                                    label: 'State',
+                                    controller: pickupStateCtrl,
+                                    icon: Icons.map_outlined,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildStyledTextField(
+                                    label: 'Country',
+                                    controller: pickupCountryCtrl,
+                                    icon: Icons.public,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildStyledTextField(
+                                    label: 'ZIP/Postal',
+                                    controller: pickupZipCtrl,
+                                    icon: Icons.local_post_office_outlined,
+                                    inputType: TextInputType.number,
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 28),
+
+                            // â”€â”€ DELIVERY TYPE â”€â”€
+                            _buildSectionHeader('Destination / Delivery'),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'How should goods be delivered to recipient?',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildPickupTypeChip(
+                                    ctx,
+                                    setDialogState,
+                                    label: 'Home Delivery',
+                                    value: 'HOME_DELIVERY',
+                                    current: deliveryType,
+                                    icon: Icons.delivery_dining_outlined,
+                                    onTap: () => setDialogState(
+                                      () => deliveryType = 'HOME_DELIVERY',
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildPickupTypeChip(
+                                    ctx,
+                                    setDialogState,
+                                    label: 'Warehouse Pickup',
+                                    value: 'WAREHOUSE_PICKUP',
+                                    current: deliveryType,
+                                    icon: Icons.warehouse_outlined,
+                                    onTap: () => setDialogState(
+                                      () => deliveryType = 'WAREHOUSE_PICKUP',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            _buildStyledTextField(
+                              label: 'Recipient Name',
+                              controller: recipientNameCtrl,
+                              icon: Icons.person,
+                              validator: (v) =>
+                                  v?.isEmpty == true ? 'Required' : null,
+                            ),
+                            const SizedBox(height: 12),
+                            _buildStyledTextField(
+                              label: 'Recipient Phone',
+                              controller: recipientPhoneCtrl,
+                              icon: Icons.phone,
+                              inputType: TextInputType.phone,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                  RegExp(r'[0-9+\-\(\)\s]'),
+                                ),
+                              ],
+                              validator: (v) =>
+                                  v?.isEmpty == true ? 'Required' : null,
+                            ),
+                            const SizedBox(height: 12),
+                            if (deliveryType == 'HOME_DELIVERY') ...[
+                              _buildStyledTextField(
+                                label: 'Delivery Address Line',
+                                controller: deliveryAddressCtrl,
+                                icon: Icons.home,
+                                validator: (v) =>
+                                    v?.isEmpty == true ? 'Required' : null,
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildStyledTextField(
+                                    label: 'City *',
+                                    controller: deliveryCityCtrl,
+                                    icon: Icons.location_city,
+                                    validator: (v) =>
+                                        v?.isEmpty == true ? 'Required' : null,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildStyledTextField(
+                                    label: 'State',
+                                    controller: deliveryStateCtrl,
+                                    icon: Icons.map_outlined,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildStyledTextField(
+                                    label: 'Country',
+                                    controller: deliveryCountryCtrl,
+                                    icon: Icons.public,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildStyledTextField(
+                                    label: 'ZIP/Postal',
+                                    controller: deliveryZipCtrl,
+                                    icon: Icons.local_post_office_outlined,
+                                    inputType: TextInputType.number,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  // Footer
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.success,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () async {
+                          if (formKey.currentState?.validate() != true) return;
+                          Navigator.pop(ctx); // close form dialog
+                          // Show loading
+                          if (context.mounted) {
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (_) => const Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            );
+                          }
+                          try {
+                            final fulfillmentDetails = {
+                              'pickupType': pickupType,
+                              'deliveryType': deliveryType,
+                              'pickupCity': pickupCityCtrl.text.trim(),
+                              'pickupState': pickupStateCtrl.text.trim(),
+                              'pickupCountry': pickupCountryCtrl.text.trim(),
+                              'pickupZip': pickupZipCtrl.text.trim(),
+                              'pickupAddressLine': pickupAddressCtrl.text
+                                  .trim(),
+                              'senderName': senderNameCtrl.text.trim(),
+                              'senderPhone': senderPhoneCtrl.text.trim(),
+                              'deliveryCity': deliveryCityCtrl.text.trim(),
+                              'deliveryState': deliveryStateCtrl.text.trim(),
+                              'deliveryCountry': deliveryCountryCtrl.text
+                                  .trim(),
+                              'deliveryZip': deliveryZipCtrl.text.trim(),
+                              'deliveryAddressLine': deliveryAddressCtrl.text
+                                  .trim(),
+                              'recipientName': recipientNameCtrl.text.trim(),
+                              'recipientPhone': recipientPhoneCtrl.text.trim(),
+                            };
+
+                            await ref
+                                .read(quotationRepositoryProvider)
+                                .customerAcceptQuotation(
+                                  quotation.id,
+                                  fulfillmentDetails,
+                                );
+
+                            if (context.mounted) {
+                              Navigator.pop(context); // close loader
+                              ref.invalidate(
+                                quotationByIdProvider(quotation.id),
+                              );
+                              ref.invalidate(quotationsProvider);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'âœ“ Quotation accepted! Admin will issue the charge sheet.',
+                                  ),
+                                  backgroundColor: Colors.green,
+                                  duration: Duration(seconds: 4),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              Navigator.pop(context); // close loader
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: const Text(
+                          'CONFIRM & ACCEPT QUOTATION',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPickupTypeChip(
+    BuildContext context,
+    StateSetter setState, {
+    required String label,
+    required String value,
+    required String current,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    final selected = current == value;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppTheme.primaryBlue.withValues(alpha: 0.1)
+              : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? AppTheme.primaryBlue : Colors.grey.shade300,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              color: selected ? AppTheme.primaryBlue : Colors.grey.shade500,
+              size: 22,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                color: selected ? AppTheme.primaryBlue : Colors.grey.shade700,
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -510,349 +1239,4 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     );
   }
 
-  void _showAddressConfirmationDialog(
-    BuildContext context,
-    Quotation quotation,
-  ) {
-    final formKey = GlobalKey<FormState>();
-    final pickupNameController = TextEditingController(
-      text: quotation.origin?.name,
-    );
-    final pickupAddressController = TextEditingController(
-      text: quotation.origin?.addressLine,
-    );
-    final pickupCityController = TextEditingController(
-      text: quotation.origin?.city,
-    );
-    final pickupZipController = TextEditingController(
-      text: quotation.origin?.zip,
-    );
-    final pickupCountryController = TextEditingController(
-      text: quotation.origin?.country,
-    );
-    final pickupPhoneController = TextEditingController(
-      text: quotation.origin?.phone,
-    );
-
-    final deliveryNameController = TextEditingController(
-      text: quotation.destination?.name,
-    );
-    final deliveryAddressController = TextEditingController(
-      text: quotation.destination?.addressLine,
-    );
-    final deliveryCityController = TextEditingController(
-      text: quotation.destination?.city,
-    );
-    final deliveryZipController = TextEditingController(
-      text: quotation.destination?.zip,
-    );
-    final deliveryCountryController = TextEditingController(
-      text: quotation.destination?.country,
-    );
-    final deliveryPhoneController = TextEditingController(
-      text: quotation.destination?.phone,
-    );
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black54,
-      builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: Dialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          insetPadding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    const Icon(Icons.pin_drop, color: AppTheme.primaryBlue),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Confirm Address Details',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-
-              // Scrollable Content
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Form(
-                    key: formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Pickup Section
-                        _buildSectionHeader('Pickup Details'),
-                        const SizedBox(height: 20),
-                        _buildStyledTextField(
-                          label: 'Contact Name',
-                          controller: pickupNameController,
-                          icon: Icons.person,
-                          inputType: TextInputType.name,
-                          validator: (v) =>
-                              v?.isEmpty == true ? 'Required' : null,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildStyledTextField(
-                          label: 'Phone Number',
-                          controller: pickupPhoneController,
-                          icon: Icons.phone,
-                          inputType: TextInputType.phone,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'[0-9+\-\(\)\s]'),
-                            ),
-                          ],
-                          validator: (v) =>
-                              v?.isEmpty == true ? 'Required' : null,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildStyledTextField(
-                          label: 'Address Line',
-                          controller: pickupAddressController,
-                          icon: Icons.home,
-                          inputType: TextInputType.text,
-                          validator: (v) =>
-                              v?.isEmpty == true ? 'Required' : null,
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildStyledTextField(
-                                label: 'City',
-                                controller: pickupCityController,
-                                icon: Icons.location_city,
-                                inputType: TextInputType.text,
-                                validator: (v) =>
-                                    v?.isEmpty == true ? 'Required' : null,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildStyledTextField(
-                                label: 'Zip/Postal Code',
-                                controller: pickupZipController,
-                                icon: Icons.map,
-                                inputType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
-                                validator: (v) =>
-                                    v?.isEmpty == true ? 'Required' : null,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        _buildStyledTextField(
-                          label: 'Country',
-                          controller: pickupCountryController,
-                          icon: Icons.public,
-                          inputType: TextInputType.text,
-                          validator: (v) =>
-                              v?.isEmpty == true ? 'Required' : null,
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        // Delivery Section
-                        _buildSectionHeader('Delivery Details'),
-                        const SizedBox(height: 20),
-                        _buildStyledTextField(
-                          label: 'Recipient Name',
-                          controller: deliveryNameController,
-                          icon: Icons.person,
-                          inputType: TextInputType.name,
-                          validator: (v) =>
-                              v?.isEmpty == true ? 'Required' : null,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildStyledTextField(
-                          label: 'Phone Number',
-                          controller: deliveryPhoneController,
-                          icon: Icons.phone,
-                          inputType: TextInputType.phone,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'[0-9+\-\(\)\s]'),
-                            ),
-                          ],
-                          validator: (v) =>
-                              v?.isEmpty == true ? 'Required' : null,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildStyledTextField(
-                          label: 'Address Line',
-                          controller: deliveryAddressController,
-                          icon: Icons.home,
-                          inputType: TextInputType.text,
-                          validator: (v) =>
-                              v?.isEmpty == true ? 'Required' : null,
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildStyledTextField(
-                                label: 'City',
-                                controller: deliveryCityController,
-                                icon: Icons.location_city,
-                                inputType: TextInputType.text,
-                                validator: (v) =>
-                                    v?.isEmpty == true ? 'Required' : null,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildStyledTextField(
-                                label: 'Zip/Postal Code',
-                                controller: deliveryZipController,
-                                icon: Icons.map,
-                                inputType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
-                                validator: (v) =>
-                                    v?.isEmpty == true ? 'Required' : null,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        _buildStyledTextField(
-                          label: 'Country',
-                          controller: deliveryCountryController,
-                          icon: Icons.public,
-                          inputType: TextInputType.text,
-                          validator: (v) =>
-                              v?.isEmpty == true ? 'Required' : null,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const Divider(height: 1),
-
-              // Footer
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      if (formKey.currentState?.validate() == true) {
-                        try {
-                          // Show loading
-                          showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (c) => const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                          );
-
-                          final pickupAddress = {
-                            'name': pickupNameController.text,
-                            'phone': pickupPhoneController.text,
-                            'addressLine': pickupAddressController.text,
-                            'city': pickupCityController.text,
-                            'zip': pickupZipController.text,
-                            'country': pickupCountryController.text,
-                          };
-
-                          final deliveryAddress = {
-                            'name': deliveryNameController.text,
-                            'phone': deliveryPhoneController.text,
-                            'addressLine': deliveryAddressController.text,
-                            'city': deliveryCityController.text,
-                            'zip': deliveryZipController.text,
-                            'country': deliveryCountryController.text,
-                          };
-
-                          await ref
-                              .read(quotationRepositoryProvider)
-                              .customerAcceptQuotation(quotation.id, {
-                                'pickupAddress': pickupAddress,
-                                'deliveryAddress': deliveryAddress,
-                              });
-
-                          // Close loading
-                          if (context.mounted) Navigator.pop(context);
-
-                          // Close dialog
-                          if (context.mounted) Navigator.pop(context);
-
-                          // Refresh
-                          ref.invalidate(quotationByIdProvider(quotation.id));
-                          ref.invalidate(quotationsProvider);
-
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Address confirmed! Request sent for pickup.',
-                                ),
-                                backgroundColor: AppTheme.success,
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          // Close loading
-                          if (context.mounted) Navigator.pop(context);
-
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: $e')),
-                            );
-                          }
-                        }
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryBlue,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Confirm & Submit',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

@@ -180,11 +180,17 @@ class QuotationRepository {
       '/api/quotations/$id/workflow/revise',
       data,
     );
+    // Backend returns { message, quotation, revisionCount }
     if (response is Map<String, dynamic>) {
-      if (response.containsKey('_id') && !response.containsKey('id')) {
-        response['id'] = response['_id'];
+      final Map<String, dynamic> quotationJson =
+          response.containsKey('quotation')
+          ? response['quotation'] as Map<String, dynamic>
+          : response;
+      if (quotationJson.containsKey('_id') &&
+          !quotationJson.containsKey('id')) {
+        quotationJson['id'] = quotationJson['_id'];
       }
-      return Quotation.fromJson(response);
+      return Quotation.fromJson(quotationJson);
     }
     throw Exception('Failed to revise quotation');
   }
@@ -198,11 +204,17 @@ class QuotationRepository {
       '/api/quotations/$id/workflow/accept',
       {'fulfillmentDetails': fulfillmentDetails},
     );
+    // Backend returns { message, quotation, isLocked }
     if (response is Map<String, dynamic>) {
-      if (response.containsKey('_id') && !response.containsKey('id')) {
-        response['id'] = response['_id'];
+      final Map<String, dynamic> quotationJson =
+          response.containsKey('quotation')
+          ? response['quotation'] as Map<String, dynamic>
+          : response;
+      if (quotationJson.containsKey('_id') &&
+          !quotationJson.containsKey('id')) {
+        quotationJson['id'] = quotationJson['_id'];
       }
-      return Quotation.fromJson(response);
+      return Quotation.fromJson(quotationJson);
     }
     throw Exception('Failed to accept quotation');
   }

@@ -27,7 +27,7 @@ enum QuotationStatus {
       case QuotationStatus.detailsSubmitted:
         return 'Details Submitted';
       case QuotationStatus.costCalculated:
-        return 'Draft Quotation';
+        return 'Quotation Ready — Action Required';
       case QuotationStatus.sent:
         return 'Quotation Received';
       case QuotationStatus.accepted:
@@ -225,10 +225,15 @@ class Quotation {
   final String? handoverMethod;
   final String? warehouseDropOffLocation;
 
+  // Routing Data (Phase 1 — region/city strings only)
+  final String? routingSourceRegion;
+  final String? routingSourceCity;
+  final String? routingDestinationRegion;
+  final String? routingDestinationCity;
+
   const Quotation({
     required this.id,
     this.quotationId,
-    // required this.requestId,
     required this.createdDate,
     required this.totalAmount,
     required this.status,
@@ -242,17 +247,19 @@ class Quotation {
     this.serviceMode,
     this.serviceType,
     this.specialInstructions,
-
     this.additionalNotes,
     this.adminFeedback,
     this.handoverMethod,
     this.warehouseDropOffLocation,
+    this.routingSourceRegion,
+    this.routingSourceCity,
+    this.routingDestinationRegion,
+    this.routingDestinationCity,
   });
 
   Quotation copyWith({
     String? id,
     String? quotationId,
-    // String? requestId,
     DateTime? createdDate,
     double? totalAmount,
     QuotationStatus? status,
@@ -269,11 +276,14 @@ class Quotation {
     String? additionalNotes,
     String? handoverMethod,
     String? warehouseDropOffLocation,
+    String? routingSourceRegion,
+    String? routingSourceCity,
+    String? routingDestinationRegion,
+    String? routingDestinationCity,
   }) {
     return Quotation(
       id: id ?? this.id,
       quotationId: quotationId ?? this.quotationId,
-      // requestId: requestId ?? this.requestId,
       createdDate: createdDate ?? this.createdDate,
       totalAmount: totalAmount ?? this.totalAmount,
       status: status ?? this.status,
@@ -291,14 +301,20 @@ class Quotation {
       handoverMethod: handoverMethod ?? this.handoverMethod,
       warehouseDropOffLocation:
           warehouseDropOffLocation ?? this.warehouseDropOffLocation,
+      routingSourceRegion: routingSourceRegion ?? this.routingSourceRegion,
+      routingSourceCity: routingSourceCity ?? this.routingSourceCity,
+      routingDestinationRegion:
+          routingDestinationRegion ?? this.routingDestinationRegion,
+      routingDestinationCity:
+          routingDestinationCity ?? this.routingDestinationCity,
     );
   }
 
   factory Quotation.fromJson(Map<String, dynamic> json) {
+    final routingData = json['routingData'] as Map<String, dynamic>?;
     return Quotation(
       id: json['id'] as String,
       quotationId: json['quotationId'] as String?,
-      // requestId: '', // Deprecated
       createdDate: DateTime.parse(
         json['createdAt'] ??
             json['createdDate'] ??
@@ -331,10 +347,14 @@ class Quotation {
       serviceType: json['serviceType'] as String?,
       specialInstructions: json['specialInstructions'] as String?,
       additionalNotes: json['additionalNotes'] as String?,
-
       adminFeedback: json['adminFeedback'] as String?,
       handoverMethod: json['handoverMethod'] as String?,
       warehouseDropOffLocation: json['warehouseDropOffLocation'] as String?,
+      // Phase 1 routing data
+      routingSourceRegion: routingData?['sourceRegion'] as String?,
+      routingSourceCity: routingData?['sourceCity'] as String?,
+      routingDestinationRegion: routingData?['destinationRegion'] as String?,
+      routingDestinationCity: routingData?['destinationCity'] as String?,
     );
   }
 
@@ -353,8 +373,10 @@ class Quotation {
       case 'approved':
       case 'VERIFIED':
       case 'verified':
-      case 'PENDING_CUSTOMER_APPROVAL': // New workflow: admin approved, awaiting client action
         return QuotationStatus.approved;
+      case 'PENDING_CUSTOMER_APPROVAL': // Admin priced quote — client must Accept or Revise
+      case 'pending_customer_approval':
+        return QuotationStatus.costCalculated;
       case 'ADDRESS_PROVIDED':
       case 'address_provided':
         return QuotationStatus.addressProvided;
