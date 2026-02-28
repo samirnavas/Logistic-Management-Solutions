@@ -178,227 +178,296 @@ export default function GenerateQuotationModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="w-full max-w-[583px] bg-card rounded-[12px] shadow-[0_4px_20px_rgba(0,0,0,0.08)] relative max-h-[95vh] flex flex-col overflow-hidden">
-                {/* Header */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 sm:p-6" onClick={onClose}>
+            <div
+                className="w-full max-w-5xl bg-white rounded-xl shadow-2xl relative flex flex-col overflow-hidden max-h-[90vh]"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Header Section */}
                 <div className="flex-none flex justify-between items-center px-6 py-5 border-b border-gray-100 bg-white z-10">
-                    <h1 className="text-lg font-bold text-zinc-800">
-                        {status === 'NEGOTIATION_REQUESTED' ? 'Revise Quotation' : 'Create Quotation'}
-                    </h1>
+                    <div className="flex items-center gap-4">
+                        <h1 className="text-2xl font-bold text-gray-800">
+                            {status === 'NEGOTIATION_REQUESTED' ? 'Revise Quotation' : 'Create Quotation'}
+                        </h1>
+                        <span className="bg-gray-100 text-gray-600 text-xs font-semibold px-2.5 py-1 rounded-md">
+                            Req {linkedRequestId}
+                        </span>
+                    </div>
                     <button
                         onClick={onClose}
-                        className="text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 p-1.5 rounded-full transition-colors"
+                        className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-full transition-colors"
                         aria-label="Close modal"
                     >
                         <X size={20} />
                     </button>
                 </div>
 
-                {/* Scrollable Body */}
-                <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50 custom-scrollbar">
+                {/* Two-Column Layout Grid */}
+                <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 min-h-0 overflow-hidden">
 
-                    {error && (
-                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-                            {error}
-                        </div>
-                    )}
+                    {/* Left Column - Context Summary */}
+                    <div className="col-span-1 bg-gray-50 border-r border-gray-100 p-6 overflow-y-auto">
+                        <h3 className="text-lg font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2">Request Context</h3>
 
-                    {/* Quotation Info Card */}
-                    <div className="bg-[#F5F5F5] rounded-lg p-6 mb-8 space-y-4">
-                        <div className="flex justify-between items-center">
-                            <span className="text-[#868686] text-base">Quotation ID</span>
-                            <span className="text-[#333333] text-base">{quotationId}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-[#868686] text-base">Linked Request ID</span>
-                            <span className="text-[#333333] text-base">{linkedRequestId}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-[#868686] text-base">Customer Name</span>
-                            <span className="text-[#333333] text-base">{customerName}</span>
-                        </div>
-                    </div>
-
-                    {/* Price Breakdown Section */}
-                    <div className="mb-8">
-                        <h2 className="text-lg font-medium text-foreground leading-[25.2px] mb-4">
-                            Price Breakdown
-                        </h2>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            {/* Product Base Price */}
+                        <div className="space-y-6">
                             <div>
-                                <label className="block text-sm text-[#333333] mb-2">
-                                    Product Base Price
-                                </label>
-                                <input
-                                    type="number"
-                                    placeholder="Product Base Price"
-                                    className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                                    value={formData.productBasePrice || ''}
-                                    onChange={(e) => handleInputChange('productBasePrice', Number(e.target.value))}
-                                />
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Customer</h4>
+                                <p className="text-sm font-medium text-gray-900">{customerName}</p>
                             </div>
 
-                            {/* Delivery Charges */}
                             <div>
-                                <label className="block text-sm text-[#333333] mb-2">
-                                    Delivery Charges
-                                </label>
-                                <input
-                                    type="number"
-                                    placeholder="Delivery Charges"
-                                    className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                                    value={formData.deliveryCharges || ''}
-                                    onChange={(e) => handleInputChange('deliveryCharges', Number(e.target.value))}
-                                />
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Route</h4>
+                                <div className="bg-white p-3 rounded-md border border-gray-100 shadow-sm space-y-2">
+                                    <div className="flex items-start gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></div>
+                                        <p className="text-sm text-gray-800">{existingData?.origin?.city || 'Origin City'}</p>
+                                    </div>
+                                    <div className="w-0.5 h-3 bg-gray-200 ml-1"></div>
+                                    <div className="flex items-start gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0"></div>
+                                        <p className="text-sm text-gray-800">{existingData?.destination?.city || 'Destination City'}</p>
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Packaging Charges */}
                             <div>
-                                <label className="block text-sm text-[#333333] mb-2">
-                                    Packaging Charges
-                                </label>
-                                <input
-                                    type="number"
-                                    placeholder="Packaging Charges"
-                                    className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                                    value={formData.packagingCharges || ''}
-                                    onChange={(e) => handleInputChange('packagingCharges', Number(e.target.value))}
-                                />
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Shipment Details</h4>
+                                <div className="grid grid-cols-2 gap-y-3">
+                                    <div>
+                                        <span className="block text-[10px] text-gray-400 uppercase">Type</span>
+                                        <span className="text-sm font-medium text-gray-800">{existingData?.serviceType || 'Standard'}</span>
+                                    </div>
+                                    <div>
+                                        <span className="block text-[10px] text-gray-400 uppercase">Category</span>
+                                        <span className="text-sm font-medium text-gray-800">{existingData?.cargoType || 'General'}</span>
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Insurance Charges */}
-                            <div>
-                                <label className="block text-sm text-[#333333] mb-2">
-                                    Insurance Charges
-                                </label>
-                                <input
-                                    type="number"
-                                    placeholder="Insurance Charges"
-                                    className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                                    value={formData.insuranceCharges || ''}
-                                    onChange={(e) => handleInputChange('insuranceCharges', Number(e.target.value))}
-                                />
-                            </div>
-
-                            {/* Taxes (GST, etc.) */}
-                            <div>
-                                <label className="block text-sm text-[#333333] mb-2">
-                                    Taxes (GST, etc.)
-                                </label>
-                                <input
-                                    type="number"
-                                    placeholder="Taxes (GST, etc.)"
-                                    className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                                    value={formData.taxes || ''}
-                                    onChange={(e) => handleInputChange('taxes', Number(e.target.value))}
-                                />
-                            </div>
-
-                            {/* Discount */}
-                            <div>
-                                <label className="block text-sm text-[#333333] mb-2">
-                                    Discount
-                                </label>
-                                <input
-                                    type="number"
-                                    placeholder="Discount"
-                                    className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                                    value={formData.discount || ''}
-                                    onChange={(e) => handleInputChange('discount', Number(e.target.value))}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Final Quoted Amount */}
-                        <div className="bg-[#F5F5F5] rounded-lg px-6 py-4 mt-6 flex justify-between items-center">
-                            <span className="text-[#868686] text-base">Final Quoted Amount</span>
-                            <span className="text-[#333333] text-lg font-semibold leading-[25.2px]">
-                                ₹ {formData.finalQuotedAmount.toLocaleString('en-IN')}
-                            </span>
+                            {existingData?.items && existingData.items.length > 0 && (
+                                <div>
+                                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Items</h4>
+                                    <div className="space-y-2">
+                                        {existingData.items.map((item: any, idx: number) => (
+                                            <div key={idx} className="bg-white p-2 rounded border border-gray-100 shadow-sm text-sm flex justify-between items-center">
+                                                <span className="text-gray-800 truncate pr-2 font-medium">{item.description}</span>
+                                                <span className="text-gray-500 text-xs whitespace-nowrap bg-gray-50 px-2 py-0.5 rounded">{item.quantity}x</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    {/* Validity Section */}
-                    <div className="mb-8">
-                        <h2 className="text-lg font-medium text-foreground leading-[25.2px] mb-4">
-                            Validity
-                        </h2>
-                        <label className="block text-sm text-[#333333] mb-2">
-                            Quotation Valid Until
-                        </label>
-                        <input
-                            type="date"
-                            className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium"
-                            value={formData.validUntil}
-                            onChange={(e) => handleInputChange('validUntil', e.target.value)}
-                        />
-                    </div>
+                    {/* Right Column - Financial Form */}
+                    <div className="col-span-2 bg-white flex flex-col h-full overflow-hidden">
+                        <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
 
-                    {/* Terms & Notes Section */}
-                    <div className="mb-8">
-                        <h2 className="text-lg font-medium text-[#333333] leading-[25.2px] mb-4">
-                            Terms & Notes
-                        </h2>
+                            {error && (
+                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6 text-sm">
+                                    {error}
+                                </div>
+                            )}
 
-                        <div className="space-y-4">
-                            {/* Payment Terms */}
-                            <div>
-                                <label className="block text-sm text-[#333333] mb-2">
-                                    Payment Terms
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder="Text here...."
-                                    className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                                    value={formData.paymentTerms}
-                                    onChange={(e) => handleInputChange('paymentTerms', e.target.value)}
-                                />
+                            <h3 className="text-lg font-bold text-gray-800 mb-4">Financial Details</h3>
+
+                            {/* Financial Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                                        Product Base Price
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <span className="text-gray-500 sm:text-sm">₹</span>
+                                        </div>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-md border border-gray-300 pl-8 pr-4 py-2 text-sm text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all shadow-sm"
+                                            value={formData.productBasePrice || ''}
+                                            onChange={(e) => handleInputChange('productBasePrice', Number(e.target.value))}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                                        Delivery Charges
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <span className="text-gray-500 sm:text-sm">₹</span>
+                                        </div>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-md border border-gray-300 pl-8 pr-4 py-2 text-sm text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all shadow-sm"
+                                            value={formData.deliveryCharges || ''}
+                                            onChange={(e) => handleInputChange('deliveryCharges', Number(e.target.value))}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                                        Packaging Charges
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <span className="text-gray-500 sm:text-sm">₹</span>
+                                        </div>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-md border border-gray-300 pl-8 pr-4 py-2 text-sm text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all shadow-sm"
+                                            value={formData.packagingCharges || ''}
+                                            onChange={(e) => handleInputChange('packagingCharges', Number(e.target.value))}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                                        Insurance Charges
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <span className="text-gray-500 sm:text-sm">₹</span>
+                                        </div>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-md border border-gray-300 pl-8 pr-4 py-2 text-sm text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all shadow-sm"
+                                            value={formData.insuranceCharges || ''}
+                                            onChange={(e) => handleInputChange('insuranceCharges', Number(e.target.value))}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                                        Taxes (GST, etc.)
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <span className="text-gray-500 sm:text-sm">₹</span>
+                                        </div>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-md border border-gray-300 pl-8 pr-4 py-2 text-sm text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all shadow-sm"
+                                            value={formData.taxes || ''}
+                                            onChange={(e) => handleInputChange('taxes', Number(e.target.value))}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                                        Discount Amount
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <span className="text-gray-500 sm:text-sm text-red-400">-₹</span>
+                                        </div>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-md border border-gray-300 pl-8 pr-4 py-2 text-sm text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all shadow-sm"
+                                            value={formData.discount || ''}
+                                            onChange={(e) => handleInputChange('discount', Number(e.target.value))}
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Delivery Conditions */}
-                            <div>
-                                <label className="block text-sm text-[#333333] mb-2">
-                                    Delivery Conditions
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder="Text here...."
-                                    className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                                    value={formData.deliveryConditions}
-                                    onChange={(e) => handleInputChange('deliveryConditions', e.target.value)}
-                                />
+                            {/* Final Quoted Amount Banner */}
+                            <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-lg px-6 py-4 mb-8 flex justify-between items-center shadow-md">
+                                <span className="text-gray-300 text-sm font-medium uppercase tracking-wider">Grand Total</span>
+                                <span className="text-white text-2xl font-bold tracking-tight">
+                                    ₹ {formData.finalQuotedAmount.toLocaleString('en-IN')}
+                                </span>
                             </div>
 
-                            {/* Other Information */}
-                            <div>
-                                <label className="block text-sm text-[#333333] mb-2">
-                                    Other Information
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder="Text here...."
-                                    className="w-full bg-background border border-input rounded-xl px-5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                                    value={formData.otherInformation}
-                                    onChange={(e) => handleInputChange('otherInformation', e.target.value)}
-                                />
+                            {/* Terms & Details Section */}
+                            <div className="space-y-5">
+                                <h3 className="text-lg font-bold text-gray-800 mb-2 border-b border-gray-100 pb-2">Scheduling & Terms</h3>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                                            Validity Date
+                                        </label>
+                                        <input
+                                            type="date"
+                                            className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all shadow-sm"
+                                            value={formData.validUntil}
+                                            onChange={(e) => handleInputChange('validUntil', e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                                        Payment Terms
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Net 30 days, 50% advance..."
+                                        className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all shadow-sm"
+                                        value={formData.paymentTerms}
+                                        onChange={(e) => handleInputChange('paymentTerms', e.target.value)}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                                        Delivery Conditions
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Detailed delivery terms..."
+                                        className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all shadow-sm"
+                                        value={formData.deliveryConditions}
+                                        onChange={(e) => handleInputChange('deliveryConditions', e.target.value)}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                                        Internal / Other Notes
+                                    </label>
+                                    <textarea
+                                        rows={3}
+                                        placeholder="Additional information..."
+                                        className="w-full rounded-md border border-gray-300 px-4 py-3 text-sm text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all shadow-sm resize-none"
+                                        value={formData.otherInformation}
+                                        onChange={(e) => handleInputChange('otherInformation', e.target.value)}
+                                    />
+                                </div>
                             </div>
+
                         </div>
-                    </div>
 
-                </div>
-
-                {/* Sticky Footer */}
-                <div className="flex-none p-6 border-t border-gray-100 bg-white z-10">
-                    <div className="flex gap-4">
-                        <button
-                            disabled={loading || !!error}
-                            className="flex-1 bg-primary text-primary-foreground rounded-xl h-10 text-sm font-medium hover:bg-primary/90 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                            onClick={handleSubmit}
-                        >
-                            {loading ? 'Processing...' : 'Send Quotation'}
-                        </button>
+                        {/* Sticky Footer */}
+                        <div className="flex-none p-5 border-t border-gray-200 bg-gray-50 z-10 flex justify-end gap-3 mt-auto">
+                            <button
+                                onClick={onClose}
+                                disabled={loading}
+                                className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 hover:text-gray-900 rounded-md transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                disabled={loading || !!error}
+                                className="px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                onClick={handleSubmit}
+                            >
+                                {loading && (
+                                    <svg className="animate-spin -ml-1 mr-1 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                )}
+                                {loading ? 'Processing...' : 'Send Quotation'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
