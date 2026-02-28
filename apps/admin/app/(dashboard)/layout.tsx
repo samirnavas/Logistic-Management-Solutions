@@ -7,7 +7,6 @@ import Image from 'next/image';
 import {
     LayoutDashboard,
     FileText,
-    Package,
     Truck,
     Users,
     Settings,
@@ -21,8 +20,7 @@ import {
 
 const MENU_ITEMS = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'Quotation Requests', path: '/requests', icon: FileText },
-    { name: 'Quotations', path: '/quotations', icon: Package },
+    { name: 'Quotation Requests', path: '/quotations', icon: FileText },
     { name: 'Deliveries', path: '/deliveries', icon: Truck },
     { name: 'Customers', path: '/users', icon: Users },
     { name: 'Warehouses', path: '/warehouses', icon: Building },
