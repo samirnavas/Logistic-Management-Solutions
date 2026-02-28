@@ -42,7 +42,7 @@ const mockData = {
     serviceType: 'Standard',
     specialInstructions: 'Mode: By Air, Delivery: Door to Door\nNotes: Test',
     pickupDate: new Date().toISOString(),
-    status: 'PENDING_REVIEW', // Updated status
+    status: 'PENDING_ADMIN_REVIEW', // Updated status
     totalAmount: 0
 };
 

@@ -46,7 +46,7 @@ export default function RequestsPage() {
                     const data = responseData.quotations || [];
 
                     // Filter for request statuses
-                    const requestStatuses = ['PENDING_REVIEW', 'INFO_REQUIRED', 'VERIFIED', 'ADDRESS_PROVIDED', 'DRAFT'];
+                    const requestStatuses = ['PENDING_ADMIN_REVIEW', 'INFO_REQUIRED', 'VERIFIED', 'ADDRESS_PROVIDED', 'DRAFT'];
                     const filteredRequests = data.filter((q: any) => requestStatuses.includes(q.status));
 
                     setRequests(filteredRequests);
@@ -67,7 +67,7 @@ export default function RequestsPage() {
     const getStatusStyle = (status: string) => {
         const s = status?.toLowerCase() || '';
         if (s === 'new' || s === 'request_sent' || s === 'draft') return 'text-blue-600 font-medium';
-        if (s === 'pending_review' || s === 'address_provided' || s === 'verified') return 'text-orange-500 font-medium';
+        if (s === 'pending_admin_review' || s === 'address_provided' || s === 'verified') return 'text-orange-500 font-medium';
         if (s === 'info_required') return 'text-red-600 font-medium';
         return 'text-gray-600';
     };

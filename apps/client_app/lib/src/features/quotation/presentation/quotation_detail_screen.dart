@@ -1,18 +1,14 @@
-import 'dart:io';
 import 'package:flutter/services.dart';
 
 import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:bb_logistics/src/features/quotation/data/quotation_repository.dart';
 import 'package:bb_logistics/src/features/quotation/domain/quotation.dart';
-import 'package:flutter/foundation.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:bb_logistics/src/features/quotation/presentation/widgets/live_quotation_ledger.dart';
 
 class QuotationDetailScreen extends ConsumerStatefulWidget {
   final String quotationId;
@@ -27,61 +23,6 @@ class QuotationDetailScreen extends ConsumerStatefulWidget {
 class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  String? _pdfPath;
-  bool _pdfLoading = false;
-  String? _pdfError;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  Future<void> _loadPdfFromUrl(String? pdfUrl) async {
-    if (pdfUrl == null || pdfUrl.isEmpty) {
-      if (mounted) {
-        setState(() {
-          _pdfLoading = false;
-          _pdfError = 'No PDF available';
-        });
-      }
-      return;
-    }
-
-    try {
-      if (mounted) {
-        setState(() {
-          _pdfLoading = true;
-          _pdfError = null;
-        });
-      }
-
-      // Download PDF from URL
-      final response = await HttpClient()
-          .getUrl(Uri.parse(pdfUrl))
-          .then((req) => req.close());
-      final bytes = await consolidateHttpClientResponseBytes(response);
-
-      final dir = await getTemporaryDirectory();
-      final fileName = 'quotation_${DateTime.now().millisecondsSinceEpoch}.pdf';
-      final file = File('${dir.path}/$fileName');
-      await file.writeAsBytes(bytes);
-
-      if (mounted) {
-        setState(() {
-          _pdfPath = file.path;
-          _pdfLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _pdfLoading = false;
-          _pdfError = 'Failed to load PDF';
-        });
-      }
-    }
-  }
 
   @override
   void dispose() {
@@ -213,954 +154,268 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
   }
 
   Widget _buildContent(BuildContext context, Quotation quotation) {
-    // Check if we have drop-off instructions to show
-    // If so, we bypass the "Pending" state to show the main content with instructions
-    final hasDropOffInstructions =
-        quotation.handoverMethod == 'DROP_OFF' &&
-        quotation.warehouseDropOffLocation != null &&
-        quotation.warehouseDropOffLocation!.trim().isNotEmpty;
-
-    if (!hasDropOffInstructions &&
-        (quotation.status == QuotationStatus.requestSent ||
-            quotation.status == QuotationStatus.approved ||
-            quotation.status == QuotationStatus.detailsSubmitted)) {
-      return Column(
-        children: [
-          _buildSummaryCard(quotation),
-          _buildPendingBanner(context, quotation.status),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: _buildPendingItemsList(context, quotation),
-            ),
-          ),
-        ],
-      );
-    } else if (quotation.status == QuotationStatus.rejected) {
-      return Column(
-        children: [
-          _buildSummaryCard(quotation),
-          _buildRejectedBanner(context),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: _buildPendingItemsList(context, quotation),
-            ),
-          ),
-        ],
-      );
-    }
-
     return Column(
       children: [
-        // Drop-off Instructions Card (if applicable)
-        if (quotation.handoverMethod == 'DROP_OFF' &&
-            quotation.warehouseDropOffLocation != null)
-          _buildDropOffInstructionsCard(context, quotation),
-
-        // Summary Header Card
-        _buildSummaryCard(quotation),
-
-        // Tab Bar
-        Container(
-          color: Colors.white,
-          child: TabBar(
-            controller: _tabController,
-            labelColor: AppTheme.primaryBlue,
-            unselectedLabelColor: AppTheme.textGrey,
-            indicatorColor: AppTheme.primaryBlue,
-            indicatorWeight: 3,
-            tabs: const [
-              Tab(text: 'Breakdown'),
-              Tab(text: 'PDF View'),
-            ],
-          ),
-        ),
-
-        // Tab Content
         Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [_buildBreakdownTab(quotation), _buildPdfTab(quotation)],
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Center(child: LiveQuotationLedger(quotation: quotation)),
           ),
         ),
-
-        // Action Buttons
-        if (quotation.status == QuotationStatus.costCalculated ||
-            quotation.status == QuotationStatus.shipped)
-          _buildActionButtons(context, quotation),
+        _buildActionBottomBar(context, quotation),
       ],
     );
   }
 
-  Widget _buildDropOffInstructionsCard(
-    BuildContext context,
-    Quotation quotation,
-  ) {
+  Widget _buildActionBottomBar(BuildContext context, Quotation quotation) {
     return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.purple.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.purple.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.warehouse, color: Colors.purple.shade700),
-              const SizedBox(width: 8),
-              Text(
-                'Drop-off Instructions',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.purple.shade900,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            quotation.warehouseDropOffLocation!,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.purple.shade900,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Directions Button
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _launchMap(quotation.warehouseDropOffLocation!),
-              icon: const Icon(Icons.map, size: 18),
-              label: const Text('Get Directions'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.purple.shade700,
-                side: BorderSide(color: Colors.purple.shade300),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _launchMap(String address) async {
-    final query = Uri.encodeComponent(address);
-    final googleMapUrl =
-        "https://www.google.com/maps/search/?api=1&query=$query";
-    if (await canLaunchUrl(Uri.parse(googleMapUrl))) {
-      await launchUrl(Uri.parse(googleMapUrl));
-    }
-  }
-
-  Widget _buildSummaryCard(Quotation quotation) {
-    final dateFormat = DateFormat('dd MMM yyyy');
-    final currencyFormat = NumberFormat.currency(
-      symbol: '\$',
-      decimalDigits: 2,
-    );
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isSmallScreen = constraints.maxWidth < 350;
-        final padding = isSmallScreen ? 12.0 : 20.0;
-
-        return Container(
-          margin: EdgeInsets.all(isSmallScreen ? 12 : 16),
-          padding: EdgeInsets.all(padding),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppTheme.primaryBlue,
-                AppTheme.primaryBlue.withValues(alpha: 0.85),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primaryBlue.withValues(alpha: 0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Quotation ID',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.7),
-                          fontSize: isSmallScreen ? 10 : 12,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        quotation.quotationId ?? quotation.id,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: isSmallScreen ? 14 : 16,
-                            ),
-                      ),
-                    ],
-                  ),
-                  _buildStatusBadge(quotation.status),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Container(height: 1, color: Colors.white.withValues(alpha: 0.2)),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 16,
-                runSpacing: 12,
-                alignment: WrapAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: isSmallScreen
-                        ? CrossAxisAlignment.start
-                        : CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Created Date',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.7),
-                          fontSize: isSmallScreen ? 10 : 12,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        dateFormat.format(quotation.createdDate),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white,
-                          fontSize: isSmallScreen ? 12 : 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              if (quotation.status != QuotationStatus.requestSent &&
-                  quotation.status != QuotationStatus.rejected) ...[
-                const SizedBox(height: 20),
-                Center(
-                  child: Column(
-                    children: [
-                      Text(
-                        'Total Amount',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.8),
-                          fontSize: isSmallScreen ? 12 : 14,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          currencyFormat.format(quotation.totalAmount),
-                          style: Theme.of(context).textTheme.displaySmall
-                              ?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: isSmallScreen ? 20 : 24,
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildStatusBadge(QuotationStatus status) {
-    Color badgeColor;
-    switch (status) {
-      case QuotationStatus.draft:
-        badgeColor = Colors.grey;
-        break;
-      case QuotationStatus.costCalculated:
-        badgeColor = AppTheme.success;
-        break;
-      case QuotationStatus.sent:
-        badgeColor = AppTheme.success;
-        break;
-      case QuotationStatus.accepted:
-        badgeColor = Colors.green[800]!;
-        break;
-      case QuotationStatus.requestSent:
-        badgeColor = AppTheme.warning;
-        break;
-      case QuotationStatus.rejected:
-        badgeColor = AppTheme.error;
-        break;
-      case QuotationStatus.readyForPickup:
-        badgeColor = AppTheme.primaryBlue;
-        break;
-      case QuotationStatus.shipped:
-        badgeColor = Colors.purple;
-        break;
-      case QuotationStatus.delivered:
-        badgeColor = Colors.green[800]!;
-        break;
-      case QuotationStatus.approved:
-        badgeColor = AppTheme.warning;
-        break;
-      case QuotationStatus.addressProvided:
-        badgeColor = Colors.teal;
-        break;
-      case QuotationStatus.detailsSubmitted:
-        badgeColor = Colors.blueGrey;
-        break;
-      case QuotationStatus.infoRequired:
-        badgeColor = AppTheme.error;
-        break;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: badgeColor,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            status == QuotationStatus.requestSent
-                ? 'Request Sent'
-                : status.displayName,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: badgeColor,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBreakdownTab(Quotation quotation) {
-    final currencyFormat = NumberFormat.currency(
-      symbol: '\$',
-      decimalDigits: 2,
-    );
-
-    // Show placeholder for pending quotations
-    if (quotation.status == QuotationStatus.requestSent ||
-        quotation.status == QuotationStatus.approved ||
-        quotation.status == QuotationStatus.detailsSubmitted) {
-      return Center(
-        child: Container(
-          margin: const EdgeInsets.all(32),
-          padding: const EdgeInsets.all(40),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppTheme.textGrey.withValues(alpha: 0.2),
-              width: 2,
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: AppTheme.warning.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.hourglass_empty,
-                  size: 40,
-                  color: AppTheme.warning,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Pending Review',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Pricing details will be available\nonce the Manager approves this request.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: AppTheme.textGrey),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.textGrey.withValues(alpha: 0.2)),
-          boxShadow: [
-            // Subtle light blue glow for depth
-            BoxShadow(
-              color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-              blurRadius: 12,
-              spreadRadius: 0,
-              offset: const Offset(0, 4),
-            ),
-            BoxShadow(
-              color: AppTheme.primaryBlue.withValues(alpha: 0.04),
-              blurRadius: 20,
-              spreadRadius: 2,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Itemized Breakdown',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-
-            // Header Row
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: AppTheme.background,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        'Description',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppTheme.textGrey,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        'Cost',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppTheme.textGrey,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.right,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Line Items
-            ...quotation.items.map(
-              (item) => _buildLineItem(item, currencyFormat),
-            ),
-
-            // Divider
-            const SizedBox(height: 16),
-            Container(
-              height: 2,
-              decoration: BoxDecoration(
-                color: AppTheme.textGrey.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(1),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Total Row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Total Amount',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  currencyFormat.format(quotation.totalAmount),
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppTheme.primaryBlue,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-
-            if (quotation.additionalNotes != null &&
-                quotation.additionalNotes!.trim().isNotEmpty) ...[
-              const SizedBox(height: 24),
-              Container(
-                height: 2,
-                decoration: BoxDecoration(
-                  color: AppTheme.textGrey.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(1),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Terms & Notes',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textGrey,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.background,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppTheme.textGrey.withValues(alpha: 0.1),
-                  ),
-                ),
-                child: Text(
-                  quotation.additionalNotes!,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    height: 1.5,
-                    color: AppTheme.textGrey,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLineItem(QuotationItem item, NumberFormat currencyFormat) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: AppTheme.textGrey.withValues(alpha: 0.1)),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Text(
-              item.description,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              currencyFormat.format(item.cost),
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.right,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPendingBanner(BuildContext context, QuotationStatus status) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.warning.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.warning.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.info_outline, color: AppTheme.warning),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              status == QuotationStatus.approved
-                  ? 'Request Approved. Please provide address details.'
-                  : status == QuotationStatus.detailsSubmitted
-                  ? 'Address Submitted. Waiting for final pricing calculation.'
-                  : 'Request Sent. Waiting for Manager to calculate cost.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.warning,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPendingItemsList(BuildContext context, Quotation quotation) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.textGrey.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withAlpha(20),
+            blurRadius: 10,
+            offset: const Offset(0, -4),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Requested Items',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          ...quotation.items.map(
-            (item) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.inventory_2_outlined,
-                    size: 20,
-                    color: AppTheme.textGrey,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      item.description,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+      child: SafeArea(
+        child: SizedBox(
+          width: double.infinity,
+          child: _getActionContent(context, quotation),
+        ),
       ),
     );
   }
 
-  Widget _buildPdfTab(Quotation quotation) {
-    // Show pending state for pending quotations
-    if (quotation.status == QuotationStatus.requestSent ||
-        quotation.status == QuotationStatus.approved ||
-        quotation.status == QuotationStatus.detailsSubmitted) {
-      return Center(
-        child: Container(
-          margin: const EdgeInsets.all(32),
-          padding: const EdgeInsets.all(40),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppTheme.textGrey.withValues(alpha: 0.2),
-              width: 2,
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: AppTheme.warning.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.hourglass_empty,
-                  size: 40,
-                  color: AppTheme.warning,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Pending Review',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'The PDF invoice will be available\nonce the Manager approves this request.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: AppTheme.textGrey),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+  Widget _getActionContent(BuildContext context, Quotation quotation) {
+    final status = quotation.status;
+
+    // Admin reviewing or finalizing
+    if (status == QuotationStatus.draft ||
+        status == QuotationStatus.requestSent ||
+        status == QuotationStatus.approved ||
+        status == QuotationStatus.infoRequired ||
+        // Assuming AWAITING_FINAL_CHARGE_SHEET maps to addressProvided / detailsSubmitted
+        status == QuotationStatus.addressProvided ||
+        status == QuotationStatus.detailsSubmitted) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.shade300),
         ),
-      );
-    }
-
-    // Load PDF from URL if not already loaded
-    if (_pdfPath == null && !_pdfLoading && _pdfError == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _loadPdfFromUrl(quotation.pdfUrl);
-      });
-    }
-
-    if (_pdfLoading) {
-      return const Center(
-        child: Column(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Loading PDF...'),
-          ],
-        ),
-      );
-    }
-
-    if (_pdfError != null || _pdfPath == null) {
-      return SingleChildScrollView(
-        child: Center(
-          child: Container(
-            margin: const EdgeInsets.all(32),
-            padding: const EdgeInsets.all(40),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppTheme.textGrey.withValues(alpha: 0.2),
-                width: 2,
-                style: BorderStyle.solid,
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.picture_as_pdf,
-                    size: 40,
-                    color: AppTheme.primaryBlue,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'PDF Not Provided',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'The PDF document has not been provided yet.\nIt will be available once processed.',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: AppTheme.textGrey),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    _loadPdfFromUrl(quotation.pdfUrl);
-                  },
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Retry'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    return PDFView(
-      filePath: _pdfPath!,
-      enableSwipe: true,
-      swipeHorizontal: false,
-      autoSpacing: true,
-      pageFling: true,
-      pageSnap: true,
-      fitPolicy: FitPolicy.BOTH,
-      preventLinkNavigation: false,
-      onRender: (pages) {
-        debugPrint('PDF rendered with $pages pages');
-      },
-      onError: (error) {
-        debugPrint('PDF Error: $error');
-      },
-      onPageError: (page, error) {
-        debugPrint('PDF Page $page Error: $error');
-      },
-    );
-  }
-
-  Widget _buildRejectedBanner(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.error.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.error.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.cancel_outlined, color: AppTheme.error),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Request Rejected',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.error,
+            Icon(Icons.hourglass_empty, color: Colors.grey.shade600, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'Awaiting Admin Action...',
+              style: TextStyle(
+                color: Colors.grey.shade700,
                 fontWeight: FontWeight.bold,
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(BuildContext context, Quotation quotation) {
-    if (quotation.status == QuotationStatus.costCalculated ||
-        quotation.status == QuotationStatus.sent) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              offset: const Offset(0, -4),
-              blurRadius: 16,
-            ),
           ],
-        ),
-        child: SafeArea(
-          child: Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    // For now, we reuse the dialog but we should probably have a different flow for acceptance
-                    // Since backend doesn't have specific 'accept' endpoint other than confirm-address or similar?
-                    // Let's assume confirmAddress is still the way to "finalize" it or we need a new one.
-                    // The previous flow used confirmAddress to finalize.
-                    _showAddressConfirmationDialog(context, quotation);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.success,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Accept Quotation',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       );
-    } else if (quotation.status == QuotationStatus.shipped) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Tracking functionality coming soon...'),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.local_shipping_outlined),
-              label: const Text('Track Shipment'),
-              style: ElevatedButton.styleFrom(
+    }
+
+    // PENDING_CUSTOMER_APPROVAL -> maps to costCalculated based on quotation.dart mapping logic
+    // Actually from backend we get "cost_calculated" or "QUOTATION_GENERATED"
+    if (status == QuotationStatus.costCalculated) {
+      return Row(
+        children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () => _handleModifyRequest(context, quotation),
+              style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: AppTheme.primaryBlue,
-                foregroundColor: Colors.white,
-                elevation: 0,
+                side: const BorderSide(color: AppTheme.primaryBlue),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
+              child: const Text('Modify Request'),
             ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: ElevatedButton(
+              onPressed: () =>
+                  _showAddressConfirmationDialog(context, quotation),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.success,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Accept Quotation',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // PAYMENT_PENDING -> maps to sent maybe or we show button to proceed
+    if (status == QuotationStatus.sent) {
+      return ElevatedButton(
+        onPressed: () => _handleProceedToPayment(context, quotation),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppTheme.primaryBlue,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: const Text(
+          'Proceed to Payment',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+      );
+    }
+
+    // Post payment states
+    if (status == QuotationStatus.accepted ||
+        status == QuotationStatus.shipped ||
+        status == QuotationStatus.readyForPickup) {
+      return ElevatedButton.icon(
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Tracking functionality coming soon...'),
+            ),
+          );
+        },
+        icon: const Icon(Icons.local_shipping_outlined),
+        label: const Text('Track Shipment'),
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          backgroundColor: AppTheme.primaryBlue,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       );
     }
+
     return const SizedBox.shrink();
+  }
+
+  void _handleProceedToPayment(BuildContext context, Quotation quotation) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Mock Payment'),
+        content: const Text(
+          'Simulating successful payment and transitioning quotation...',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Optimistically update status or call mock API
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Payment Successful! Tracking Started.'),
+                  backgroundColor: AppTheme.success,
+                ),
+              );
+            },
+            child: const Text('Simulate Success'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleModifyRequest(BuildContext context, Quotation quotation) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final notesController = TextEditingController();
+        return AlertDialog(
+          title: const Text('Modify Request'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Provide details on what needs to be changed.'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: notesController,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'I need to add 2 more items...',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final text = notesController.text.trim();
+                Navigator.pop(context);
+                if (text.isEmpty) return;
+
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (c) =>
+                      const Center(child: CircularProgressIndicator()),
+                );
+
+                try {
+                  await ref
+                      .read(quotationRepositoryProvider)
+                      .customerReviseQuotation(quotation.id, {
+                        'revisionNotes': text,
+                      });
+
+                  if (context.mounted) {
+                    Navigator.pop(context); // close loader
+                    ref.invalidate(quotationByIdProvider(quotation.id));
+                    ref.invalidate(quotationsProvider);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Modification request sent.'),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    Navigator.pop(context); // close loader
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                  }
+                }
+              },
+              child: const Text('Submit'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Widget _buildStyledTextField({
@@ -1538,11 +793,10 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
 
                           await ref
                               .read(quotationRepositoryProvider)
-                              .confirmAddress(
-                                quotation.id,
-                                pickupAddress,
-                                deliveryAddress,
-                              );
+                              .customerAcceptQuotation(quotation.id, {
+                                'pickupAddress': pickupAddress,
+                                'deliveryAddress': deliveryAddress,
+                              });
 
                           // Close loading
                           if (context.mounted) Navigator.pop(context);

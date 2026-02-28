@@ -122,7 +122,7 @@ class QuotationRepository {
 
   /// Create a new quotation request
   Future<Quotation> createQuotation(Map<String, dynamic> requestData) async {
-    // SECURITY: Remove status field - backend will set it to PENDING_REVIEW
+    // SECURITY: Remove status field - backend will set it to PENDING_ADMIN_REVIEW
     final cleanData = Map<String, dynamic>.from(requestData);
     cleanData.remove('status');
 
@@ -166,9 +166,45 @@ class QuotationRepository {
   }
 
   /// Submit quotation (update and change status)
-  /// This is one of the ONLY methods where status CAN be changed (DRAFT -> PENDING_REVIEW)
+  /// This is one of the ONLY methods where status CAN be changed (DRAFT -> PENDING_ADMIN_REVIEW)
   Future<void> submitQuotation(String id, Map<String, dynamic> data) async {
     await _apiService.putRequest('/api/quotations/$id/submit', data);
+  }
+
+  /// Revise quotation (Customer bounces back to admin)
+  Future<Quotation> customerReviseQuotation(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await _apiService.patchRequest(
+      '/api/quotations/$id/workflow/revise',
+      data,
+    );
+    if (response is Map<String, dynamic>) {
+      if (response.containsKey('_id') && !response.containsKey('id')) {
+        response['id'] = response['_id'];
+      }
+      return Quotation.fromJson(response);
+    }
+    throw Exception('Failed to revise quotation');
+  }
+
+  /// Accept quotation and provide exact fulfillment addresses
+  Future<Quotation> customerAcceptQuotation(
+    String id,
+    Map<String, dynamic> fulfillmentDetails,
+  ) async {
+    final response = await _apiService.patchRequest(
+      '/api/quotations/$id/workflow/accept',
+      {'fulfillmentDetails': fulfillmentDetails},
+    );
+    if (response is Map<String, dynamic>) {
+      if (response.containsKey('_id') && !response.containsKey('id')) {
+        response['id'] = response['_id'];
+      }
+      return Quotation.fromJson(response);
+    }
+    throw Exception('Failed to accept quotation');
   }
 
   /// Update quotation (general updates like address changes on VERIFIED quotations)

@@ -52,36 +52,34 @@ exports.getStats = async (req, res) => {
             // 1. Total Requests: All submitted quotations (excluding drafts)
             Quotation.countDocuments({ status: { $ne: 'DRAFT' } }),
 
-            // 2. Pending Requests: Requests waiting for admin action (before price generation)
-            // Includes: PENDING_REVIEW, INFO_REQUIRED, VERIFIED, ADDRESS_PROVIDED
+            // 2. Pending Requests: Requests waiting for admin action
+            //    PENDING_ADMIN_REVIEW  → new submission or customer revision sent back
+            //    AWAITING_FINAL_CHARGE_SHEET → customer accepted, admin must add mile charges
             Quotation.countDocuments({
-                status: { $in: ['PENDING_REVIEW', 'INFO_REQUIRED', 'VERIFIED', 'ADDRESS_PROVIDED'] }
+                status: { $in: ['PENDING_ADMIN_REVIEW', 'AWAITING_FINAL_CHARGE_SHEET'] }
             }),
 
-            // 3. Total Quotations: Requests where a price/outcome has been generated
-            // Includes: QUOTATION_GENERATED, QUOTATION_SENT, NEGOTIATION_REQUESTED, ACCEPTED, BOOKED, REJECTED, EXPIRED
+            // 3. Total Quotations: Quotes where pricing has been generated at least once
             Quotation.countDocuments({
                 status: {
                     $in: [
-                        'QUOTATION_GENERATED',
-                        'QUOTATION_SENT',
-                        'NEGOTIATION_REQUESTED',
-                        'ACCEPTED',
-                        'BOOKED',
+                        'PENDING_CUSTOMER_APPROVAL',
+                        'AWAITING_FINAL_CHARGE_SHEET',
+                        'PAYMENT_PENDING',
+                        'CONVERTED_TO_SHIPMENT',
                         'REJECTED',
-                        'EXPIRED'
                     ]
                 }
             }),
 
-            // 4. Pending Quotations: Quotations sent to client, waiting for acceptance
+            // 4. Pending Quotations: Sent to client, awaiting their decision
             Quotation.countDocuments({
-                status: { $in: ['QUOTATION_SENT', 'NEGOTIATION_REQUESTED'] }
+                status: { $in: ['PENDING_CUSTOMER_APPROVAL', 'PAYMENT_PENDING'] }
             }),
 
-            // 5. Accepted Quotations: Successfully booke or accepted
+            // 5. Accepted / Converted Quotations
             Quotation.countDocuments({
-                status: { $in: ['ACCEPTED', 'BOOKED'] }
+                status: { $in: ['CONVERTED_TO_SHIPMENT'] }
             })
         ]);
 
@@ -221,7 +219,7 @@ exports.createQuotation = async (req, res) => {
             handoverMethod,
             pickupAddress,
             warehouseDropOffLocation,
-            status: 'PENDING_REVIEW', // Strict Default
+            status: 'PENDING_ADMIN_REVIEW', // Strict Default
             totalAmount: 0 // Initialize to 0
         });
 
@@ -859,7 +857,7 @@ exports.approveRequest = async (req, res) => {
             return res.status(404).json({ message: 'Quotation not found' });
         }
 
-        quotation.status = 'VERIFIED';
+        quotation.status = 'PENDING_CUSTOMER_APPROVAL';
         quotation.isApprovedByManager = true;
         quotation.managerApprovedAt = new Date();
         await quotation.save();
@@ -933,14 +931,14 @@ exports.updateAddress = async (req, res) => {
             quotation.warehouseDropOffLocation = warehouseDropOffLocation;
         }
 
-        // CRITICAL FIX: Don't hardcode PENDING_REVIEW!
+        // CRITICAL FIX: Don't hardcode PENDING_ADMIN_REVIEW!
         // Check current status and set appropriate next status
         if (quotation.status === 'VERIFIED') {
             console.log('[Address Update] ✓✓✓ Status is VERIFIED - Moving to ADDRESS_PROVIDED');
             quotation.status = 'ADDRESS_PROVIDED';
         } else if (quotation.status === 'DRAFT' || quotation.status === 'INFO_REQUIRED') {
-            console.log('[Address Update] Status is editable - Moving to PENDING_REVIEW');
-            quotation.status = 'PENDING_REVIEW';
+            console.log('[Address Update] Status is editable - Moving to PENDING_ADMIN_REVIEW');
+            quotation.status = 'PENDING_ADMIN_REVIEW';
         } else {
             console.log('[Address Update] Status unchanged -', quotation.status);
         }
@@ -1029,11 +1027,11 @@ exports.getQuotationStats = async (req, res) => {
                         { $count: "count" }
                     ],
                     pendingRequests: [
-                        { $match: { status: 'PENDING_REVIEW' } },
+                        { $match: { status: 'PENDING_ADMIN_REVIEW' } },
                         { $count: "count" }
                     ],
                     totalQuotations: [
-                        { $match: { status: { $ne: 'PENDING_REVIEW' } } },
+                        { $match: { status: { $ne: 'PENDING_ADMIN_REVIEW' } } },
                         { $count: "count" }
                     ],
                     pendingQuotations: [
@@ -1145,12 +1143,12 @@ exports.submitClarification = async (req, res) => {
             isActive: true
         };
 
-        // Change status back to PENDING_REVIEW
-        quotation.status = 'PENDING_REVIEW';
+        // Change status back to PENDING_ADMIN_REVIEW
+        quotation.status = 'PENDING_ADMIN_REVIEW';
 
         // Add to history
         quotation.statusHistory.push({
-            status: 'PENDING_REVIEW',
+            status: 'PENDING_ADMIN_REVIEW',
             changedBy: req.user.id,
             reason: 'Client submitted clarification',
             timestamp: new Date()
@@ -1292,7 +1290,7 @@ exports.saveAsDraft = async (req, res) => {
 };
 
 // ============================================
-// Submit Quotation (Transition DRAFT → PENDING_REVIEW)
+// Submit Quotation (Transition DRAFT → PENDING_ADMIN_REVIEW)
 // ============================================
 exports.submitQuotation = async (req, res) => {
     try {
@@ -1374,12 +1372,12 @@ exports.submitQuotation = async (req, res) => {
             });
         }
 
-        // All validations passed - transition to PENDING_REVIEW
-        quotation.status = 'PENDING_REVIEW';
+        // All validations passed - transition to PENDING_ADMIN_REVIEW
+        quotation.status = 'PENDING_ADMIN_REVIEW';
 
         // Add to audit log (statusHistory)
         quotation.statusHistory.push({
-            status: 'PENDING_REVIEW',
+            status: 'PENDING_ADMIN_REVIEW',
             changedBy: userId,
             reason: 'Client submitted quotation for review',
             timestamp: new Date()
@@ -1399,7 +1397,7 @@ exports.submitQuotation = async (req, res) => {
         res.json({
             message: 'Quotation submitted successfully',
             quotation,
-            status: 'PENDING_REVIEW'
+            status: 'PENDING_ADMIN_REVIEW'
         });
     } catch (error) {
         console.error('Submit Quotation Error:', error);
@@ -1417,29 +1415,30 @@ exports.checkExpiry = async () => {
     try {
         const now = new Date();
 
-        // Find quotations that ARE 'QUOTATION_SENT' AND expired
+        // Find quotes that are awaiting the customer's decision and have passed validUntil.
+        // In the new workflow REJECTED is the terminal state for expired quotes.
         const expiredQuotations = await Quotation.find({
-            status: 'QUOTATION_SENT',
+            status: 'PENDING_CUSTOMER_APPROVAL',
             validUntil: { $lt: now }
         });
 
         if (expiredQuotations.length === 0) {
-            return; // No expired quotations found
+            return;
         }
 
-        console.log(`Found ${expiredQuotations.length} expired quotations. Updating status...`);
+        console.log(`Found ${expiredQuotations.length} expired quotations. Marking as REJECTED...`);
 
         for (const quote of expiredQuotations) {
-            quote.status = 'EXPIRED';
+            quote.status = 'REJECTED';
             quote.statusHistory.push({
-                status: 'EXPIRED',
+                status: 'REJECTED',
                 changedBy: null, // System
-                reason: 'Validity date passed',
+                reason: 'Validity date passed — quotation expired automatically',
                 timestamp: now
             });
             await quote.save();
 
-            // Optional: Notify manager or client about expiry
+            // Optional: Notify client about expiry
         }
     } catch (error) {
         console.error('Check Expiry Job Error:', error);
@@ -1513,3 +1512,587 @@ exports.sendWarehouseDetails = async (req, res) => {
     }
 };
 
+// ================================================================
+// ===  ITERATIVE QUOTATION WORKFLOW  —  5 STATE-MACHINE ACTIONS ===
+// ================================================================
+
+/**
+ * Helper — push a status-history entry without a full save.
+ * Call this before the caller's own quote.save().
+ */
+function pushHistory(quotation, status, userId, reason) {
+    quotation.statusHistory.push({
+        status,
+        changedBy: userId || null,
+        reason,
+        timestamp: new Date(),
+    });
+}
+
+// ----------------------------------------------------------------
+// 1. CREATE DRAFT QUOTATION  (Customer — Phase 1)
+//    Accepts routingData + items.  Defaults to PENDING_ADMIN_REVIEW.
+// ----------------------------------------------------------------
+exports.createDraftQuotation = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const {
+            routingData,
+            items,
+            cargoType,
+            serviceType,
+            serviceMode,
+            specialInstructions,
+            productPhotos,
+            additionalNotes,
+            validUntil,
+        } = req.body;
+
+        // --- Validate routingData minimum fields ---
+        if (
+            !routingData ||
+            !routingData.sourceCity ||
+            !routingData.destinationCity
+        ) {
+            return res.status(400).json({
+                message: 'routingData is required with at least sourceCity and destinationCity',
+                required: ['routingData.sourceCity', 'routingData.destinationCity'],
+            });
+        }
+
+        // --- Items are encouraged but not mandatory at Phase 1 ---
+        if (items && (!Array.isArray(items) || items.some(i => !i.description || !i.quantity))) {
+            return res.status(400).json({
+                message: 'Each item must have at minimum a description and a quantity',
+            });
+        }
+
+        const newQuotation = new Quotation({
+            clientId: userId,
+            routingData,
+            items: items || [],
+            cargoType: cargoType || 'General Cargo',
+            serviceType: serviceType || 'Standard',
+            serviceMode: serviceMode || 'door_to_door',
+            specialInstructions: specialInstructions || '',
+            productPhotos: productPhotos || [],
+            additionalNotes: additionalNotes || '',
+            validUntil: validUntil || null,
+            // Status goes straight to PENDING_ADMIN_REVIEW on first submit.
+            // Customers who want to save a pure draft should use the existing
+            // saveAsDraft endpoint and then submitQuotation.
+            status: 'PENDING_ADMIN_REVIEW',
+            totalAmount: 0,
+        });
+
+        pushHistory(newQuotation, 'PENDING_ADMIN_REVIEW', userId, 'Customer submitted quotation inquiry');
+
+        const saved = await newQuotation.save();
+
+        // Notify admin/manager that a new inquiry has arrived
+        try {
+            if (newQuotation.managerId) {
+                await Notification.createNotification({
+                    recipientId: newQuotation.managerId,
+                    title: 'New Quotation Inquiry',
+                    message: `New inquiry ${saved.quotationId} received from customer. Routing: ${routingData.sourceCity} → ${routingData.destinationCity}`,
+                    type: 'info',
+                    category: 'quotation',
+                    relatedId: saved._id,
+                    relatedModel: 'Quotation',
+                });
+            }
+        } catch (notifErr) {
+            console.error('Notification error (non-fatal):', notifErr.message);
+        }
+
+        return res.status(201).json({
+            message: 'Quotation inquiry submitted successfully',
+            quotation: saved,
+        });
+    } catch (error) {
+        console.error('createDraftQuotation Error:', error);
+        return res.status(400).json({
+            message: 'Failed to create quotation inquiry',
+            error: error.message,
+            details: error.errors,
+        });
+    }
+};
+
+// ----------------------------------------------------------------
+// 2. ADMIN PRICE QUOTATION  (Admin/Manager — Phase 3)
+//    Inputs: baseFreightCharge, itemizedCosts, estimatedHandlingFee,
+//            taxRate, discount, validUntil, internalNotes
+//    Guard:  status must be PENDING_ADMIN_REVIEW
+//    Result: PENDING_CUSTOMER_APPROVAL
+// ----------------------------------------------------------------
+exports.adminPriceQuotation = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const {
+            baseFreightCharge,
+            itemizedCosts,
+            estimatedHandlingFee,
+            taxRate,
+            discount,
+            validUntil,
+            internalNotes,
+            additionalNotes,
+            items, // Admin may also refine line-item amounts
+        } = req.body;
+
+        const quotation = await Quotation.findById(id);
+        if (!quotation) {
+            return res.status(404).json({ message: 'Quotation not found' });
+        }
+
+        // --- State guard ---
+        if (quotation.status !== 'PENDING_ADMIN_REVIEW') {
+            return res.status(400).json({
+                message: 'Invalid state transition',
+                error: `adminPriceQuotation can only be called when status is PENDING_ADMIN_REVIEW. Current status: ${quotation.status}`,
+                currentStatus: quotation.status,
+                allowedFrom: ['PENDING_ADMIN_REVIEW'],
+            });
+        }
+
+        // --- Validate that a base freight charge is being provided ---
+        if (baseFreightCharge === undefined || baseFreightCharge === null) {
+            return res.status(400).json({
+                message: 'baseFreightCharge is required to price a quotation',
+            });
+        }
+        if (Number(baseFreightCharge) < 0) {
+            return res.status(400).json({ message: 'baseFreightCharge cannot be negative' });
+        }
+
+        // --- Apply pricing fields ---
+        quotation.baseFreightCharge = Number(baseFreightCharge);
+
+        if (estimatedHandlingFee !== undefined) {
+            quotation.estimatedHandlingFee = Math.max(0, Number(estimatedHandlingFee));
+        }
+        if (itemizedCosts && Array.isArray(itemizedCosts)) {
+            quotation.itemizedCosts = itemizedCosts;
+        }
+        if (taxRate !== undefined) {
+            quotation.taxRate = Math.max(0, Math.min(100, Number(taxRate)));
+        }
+        if (discount !== undefined) {
+            quotation.discount = Math.max(0, Number(discount)); // Clamp — never negative
+        }
+        if (validUntil !== undefined) quotation.validUntil = validUntil;
+        if (internalNotes !== undefined) quotation.internalNotes = internalNotes;
+        if (additionalNotes !== undefined) quotation.additionalNotes = additionalNotes;
+
+        // Admin may update line-item unit prices / amounts during pricing
+        if (items && Array.isArray(items) && items.length > 0) {
+            quotation.items = items;
+        }
+
+        // Mark as approved by this admin
+        quotation.isApprovedByManager = true;
+        quotation.managerApprovedAt = new Date();
+        quotation.managerId = req.user.id;
+
+        // Increment revision counter each time admin re-prices
+        quotation.revisionCount = (quotation.revisionCount || 0) + 1;
+
+        // Transition state
+        quotation.status = 'PENDING_CUSTOMER_APPROVAL';
+        pushHistory(quotation, 'PENDING_CUSTOMER_APPROVAL', req.user.id, 'Admin priced quotation and sent for customer review');
+
+        // calculateTotals() is invoked by pre-save because pricing fields changed.
+        const saved = await quotation.save();
+
+        // Notify customer
+        try {
+            await Notification.createNotification({
+                recipientId: quotation.clientId,
+                title: 'Quotation Ready for Review',
+                message: `Your quotation ${saved.quotationId} has been priced and is ready for your review.`,
+                type: 'success',
+                category: 'quotation',
+                relatedId: saved._id,
+                relatedModel: 'Quotation',
+            });
+        } catch (notifErr) {
+            console.error('Notification error (non-fatal):', notifErr.message);
+        }
+
+        return res.json({
+            message: 'Quotation priced and sent to customer for approval',
+            quotation: saved,
+        });
+    } catch (error) {
+        console.error('adminPriceQuotation Error:', error);
+        return res.status(400).json({
+            message: 'Failed to price quotation',
+            error: error.message,
+            details: error.errors,
+        });
+    }
+};
+
+// ----------------------------------------------------------------
+// 3. CUSTOMER REVISE QUOTATION  (Customer — Phase 3 bounce-back)
+//    Customer modifies items/notes and sends back for re-pricing.
+//    Guard:  status must be PENDING_CUSTOMER_APPROVAL AND isLocked must be false
+//    Result: revisionCount++, status → PENDING_ADMIN_REVIEW
+// ----------------------------------------------------------------
+exports.customerReviseQuotation = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+        const { items, specialInstructions, additionalNotes, revisionNotes } = req.body;
+
+        const quotation = await Quotation.findById(id);
+        if (!quotation) {
+            return res.status(404).json({ message: 'Quotation not found' });
+        }
+
+        // --- Ownership check ---
+        if (quotation.clientId.toString() !== userId.toString()) {
+            return res.status(403).json({
+                message: 'Not authorized',
+                error: 'You can only revise your own quotations',
+            });
+        }
+
+        // --- State guard: must be PENDING_CUSTOMER_APPROVAL ---
+        if (quotation.status !== 'PENDING_CUSTOMER_APPROVAL') {
+            return res.status(400).json({
+                message: 'Invalid state transition',
+                error: `customerReviseQuotation can only be called when status is PENDING_CUSTOMER_APPROVAL. Current status: ${quotation.status}`,
+                currentStatus: quotation.status,
+                allowedFrom: ['PENDING_CUSTOMER_APPROVAL'],
+            });
+        }
+
+        // --- Lock guard: cannot revise if already locked ---
+        if (quotation.isLocked) {
+            return res.status(400).json({
+                message: 'Quotation is locked',
+                error: 'This quotation has already been accepted and locked. You cannot revise a locked quotation.',
+                isLocked: true,
+            });
+        }
+
+        // --- Apply customer changes ---
+        if (items && Array.isArray(items) && items.length > 0) {
+            quotation.items = items;
+        }
+        if (specialInstructions !== undefined) quotation.specialInstructions = specialInstructions;
+        if (additionalNotes !== undefined) quotation.additionalNotes = additionalNotes;
+
+        // Log revision notes in negotiation
+        quotation.negotiation = {
+            ...(quotation.negotiation || {}),
+            clientNotes: revisionNotes || '',
+            isActive: true,
+        };
+
+        // Increment revision counter
+        quotation.revisionCount = (quotation.revisionCount || 0) + 1;
+
+        // Reset admin approval — admin must re-price
+        quotation.isApprovedByManager = false;
+        quotation.managerApprovedAt = undefined;
+
+        // Reset base pricing so stale numbers are not shown to customer
+        quotation.baseFreightCharge = 0;
+        quotation.estimatedHandlingFee = 0;
+        quotation.itemizedCosts = [];
+        quotation.totalAmount = 0;
+
+        // Transition state
+        quotation.status = 'PENDING_ADMIN_REVIEW';
+        pushHistory(
+            quotation,
+            'PENDING_ADMIN_REVIEW',
+            userId,
+            `Customer requested revision (round ${quotation.revisionCount}): ${revisionNotes || 'No notes'}`
+        );
+
+        const saved = await quotation.save();
+
+        // Notify admin/manager
+        try {
+            if (quotation.managerId) {
+                await Notification.createNotification({
+                    recipientId: quotation.managerId,
+                    title: 'Customer Requested Revision',
+                    message: `Customer has revised quotation ${saved.quotationId} (revision #${saved.revisionCount}). Please re-price.`,
+                    type: 'warning',
+                    category: 'quotation',
+                    relatedId: saved._id,
+                    relatedModel: 'Quotation',
+                });
+            }
+        } catch (notifErr) {
+            console.error('Notification error (non-fatal):', notifErr.message);
+        }
+
+        return res.json({
+            message: 'Revision submitted successfully. Quotation is back with admin for re-pricing.',
+            quotation: saved,
+            revisionCount: saved.revisionCount,
+        });
+    } catch (error) {
+        console.error('customerReviseQuotation Error:', error);
+        return res.status(400).json({
+            message: 'Failed to submit revision',
+            error: error.message,
+            details: error.errors,
+        });
+    }
+};
+
+// ----------------------------------------------------------------
+// 4. CUSTOMER ACCEPT QUOTATION  (Customer — Phase 4)
+//    Customer accepts the base price and provides exact fulfillmentDetails.
+//    Guard:  status must be PENDING_CUSTOMER_APPROVAL
+//    Result: isLocked = true,  status → AWAITING_FINAL_CHARGE_SHEET
+// ----------------------------------------------------------------
+exports.customerAcceptQuotation = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+        const { fulfillmentDetails } = req.body;
+
+        const quotation = await Quotation.findById(id);
+        if (!quotation) {
+            return res.status(404).json({ message: 'Quotation not found' });
+        }
+
+        // --- Ownership check ---
+        if (quotation.clientId.toString() !== userId.toString()) {
+            return res.status(403).json({
+                message: 'Not authorized',
+                error: 'You can only accept your own quotations',
+            });
+        }
+
+        // --- State guard ---
+        if (quotation.status !== 'PENDING_CUSTOMER_APPROVAL') {
+            return res.status(400).json({
+                message: 'Invalid state transition',
+                error: `customerAcceptQuotation can only be called when status is PENDING_CUSTOMER_APPROVAL. Current status: ${quotation.status}`,
+                currentStatus: quotation.status,
+                allowedFrom: ['PENDING_CUSTOMER_APPROVAL'],
+            });
+        }
+
+        // --- Expiry check ---
+        if (quotation.validUntil && new Date(quotation.validUntil) < new Date()) {
+            return res.status(400).json({
+                message: 'Cannot accept an expired quotation',
+                error: 'This quotation has passed its validity date. Please request a new quote.',
+                validUntil: quotation.validUntil,
+                expired: true,
+            });
+        }
+
+        // --- Validate fulfillmentDetails minimum required fields ---
+        if (!fulfillmentDetails) {
+            return res.status(400).json({
+                message: 'fulfillmentDetails is required when accepting a quotation',
+                hint: 'Provide exact pickup/delivery addresses, pickupType, and deliveryType',
+            });
+        }
+        const missingFields = [];
+        if (!fulfillmentDetails.pickupType) missingFields.push('fulfillmentDetails.pickupType');
+        if (!fulfillmentDetails.deliveryType) missingFields.push('fulfillmentDetails.deliveryType');
+        if (!fulfillmentDetails.pickupCity) missingFields.push('fulfillmentDetails.pickupCity');
+        if (!fulfillmentDetails.deliveryCity) missingFields.push('fulfillmentDetails.deliveryCity');
+        if (missingFields.length > 0) {
+            return res.status(400).json({
+                message: 'Incomplete fulfillmentDetails',
+                missingFields,
+            });
+        }
+
+        const validPickupTypes = ['HOME_PICKUP', 'WAREHOUSE_DROP'];
+        const validDeliveryTypes = ['HOME_DELIVERY', 'WAREHOUSE_PICKUP'];
+        if (!validPickupTypes.includes(fulfillmentDetails.pickupType)) {
+            return res.status(400).json({
+                message: `Invalid pickupType: ${fulfillmentDetails.pickupType}`,
+                allowed: validPickupTypes,
+            });
+        }
+        if (!validDeliveryTypes.includes(fulfillmentDetails.deliveryType)) {
+            return res.status(400).json({
+                message: `Invalid deliveryType: ${fulfillmentDetails.deliveryType}`,
+                allowed: validDeliveryTypes,
+            });
+        }
+
+        // --- Apply state changes ---
+        quotation.fulfillmentDetails = fulfillmentDetails;
+        quotation.isAcceptedByClient = true;
+        quotation.clientAcceptedAt = new Date();
+        quotation.isLocked = true;
+        quotation.status = 'AWAITING_FINAL_CHARGE_SHEET';
+
+        pushHistory(
+            quotation,
+            'AWAITING_FINAL_CHARGE_SHEET',
+            userId,
+            'Customer accepted base quotation and provided fulfillment details'
+        );
+
+        const saved = await quotation.save();
+
+        // Notify admin/manager to issue final charge sheet
+        try {
+            await Notification.createNotification({
+                recipientId: quotation.managerId || null,
+                title: 'Quotation Accepted — Issue Final Charge Sheet',
+                message: `Customer accepted quotation ${saved.quotationId}. Please add first/last mile charges and issue the final charge sheet.`,
+                type: 'success',
+                category: 'quotation',
+                relatedId: saved._id,
+                relatedModel: 'Quotation',
+            });
+        } catch (notifErr) {
+            console.error('Notification error (non-fatal):', notifErr.message);
+        }
+
+        return res.json({
+            message: 'Quotation accepted. Admin will now issue the final charge sheet.',
+            quotation: saved,
+            isLocked: saved.isLocked,
+        });
+    } catch (error) {
+        console.error('customerAcceptQuotation Error:', error);
+        return res.status(400).json({
+            message: 'Failed to accept quotation',
+            error: error.message,
+            details: error.errors,
+        });
+    }
+};
+
+// ----------------------------------------------------------------
+// 5. ADMIN FINALIZE CHARGE SHEET  (Admin/Manager — Phase 5)
+//    Adds firstMileCharge and lastMileCharge.
+//    Recalculates grand totalAmount.
+//    Guard:  status must be AWAITING_FINAL_CHARGE_SHEET
+//    Result: status → PAYMENT_PENDING
+// ----------------------------------------------------------------
+exports.adminFinalizeChargeSheet = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { firstMileCharge, lastMileCharge, additionalNotes, internalNotes } = req.body;
+
+        const quotation = await Quotation.findById(id)
+            .populate('clientId', 'fullName email');
+
+        if (!quotation) {
+            return res.status(404).json({ message: 'Quotation not found' });
+        }
+
+        // --- State guard ---
+        if (quotation.status !== 'AWAITING_FINAL_CHARGE_SHEET') {
+            return res.status(400).json({
+                message: 'Invalid state transition',
+                error: `adminFinalizeChargeSheet can only be called when status is AWAITING_FINAL_CHARGE_SHEET. Current status: ${quotation.status}`,
+                currentStatus: quotation.status,
+                allowedFrom: ['AWAITING_FINAL_CHARGE_SHEET'],
+            });
+        }
+
+        // --- Lock guard: should always be locked at this point, but double-check ---
+        if (!quotation.isLocked) {
+            return res.status(409).json({
+                message: 'Quotation integrity error',
+                error: 'Quotation must be locked before finalizing the charge sheet. The customer must first accept the base quote.',
+            });
+        }
+
+        // --- Validate mile charge inputs ---
+        const parsedFirstMile = Number(firstMileCharge ?? 0);
+        const parsedLastMile = Number(lastMileCharge ?? 0);
+
+        if (isNaN(parsedFirstMile) || parsedFirstMile < 0) {
+            return res.status(400).json({ message: 'firstMileCharge must be a non-negative number' });
+        }
+        if (isNaN(parsedLastMile) || parsedLastMile < 0) {
+            return res.status(400).json({ message: 'lastMileCharge must be a non-negative number' });
+        }
+
+        // --- Business rule: firstMileCharge should only be > 0 when pickupType is HOME_PICKUP ---
+        const pickupType = quotation.fulfillmentDetails?.pickupType;
+        const deliveryType = quotation.fulfillmentDetails?.deliveryType;
+
+        if (parsedFirstMile > 0 && pickupType === 'WAREHOUSE_DROP') {
+            return res.status(400).json({
+                message: 'Business rule violation',
+                error: 'firstMileCharge must be 0 when pickupType is WAREHOUSE_DROP (customer is dropping off at warehouse).',
+                pickupType,
+            });
+        }
+        if (parsedLastMile > 0 && deliveryType === 'WAREHOUSE_PICKUP') {
+            return res.status(400).json({
+                message: 'Business rule violation',
+                error: 'lastMileCharge must be 0 when deliveryType is WAREHOUSE_PICKUP (recipient collects from warehouse).',
+                deliveryType,
+            });
+        }
+
+        // --- Apply charge sheet values ---
+        quotation.firstMileCharge = parsedFirstMile;
+        quotation.lastMileCharge = parsedLastMile;
+        if (additionalNotes !== undefined) quotation.additionalNotes = additionalNotes;
+        if (internalNotes !== undefined) quotation.internalNotes = internalNotes;
+
+        // Transition — pre-save will call calculateTotals() which incorporates the new mile charges
+        quotation.status = 'PAYMENT_PENDING';
+        pushHistory(
+            quotation,
+            'PAYMENT_PENDING',
+            req.user.id,
+            `Admin finalized charge sheet. First-mile: ${parsedFirstMile} ${quotation.currency}, Last-mile: ${parsedLastMile} ${quotation.currency}`
+        );
+
+        const saved = await quotation.save();
+
+        // Notify customer that the final bill is ready
+        try {
+            await Notification.createNotification({
+                recipientId: quotation.clientId._id || quotation.clientId,
+                title: 'Final Charge Sheet Ready — Payment Due',
+                message: `The final charge sheet for quotation ${saved.quotationId} is ready. Total: ${saved.totalAmount} ${saved.currency}. Please proceed with payment.`,
+                type: 'info',
+                category: 'quotation',
+                relatedId: saved._id,
+                relatedModel: 'Quotation',
+            });
+        } catch (notifErr) {
+            console.error('Notification error (non-fatal):', notifErr.message);
+        }
+
+        return res.json({
+            message: 'Final charge sheet issued. Quotation is now awaiting payment.',
+            quotation: saved,
+            chargeBreakdown: {
+                baseFreightCharge: saved.baseFreightCharge,
+                estimatedHandlingFee: saved.estimatedHandlingFee,
+                firstMileCharge: saved.firstMileCharge,
+                lastMileCharge: saved.lastMileCharge,
+                tax: saved.tax,
+                discount: saved.discount,
+                totalAmount: saved.totalAmount,
+                currency: saved.currency,
+            },
+        });
+    } catch (error) {
+        console.error('adminFinalizeChargeSheet Error:', error);
+        return res.status(400).json({
+            message: 'Failed to finalize charge sheet',
+            error: error.message,
+            details: error.errors,
+        });
+    }
+};

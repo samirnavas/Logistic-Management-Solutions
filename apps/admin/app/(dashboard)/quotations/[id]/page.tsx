@@ -2,16 +2,26 @@
 
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
+import LiveQuotationLedger from '../../../components/LiveQuotationLedger';
+import { Quotation } from '../../../../types'; // adjust path if needed
 
 export default function QuotationDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
     const { id } = resolvedParams;
+
     const [quotation, setQuotation] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [isWarehouseModalOpen, setIsWarehouseModalOpen] = useState(false);
-    const [warehouseMessage, setWarehouseMessage] = useState('');
     const [sending, setSending] = useState(false);
     const router = useRouter();
+
+    // PENDING_ADMIN_REVIEW State
+    const [baseFreightCharge, setBaseFreightCharge] = useState<number>(0);
+    const [estimatedHandlingFee, setEstimatedHandlingFee] = useState<number>(0);
+    const [itemPrices, setItemPrices] = useState<{ [key: number]: number }>({});
+
+    // AWAITING_FINAL_CHARGE_SHEET State
+    const [firstMileCharge, setFirstMileCharge] = useState<number>(0);
+    const [lastMileCharge, setLastMileCharge] = useState<number>(0);
 
     const fetchQuotation = async () => {
         try {
@@ -22,8 +32,14 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
             if (res.ok) {
                 const data = await res.json();
                 setQuotation(data);
-                if (data.warehouseDropOffLocation) {
-                    setWarehouseMessage(data.warehouseDropOffLocation);
+
+                // Pre-fill existing item costs if available
+                if (data.items) {
+                    const initialPrices: { [key: number]: number } = {};
+                    data.items.forEach((item: any, i: number) => {
+                        initialPrices[i] = item.unitPrice || 0;
+                    });
+                    setItemPrices(initialPrices);
                 }
             }
         } catch (err) {
@@ -37,32 +53,77 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
         fetchQuotation();
     }, [id]);
 
-    const handleSendWarehouseDetails = async () => {
-        if (!warehouseMessage.trim()) return;
-
+    const handlePriceQuotation = async () => {
         setSending(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`/api/quotations/${id}/warehouse-details`, {
-                method: 'PUT',
+
+            // Re-construct items with updated prices
+            const updatedItems = quotation.items?.map((item: any, index: number) => ({
+                ...item,
+                unitPrice: itemPrices[index] || 0,
+                amount: (itemPrices[index] || 0) * (item.quantity || 1)
+            })) || [];
+
+            const body = {
+                baseFreightCharge: Number(baseFreightCharge),
+                estimatedHandlingFee: Number(estimatedHandlingFee),
+                items: updatedItems,
+                // Or itemizedCosts depending on API, send both to be safe:
+                itemizedCosts: updatedItems.reduce((sum: number, i: any) => sum + i.amount, 0),
+                subtotal: Number(baseFreightCharge) + Number(estimatedHandlingFee) + updatedItems.reduce((sum: number, i: any) => sum + i.amount, 0)
+            };
+
+            const res = await fetch(`/api/quotations/${id}/workflow/price`, {
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ locationMessage: warehouseMessage })
+                body: JSON.stringify(body)
             });
 
             if (res.ok) {
-                alert('Warehouse details sent successfully');
-                setIsWarehouseModalOpen(false);
-                fetchQuotation(); // Refresh data
+                alert('Quotation priced successfully and sent to customer');
+                fetchQuotation();
             } else {
                 const error = await res.json();
                 alert(`Error: ${error.message}`);
             }
         } catch (err) {
             console.error(err);
-            alert('Failed to send details');
+            alert('Failed to submit pricing');
+        } finally {
+            setSending(false);
+        }
+    };
+
+    const handleFinalizeChargeSheet = async () => {
+        setSending(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`/api/quotations/${id}/workflow/finalize-charges`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    firstMileCharge: Number(firstMileCharge),
+                    lastMileCharge: Number(lastMileCharge)
+                })
+            });
+
+            if (res.ok) {
+                alert('Charge sheet finalized successfully');
+                fetchQuotation();
+            } else {
+                const error = await res.json();
+                alert(`Error: ${error.message}`);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Failed to finalize charge sheet');
         } finally {
             setSending(false);
         }
@@ -71,165 +132,194 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
     if (loading) return <div className="p-8">Loading...</div>;
     if (!quotation) return <div className="p-8">Quotation not found</div>;
 
-    const canSendWarehouseDetails = quotation.handoverMethod === 'DROP_OFF' &&
-        ['QUOTATION_SENT', 'ACCEPTED', 'BOOKED'].includes(quotation.status);
+    const renderActionPanel = () => {
+        if (quotation.status === 'PENDING_ADMIN_REVIEW' || quotation.status === 'request_sent' || quotation.status === 'PENDING_ADMIN_REVIEW') {
+            return (
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mt-8">
+                    <h2 className="text-xl font-bold text-gray-800 mb-4">Price Quotation (Admin Action)</h2>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Base Freight Charge</label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-2 text-gray-500">$</span>
+                                <input
+                                    type="number"
+                                    className="pl-8 w-full border border-gray-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500"
+                                    value={baseFreightCharge}
+                                    onChange={e => setBaseFreightCharge(e.target.value ? Number(e.target.value) : 0)}
+                                    min="0"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Handling Fee</label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-2 text-gray-500">$</span>
+                                <input
+                                    type="number"
+                                    className="pl-8 w-full border border-gray-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500"
+                                    value={estimatedHandlingFee}
+                                    onChange={e => setEstimatedHandlingFee(e.target.value ? Number(e.target.value) : 0)}
+                                    min="0"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {quotation.items && quotation.items.length > 0 && (
+                        <div className="mb-6">
+                            <h3 className="text-md font-semibold text-gray-700 mb-3">Itemized Pricing</h3>
+                            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
+                                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Qty</th>
+                                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Unit Price</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200 text-sm">
+                                        {quotation.items.map((item: any, i: number) => (
+                                            <tr key={i}>
+                                                <td className="px-4 py-3 text-gray-800 font-medium">{item.description}</td>
+                                                <td className="px-4 py-3 text-center text-gray-600">{item.quantity}</td>
+                                                <td className="px-4 py-3 text-right">
+                                                    <div className="flex justify-end items-center">
+                                                        <span className="mr-2 text-gray-500">$</span>
+                                                        <input
+                                                            type="number"
+                                                            className="w-24 text-right border border-gray-300 rounded-lg p-1.5 focus:ring-blue-500 focus:border-blue-500"
+                                                            value={itemPrices[i] || 0}
+                                                            onChange={e => setItemPrices({ ...itemPrices, [i]: e.target.value ? Number(e.target.value) : 0 })}
+                                                            min="0"
+                                                        />
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                        <button
+                            className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition"
+                            onClick={handlePriceQuotation}
+                            disabled={sending}
+                        >
+                            {sending ? 'Sending...' : 'Send Priced Quotation to Customer'}
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        if (quotation.status === 'AWAITING_FINAL_CHARGE_SHEET') {
+            return (
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mt-8">
+                    <h2 className="text-xl font-bold text-gray-800 mb-4">Finalize Charge Sheet (Admin Action)</h2>
+
+                    <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <h3 className="text-sm font-semibold text-gray-700 mb-2">Customer Fulfillment Details provided:</h3>
+                        <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                            <div>
+                                <span className="block font-medium text-gray-500 mb-1">Origin Details</span>
+                                <p>{quotation.origin?.addressLine || 'N/A'}</p>
+                                <p>{quotation.origin?.city}, {quotation.origin?.country}</p>
+                            </div>
+                            <div>
+                                <span className="block font-medium text-gray-500 mb-1">Destination Details</span>
+                                <p>{quotation.destination?.addressLine || 'N/A'}</p>
+                                <p>{quotation.destination?.city}, {quotation.destination?.country}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">First Mile Charge (Origin Pickup)</label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-2 text-gray-500">$</span>
+                                <input
+                                    type="number"
+                                    className="pl-8 w-full border border-gray-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500"
+                                    value={firstMileCharge}
+                                    onChange={e => setFirstMileCharge(e.target.value ? Number(e.target.value) : 0)}
+                                    min="0"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Last Mile Charge (Destination Delivery)</label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-2 text-gray-500">$</span>
+                                <input
+                                    type="number"
+                                    className="pl-8 w-full border border-gray-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500"
+                                    value={lastMileCharge}
+                                    onChange={e => setLastMileCharge(e.target.value ? Number(e.target.value) : 0)}
+                                    min="0"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                        <button
+                            className="bg-green-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-green-700 transition"
+                            onClick={handleFinalizeChargeSheet}
+                            disabled={sending}
+                        >
+                            {sending ? 'Finalizing...' : 'Finalize Charge Sheet'}
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        if (quotation.status === 'PENDING_CUSTOMER_APPROVAL' || quotation.status === 'PAYMENT_PENDING') {
+            return (
+                <div className="bg-yellow-50 border border-yellow-200 p-6 rounded-xl mt-8 flex items-center shadow-sm">
+                    <div className="text-yellow-600 mr-4">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-yellow-800">Waiting for Customer Action...</h3>
+                        <p className="text-sm text-yellow-700 mt-1">This quotation is currently locked from admin edits while the customer reviews it.</p>
+                    </div>
+                </div>
+            );
+        }
+
+        return null; // Other statuses default to just displaying the Read-Only Ledger
+    };
 
     return (
-        <div className="flex justify-center items-start min-h-screen p-8 bg-neutral-100">
-            <div className="w-full max-w-5xl bg-white rounded-xl shadow-sm p-8 relative">
-                {/* Header */}
-                <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-100">
-                    <div>
-                        <span className="text-sm text-gray-500 block mb-1">Quotation ID</span>
-                        <h1 className="text-2xl font-bold text-zinc-800">{quotation.quotationId}</h1>
-                        <span className="text-sm text-gray-500 mt-2 block">
-                            Request: <span className="font-medium text-gray-700">{quotation.quotationNumber}</span>
-                        </span>
-                    </div>
-                    <div className={`px-4 py-1.5 rounded-full text-sm font-medium ${quotation.status === 'ACCEPTED' || quotation.status === 'BOOKED' ? 'bg-green-100 text-green-700' :
-                        quotation.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
-                            'bg-sky-100 text-sky-700'
-                        }`}>
-                        {quotation.status}
-                    </div>
+        <div className="min-h-screen bg-gray-50 p-8 pb-20">
+            <div className="mb-6 flex justify-between items-center max-w-4xl mx-auto">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Iterative Quotation Manager</h1>
+                    <p className="text-sm text-gray-500">Live preview and workflow actions.</p>
                 </div>
+                <button
+                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                    onClick={() => router.back()}
+                >
+                    &larr; Back
+                </button>
+            </div>
 
-                {/* Warehouse Location Info (if exists) */}
-                {quotation.warehouseDropOffLocation && (
-                    <div className="mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100">
-                        <h3 className="text-sm font-semibold text-blue-800 mb-1">Warehouse Drop-off Location Sent</h3>
-                        <p className="text-blue-700 whitespace-pre-wrap">{quotation.warehouseDropOffLocation}</p>
-                    </div>
-                )}
+            {/* Top Section: Live Quotation Ledger Preview */}
+            <div className="mb-8">
+                <LiveQuotationLedger quotation={quotation as Quotation} />
+            </div>
 
-                {/* Financial Details */}
-                <div className="mb-10">
-                    <h2 className="text-lg font-semibold text-zinc-800 mb-6 border-l-4 border-sky-700 pl-3">Price Breakdown</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-6">
-                        <div>
-                            <span className="text-sm text-zinc-500 block mb-1">Total Amount</span>
-                            <div className="text-2xl font-bold text-sky-700">
-                                {quotation.currency || 'USD'} {quotation.totalAmount?.toLocaleString()}
-                            </div>
-                        </div>
-                        <div>
-                            <span className="text-sm text-zinc-500 block mb-1">Subtotal</span>
-                            <div className="text-base font-medium text-zinc-800">{quotation.subtotal}</div>
-                        </div>
-                        <div>
-                            <span className="text-sm text-zinc-500 block mb-1">Tax ({quotation.taxRate}%)</span>
-                            <div className="text-base font-medium text-zinc-800">{quotation.tax}</div>
-                        </div>
-                    </div>
-
-                    {/* Line Items Table */}
-                    <div className="border border-gray-200 rounded-lg overflow-hidden">
-                        <table className="w-full text-left border-collapse">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-4 py-3 text-sm font-medium text-gray-600">Description</th>
-                                    <th className="px-4 py-3 text-sm font-medium text-gray-600 text-right">Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {quotation.items?.map((item: any, i: number) => (
-                                    <tr key={i} className="border-t border-gray-100">
-                                        <td className="px-4 py-3 text-sm text-gray-800">{item.description}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-800 text-right">{item.amount}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                    {/* Customer Information */}
-                    <div className="mb-8">
-                        <h2 className="text-lg font-semibold text-zinc-800 mb-6 border-l-4 border-sky-700 pl-3">Customer Information</h2>
-                        <div className="space-y-4">
-                            <div>
-                                <span className="text-sm text-zinc-500 block mb-1">Name</span>
-                                <div className="text-base font-medium text-zinc-800">{quotation.clientId?.fullName}</div>
-                            </div>
-                            <div>
-                                <span className="text-sm text-zinc-500 block mb-1">Email</span>
-                                <div className="text-base font-medium text-zinc-800">{quotation.clientId?.email}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Shipment Info */}
-                    <div className="mb-8">
-                        <h2 className="text-lg font-semibold text-zinc-800 mb-6 border-l-4 border-sky-700 pl-3">Shipment Info</h2>
-                        <div className="space-y-4">
-                            <div>
-                                <span className="text-sm text-zinc-500 block mb-1">Handover Method</span>
-                                <div className="text-base font-medium text-zinc-800">{quotation.handoverMethod}</div>
-                            </div>
-                            <div>
-                                <span className="text-sm text-zinc-500 block mb-1">Origin</span>
-                                <div className="text-base font-medium text-zinc-800">{quotation.origin?.city}, {quotation.origin?.country}</div>
-                            </div>
-                            <div>
-                                <span className="text-sm text-zinc-500 block mb-1">Destination</span>
-                                <div className="text-base font-medium text-zinc-800">{quotation.destination?.city}, {quotation.destination?.country}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="mt-10 pt-6 border-t border-gray-100 flex justify-end gap-4">
-                    <button
-                        className="px-6 py-2.5 border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                        onClick={() => router.back()}
-                    >
-                        Back
-                    </button>
-
-                    {canSendWarehouseDetails && (
-                        <button
-                            className="px-6 py-2.5 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
-                            onClick={() => setIsWarehouseModalOpen(true)}
-                        >
-                            {quotation.warehouseDropOffLocation ? 'Update Warehouse Location' : 'Send Warehouse Location'}
-                        </button>
-                    )}
-                </div>
-
-                {/* Modal */}
-                {isWarehouseModalOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                        <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
-                            <h3 className="text-lg font-bold mb-4">Send Warehouse Location</h3>
-                            <p className="text-sm text-gray-600 mb-4">
-                                Enter the warehouse address and instructions for the client to drop off their shipment.
-                            </p>
-                            <textarea
-                                className="w-full border border-gray-300 rounded-lg p-3 h-32 mb-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                                placeholder="e.g. Warehouse A, 123 Logistics Way..."
-                                value={warehouseMessage}
-                                onChange={(e) => setWarehouseMessage(e.target.value)}
-                            ></textarea>
-                            <div className="flex justify-end gap-3">
-                                <button
-                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                                    onClick={() => setIsWarehouseModalOpen(false)}
-                                    disabled={sending}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                                    onClick={handleSendWarehouseDetails}
-                                    disabled={sending || !warehouseMessage.trim()}
-                                >
-                                    {sending ? 'Sending...' : 'Send Details'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+            {/* Bottom Section: Contextual Action Panel */}
+            <div className="max-w-4xl mx-auto">
+                {renderActionPanel()}
             </div>
         </div>
     );

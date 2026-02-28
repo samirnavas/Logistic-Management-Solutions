@@ -13,7 +13,7 @@ export default function StatusBadge({ status, className = '' }: StatusBadgeProps
     let type: StatusType = 'info';
     let displayLabel = status.replace(/_/g, ' ');
 
-    if (['REQUEST_SENT', 'PENDING_REVIEW', 'NEGOTIATION_REQUESTED'].includes(normalizedStatus)) {
+    if (['REQUEST_SENT', 'PENDING_ADMIN_REVIEW', 'NEGOTIATION_REQUESTED'].includes(normalizedStatus)) {
         type = 'warning';
     } else if (['COST_CALCULATED', 'DRAFT'].includes(normalizedStatus)) {
         type = 'draft';

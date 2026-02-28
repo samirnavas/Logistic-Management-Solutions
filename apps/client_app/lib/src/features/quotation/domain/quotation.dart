@@ -346,13 +346,14 @@ class Quotation {
       case 'draft':
         return QuotationStatus.draft;
       case 'request_sent':
-      case 'PENDING_REVIEW':
-      case 'pending_review':
+      case 'PENDING_ADMIN_REVIEW':
+      case 'pending_admin_review':
       case 'Pending': // Legacy
         return QuotationStatus.requestSent;
       case 'approved':
       case 'VERIFIED':
       case 'verified':
+      case 'PENDING_CUSTOMER_APPROVAL': // New workflow: admin approved, awaiting client action
         return QuotationStatus.approved;
       case 'ADDRESS_PROVIDED':
       case 'address_provided':
@@ -370,12 +371,15 @@ class Quotation {
       case 'ACCEPTED':
       case 'accepted':
       case 'Accepted':
+      case 'AWAITING_FINAL_CHARGE_SHEET': // Customer accepted, admin adding final charges
+      case 'PAYMENT_PENDING': // Final charges set, awaiting payment
         return QuotationStatus.accepted;
       case 'REJECTED':
       case 'rejected':
       case 'Rejected': // Legacy
         return QuotationStatus.rejected;
       case 'BOOKED':
+      case 'CONVERTED_TO_SHIPMENT': // Payment done, shipment created
       case 'ready_for_pickup':
       case 'Ready for Pickup': // Legacy
         return QuotationStatus.readyForPickup;

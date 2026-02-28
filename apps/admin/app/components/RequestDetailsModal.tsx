@@ -617,7 +617,7 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
 
                         {/* Footer Buttons (Sticky) */}
                         <div className="sticky bottom-0 bg-gray-50 p-4 border-t border-gray-200 flex justify-end gap-3 rounded-b-xl z-20">
-                            {['request_sent', 'pending_review', 'PENDING_REVIEW'].includes(request.status) && (
+                            {['PENDING_ADMIN_REVIEW'].includes(request.status) && (
                                 <button
                                     onClick={handleApproveRequest}
                                     className="px-6 py-2.5 rounded-md bg-[#0557A5] text-white text-sm font-medium hover:bg-[#044580] transition-colors shadow-sm"
@@ -626,9 +626,9 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                 </button>
                             )}
 
-                            {['approved', 'verified', 'VERIFIED'].includes(request.status) && (
+                            {['PENDING_CUSTOMER_APPROVAL'].includes(request.status) && (
                                 <div className="bg-yellow-50 text-yellow-800 px-6 py-2.5 rounded-md flex items-center justify-center shadow-sm">
-                                    <span className="font-medium text-sm">Waiting for client to provide details</span>
+                                    <span className="font-medium text-sm">Waiting for client to review the quotation</span>
                                 </div>
                             )}
 

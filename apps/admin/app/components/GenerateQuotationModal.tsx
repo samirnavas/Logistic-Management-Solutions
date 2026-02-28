@@ -55,7 +55,7 @@ export default function GenerateQuotationModal({
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (status === 'PENDING_REVIEW') {
+        if (status === 'PENDING_ADMIN_REVIEW') {
             setError('Please Mark as Verified before pricing.');
         } else {
             setError(null);
@@ -118,7 +118,7 @@ export default function GenerateQuotationModal({
     };
 
     const handleSubmit = async () => {
-        if (status === 'PENDING_REVIEW') return;
+        if (status === 'PENDING_ADMIN_REVIEW') return;
 
         setLoading(true);
         try {

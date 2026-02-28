@@ -29,7 +29,7 @@ const lineItemSchema = new mongoose.Schema({
     },
     category: {
         type: String,
-        enum: ['General', 'Special', 'Harmful', 'Explosive', 'Freight', 'Insurance', 'Packaging', 'Handling', 'Tax', 'Other', 'freight', 'insurance', 'handling', 'other'], // Added lowercase for compatibility
+        enum: ['General', 'Special', 'Harmful', 'Explosive', 'Freight', 'Insurance', 'Packaging', 'Handling', 'Tax', 'Other', 'freight', 'insurance', 'handling', 'other'],
         default: 'General',
     },
     isHazardous: {
@@ -74,43 +74,149 @@ const lineItemSchema = new mongoose.Schema({
     },
 }, { _id: false });
 
-const addressSchema = new mongoose.Schema({
-    name: {
+// ============================================
+// Itemized Cost Sub-Schema
+// Links a price breakdown to a specific line item (by description / index)
+// ============================================
+const itemizedCostSchema = new mongoose.Schema({
+    /**
+     * Reference to the line item by its description (human-readable).
+     * Using description rather than ObjectId since lineItems use { _id: false }.
+     */
+    lineItemDescription: {
         type: String,
-        trim: true,
-        maxlength: [100, 'Name cannot exceed 100 characters'],
-    },
-    phone: {
-        type: String,
-        trim: true,
-    },
-    addressLine: {
-        type: String,
-        trim: true,
-        maxlength: [200, 'Address line cannot exceed 200 characters'],
-    },
-    city: {
-        type: String,
+        required: [true, 'Line item description reference is required'],
         trim: true,
     },
-    state: {
+    freightCharge: {
+        type: Number,
+        default: 0,
+        min: [0, 'Freight charge cannot be negative'],
+    },
+    handlingFee: {
+        type: Number,
+        default: 0,
+        min: [0, 'Handling fee cannot be negative'],
+    },
+}, { _id: false });
+
+// ============================================
+// Routing Data Sub-Schema  (Phase 1 — region/city strings only)
+// Collected at the time the customer first submits the quote request.
+// ============================================
+const routingDataSchema = new mongoose.Schema({
+    sourceRegion: {
+        type: String,
+        trim: true,
+        maxlength: [100, 'Source region cannot exceed 100 characters'],
+    },
+    sourceCity: {
+        type: String,
+        trim: true,
+        maxlength: [100, 'Source city cannot exceed 100 characters'],
+    },
+    destinationRegion: {
+        type: String,
+        trim: true,
+        maxlength: [100, 'Destination region cannot exceed 100 characters'],
+    },
+    destinationCity: {
+        type: String,
+        trim: true,
+        maxlength: [100, 'Destination city cannot exceed 100 characters'],
+    },
+}, { _id: false });
+
+// ============================================
+// Fulfillment Details Sub-Schema  (Phase 4 — exact addresses + logistics type)
+// Collected after the customer accepts the base quote.
+// ============================================
+const fulfillmentDetailsSchema = new mongoose.Schema({
+    // --- Origin / Pickup ---
+    pickupAddressLine: {
+        type: String,
+        trim: true,
+        maxlength: [250, 'Pickup address line cannot exceed 250 characters'],
+    },
+    pickupCity: {
+        type: String,
+        trim: true,
+    },
+    pickupState: {
         type: String,
         trim: true,
         default: '',
     },
-    country: {
+    pickupCountry: {
         type: String,
         trim: true,
     },
-    zip: {
+    pickupZip: {
         type: String,
         trim: true,
     },
-    addressType: {
+    pickupCoordinates: {
+        latitude: { type: Number },
+        longitude: { type: Number },
+    },
+    /**
+     * How the goods originate for first-mile logistics.
+     * HOME_PICKUP  → agent collects from customer's address (triggers firstMileCharge).
+     * WAREHOUSE_DROP → customer drops goods at our warehouse (no first-mile).
+     */
+    pickupType: {
+        type: String,
+        enum: {
+            values: ['HOME_PICKUP', 'WAREHOUSE_DROP'],
+            message: 'pickupType must be HOME_PICKUP or WAREHOUSE_DROP',
+        },
+    },
+
+    // --- Destination / Delivery ---
+    deliveryAddressLine: {
+        type: String,
+        trim: true,
+        maxlength: [250, 'Delivery address line cannot exceed 250 characters'],
+    },
+    deliveryCity: {
+        type: String,
+        trim: true,
+    },
+    deliveryState: {
         type: String,
         trim: true,
         default: '',
     },
+    deliveryCountry: {
+        type: String,
+        trim: true,
+    },
+    deliveryZip: {
+        type: String,
+        trim: true,
+    },
+    deliveryCoordinates: {
+        latitude: { type: Number },
+        longitude: { type: Number },
+    },
+    /**
+     * How the goods are handed over at the destination end.
+     * HOME_DELIVERY    → agent delivers to recipient's address (triggers lastMileCharge).
+     * WAREHOUSE_PICKUP → recipient collects from our warehouse (no last-mile).
+     */
+    deliveryType: {
+        type: String,
+        enum: {
+            values: ['HOME_DELIVERY', 'WAREHOUSE_PICKUP'],
+            message: 'deliveryType must be HOME_DELIVERY or WAREHOUSE_PICKUP',
+        },
+    },
+
+    // Contact details for first/last mile handover
+    senderName: { type: String, trim: true },
+    senderPhone: { type: String, trim: true },
+    recipientName: { type: String, trim: true },
+    recipientPhone: { type: String, trim: true },
 }, { _id: false });
 
 // ============================================
@@ -143,37 +249,56 @@ const quotationSchema = new mongoose.Schema({
         index: true,
     },
 
-    // --- Shipment Details ---
-    // Can represent Client Address or Warehouse Address depending on serviceMode
+    // ============================================================
+    // PHASE 1 — Routing Data (customer-supplied, region/city only)
+    // ============================================================
+    routingData: {
+        type: routingDataSchema,
+        default: () => ({}),
+    },
+
+    // ============================================================
+    // PHASE 4 — Fulfillment Details (exact addresses, post-acceptance)
+    // Populated only after isLocked === true (customer accepted base quote).
+    // ============================================================
+    fulfillmentDetails: {
+        type: fulfillmentDetailsSchema,
+        default: null,
+    },
+
+    // --- Legacy address fields (kept for backward compatibility) ---
     origin: {
-        type: addressSchema,
-        required: [function () {
-            // Origin required only if NOT Draft AND NOT Drop-off
-            return this.status !== 'DRAFT' && this.handoverMethod !== 'DROP_OFF';
-        }, 'Origin address is required'],
+        type: new mongoose.Schema({
+            name: { type: String, trim: true, maxlength: [100, 'Name cannot exceed 100 characters'] },
+            phone: { type: String, trim: true },
+            addressLine: { type: String, trim: true, maxlength: [200, 'Address line cannot exceed 200 characters'] },
+            city: { type: String, trim: true },
+            state: { type: String, trim: true, default: '' },
+            country: { type: String, trim: true },
+            zip: { type: String, trim: true },
+            addressType: { type: String, trim: true, default: '' },
+        }, { _id: false }),
     },
-    pickupAddress: {
-        type: String,
-        required: function () {
-            // Required if PICKUP and no origin provided (backward compatibility)
-            return this.handoverMethod === 'PICKUP' && (!this.origin || !this.origin.addressLine);
-        }
-    },
-    // Can represent Client Address or Warehouse Address depending on serviceMode
     destination: {
-        type: addressSchema,
-        required: [function () { return this.status !== 'DRAFT'; }, 'Destination address is required'],
+        type: new mongoose.Schema({
+            name: { type: String, trim: true, maxlength: [100, 'Name cannot exceed 100 characters'] },
+            phone: { type: String, trim: true },
+            addressLine: { type: String, trim: true, maxlength: [200, 'Address line cannot exceed 200 characters'] },
+            city: { type: String, trim: true },
+            state: { type: String, trim: true, default: '' },
+            country: { type: String, trim: true },
+            zip: { type: String, trim: true },
+            addressType: { type: String, trim: true, default: '' },
+        }, { _id: false }),
     },
-    pickupDate: {
-        type: Date,
-    },
-    deliveryDate: {
-        type: Date,
-    },
+
+    // --- Shipment / Cargo Details ---
+    pickupDate: { type: Date },
+    deliveryDate: { type: Date },
     cargoType: {
         type: String,
         required: [function () { return this.status !== 'DRAFT'; }, 'Cargo type is required'],
-        default: 'General Cargo'
+        default: 'General Cargo',
     },
     serviceMode: {
         type: String,
@@ -192,7 +317,7 @@ const quotationSchema = new mongoose.Schema({
         default: '',
     },
 
-    // --- Handover Method (Pickup or Drop-off) ---
+    // --- Handover Method ---
     handoverMethod: {
         type: String,
         enum: ['PICKUP', 'DROP_OFF'],
@@ -208,14 +333,14 @@ const quotationSchema = new mongoose.Schema({
         type: [String],
         default: [],
         validate: {
-            validator: function (v) {
-                return v.length <= 5;
-            },
+            validator: function (v) { return v.length <= 5; },
             message: 'Maximum 5 product photos allowed',
         },
     },
 
-    // --- Financial Details ---
+    // ============================================================
+    // LINE ITEMS
+    // ============================================================
     items: {
         type: [lineItemSchema],
         validate: {
@@ -226,11 +351,109 @@ const quotationSchema = new mongoose.Schema({
             message: 'At least one line item is required',
         },
     },
-    subtotal: {
+
+    // ============================================================
+    // PRICING / LEDGER  (Phase 3 → Phase 5 progressive population)
+    // ============================================================
+
+    /**
+     * Per-item cost breakdown. Each entry links to a line item by description
+     * and carries that item's freight charge + handling fee.
+     */
+    itemizedCosts: {
+        type: [itemizedCostSchema],
+        default: [],
+    },
+
+    /**
+     * Aggregate base freight charge across all items + route (admin-set, Phase 3).
+     */
+    baseFreightCharge: {
         type: Number,
         default: 0,
-        min: [0, 'Subtotal cannot be negative'],
+        min: [0, 'Base freight charge cannot be negative'],
     },
+
+    /**
+     * Aggregate estimated handling fee (admin-set, Phase 3).
+     */
+    estimatedHandlingFee: {
+        type: Number,
+        default: 0,
+        min: [0, 'Estimated handling fee cannot be negative'],
+    },
+
+    /**
+     * First-mile charge — cost of collecting goods from customer's pickup address.
+     * Only applicable when fulfillmentDetails.pickupType === 'HOME_PICKUP'.
+     * Set during Phase 5 (final charge sheet), BEFORE PAYMENT_PENDING.
+     *
+     * Validation: REQUIRED when transitioning to PAYMENT_PENDING or beyond.
+     * Not required during PENDING_ADMIN_REVIEW.
+     */
+    firstMileCharge: {
+        type: Number,
+        default: 0,
+        min: [0, 'First-mile charge cannot be negative'],
+        validate: {
+            validator: function (v) {
+                // If status is PAYMENT_PENDING or CONVERTED_TO_SHIPMENT,
+                // firstMileCharge must be explicitly set (>= 0 is always true,
+                // but we treat null/undefined as a violation at those stages).
+                const requiresChargeSheet = [
+                    'PAYMENT_PENDING',
+                    'CONVERTED_TO_SHIPMENT',
+                ].includes(this.status);
+
+                if (requiresChargeSheet && (v === null || v === undefined)) {
+                    return false;
+                }
+                return true;
+            },
+            message: 'firstMileCharge must be set before the quote reaches PAYMENT_PENDING',
+        },
+    },
+
+    /**
+     * Last-mile charge — cost of delivering goods to recipient's door.
+     * Only applicable when fulfillmentDetails.deliveryType === 'HOME_DELIVERY'.
+     * Set during Phase 5 (final charge sheet), BEFORE PAYMENT_PENDING.
+     *
+     * Validation: REQUIRED when transitioning to PAYMENT_PENDING or beyond.
+     * Not required during PENDING_ADMIN_REVIEW.
+     */
+    lastMileCharge: {
+        type: Number,
+        default: 0,
+        min: [0, 'Last-mile charge cannot be negative'],
+        validate: {
+            validator: function (v) {
+                const requiresChargeSheet = [
+                    'PAYMENT_PENDING',
+                    'CONVERTED_TO_SHIPMENT',
+                ].includes(this.status);
+
+                if (requiresChargeSheet && (v === null || v === undefined)) {
+                    return false;
+                }
+                return true;
+            },
+            message: 'lastMileCharge must be set before the quote reaches PAYMENT_PENDING',
+        },
+    },
+
+    /**
+     * Grand total: baseFreightCharge + estimatedHandlingFee + firstMileCharge
+     * + lastMileCharge + any other ad-hoc charges, minus discounts.
+     * Recalculated on every save when the pricing fields change.
+     */
+    totalAmount: {
+        type: Number,
+        default: 0,
+        min: [0, 'Total amount cannot be negative'],
+    },
+
+    // Supporting financial meta-fields (retained for UI / PDF generation)
     taxRate: {
         type: Number,
         default: 0,
@@ -252,11 +475,6 @@ const quotationSchema = new mongoose.Schema({
         trim: true,
         default: '',
     },
-    totalAmount: {
-        type: Number,
-        default: 0,
-        min: [0, 'Total amount cannot be negative'],
-    },
     currency: {
         type: String,
         default: 'USD',
@@ -266,29 +484,48 @@ const quotationSchema = new mongoose.Schema({
         },
     },
 
+    // ============================================================
+    // WORKFLOW / NEGOTIATION STATE
+    // ============================================================
+
+    /**
+     * How many times the quote has bounced between admin and customer.
+     * Incremented each time the admin re-sends a revised quote to the customer.
+     */
+    revisionCount: {
+        type: Number,
+        default: 0,
+        min: [0, 'Revision count cannot be negative'],
+    },
+
+    /**
+     * Locked once the customer formally accepts the base quote (Phase 4).
+     * When true, core pricing can no longer be changed — only firstMileCharge
+     * and lastMileCharge remain editable as part of the final charge sheet.
+     */
+    isLocked: {
+        type: Boolean,
+        default: false,
+        index: true,
+    },
+
     // --- Approval Workflow ---
     isApprovedByManager: {
         type: Boolean,
         default: false,
         index: true,
     },
-    managerApprovedAt: {
-        type: Date,
-    },
+    managerApprovedAt: { type: Date },
     isAcceptedByClient: {
         type: Boolean,
         default: false,
     },
-    clientAcceptedAt: {
-        type: Date,
-    },
+    clientAcceptedAt: { type: Date },
     isRejectedByClient: {
         type: Boolean,
         default: false,
     },
-    clientRejectedAt: {
-        type: Date,
-    },
+    clientRejectedAt: { type: Date },
     clientRejectionReason: {
         type: String,
         trim: true,
@@ -296,9 +533,7 @@ const quotationSchema = new mongoose.Schema({
     },
 
     // --- Validity ---
-    validUntil: {
-        type: Date,
-    },
+    validUntil: { type: Date },
 
     // --- Documents ---
     pdfUrl: {
@@ -326,25 +561,49 @@ const quotationSchema = new mongoose.Schema({
         default: 'Standard shipping terms and conditions apply. Payment due within 30 days.',
     },
 
-    // --- Status ---
+    // ============================================================
+    // STATUS  (Iterative Quotation state machine)
+    // ============================================================
+    /**
+     * State machine for the Iterative Quotation workflow:
+     *
+     *  DRAFT
+     *    → customer saves a quote request but hasn't submitted yet.
+     *
+     *  PENDING_ADMIN_REVIEW
+     *    → customer submits (Phase 1). Admin reviews routing data & items.
+     *
+     *  PENDING_CUSTOMER_APPROVAL
+     *    → admin prices the base quote (Phase 3) and sends it to the customer.
+     *      revisionCount increments each time the quote bounces back here.
+     *
+     *  AWAITING_FINAL_CHARGE_SHEET
+     *    → customer accepts base quote (Phase 4), isLocked = true.
+     *      Admin adds firstMileCharge + lastMileCharge and issues final charge sheet.
+     *
+     *  PAYMENT_PENDING
+     *    → final charge sheet accepted; customer must complete payment.
+     *      firstMileCharge & lastMileCharge MUST be set at this point.
+     *
+     *  CONVERTED_TO_SHIPMENT
+     *    → payment confirmed; a Shipment document is created.
+     *
+     *  REJECTED
+     *    → either party has terminated the negotiation.
+     */
     status: {
         type: String,
         enum: {
             values: [
                 'DRAFT',
-                'PENDING_REVIEW',
-                'INFO_REQUIRED',
-                'VERIFIED',
-                'ADDRESS_PROVIDED',
-                'QUOTATION_GENERATED',
-                'QUOTATION_SENT',
-                'NEGOTIATION_REQUESTED',
-                'ACCEPTED',
+                'PENDING_ADMIN_REVIEW',
+                'PENDING_CUSTOMER_APPROVAL',
+                'AWAITING_FINAL_CHARGE_SHEET',
+                'PAYMENT_PENDING',
+                'CONVERTED_TO_SHIPMENT',
                 'REJECTED',
-                'EXPIRED',
-                'BOOKED'
             ],
-            message: 'Invalid quotation status',
+            message: 'Invalid quotation status: {VALUE}',
         },
         default: 'DRAFT',
         index: true,
@@ -352,31 +611,20 @@ const quotationSchema = new mongoose.Schema({
 
     // --- Audit Log ---
     statusHistory: [{
-        status: {
-            type: String,
-            required: true
-        },
-        changedBy: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User'
-        },
-        reason: {
-            type: String
-        },
-        timestamp: {
-            type: Date,
-            default: Date.now
-        }
+        status: { type: String, required: true },
+        changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        reason: { type: String },
+        timestamp: { type: Date, default: Date.now },
     }],
 
     // --- Negotiation ---
     negotiation: {
         clientNotes: { type: String },
         adminResponse: { type: String },
-        isActive: { type: Boolean, default: false }
+        isActive: { type: Boolean, default: false },
     },
 
-    // --- Revision Tracking ---
+    // --- Legacy revision tracking (kept for backward compatibility) ---
     revisionNumber: {
         type: Number,
         default: 1,
@@ -388,7 +636,7 @@ const quotationSchema = new mongoose.Schema({
     },
 
 }, {
-    timestamps: true,
+    timestamps: true,  // createdAt + updatedAt
     toJSON: {
         virtuals: true,
         versionKey: false,
@@ -397,7 +645,7 @@ const quotationSchema = new mongoose.Schema({
             delete ret._id;
             // Hide internal notes from client app responses
             delete ret.internalNotes;
-        }
+        },
     },
     toObject: {
         virtuals: true,
@@ -405,48 +653,57 @@ const quotationSchema = new mongoose.Schema({
         transform: function (doc, ret) {
             ret.id = ret._id;
             delete ret._id;
-        }
-    }
+        },
+    },
 });
 
 // ============================================
 // Indexes for Performance
 // ============================================
-// Note: Single-field indexes are defined in field definitions
-// Only compound indexes defined here
-// quotationSchema.index({ requestId: 1, status: 1 });
 quotationSchema.index({ clientId: 1, status: 1 });
 quotationSchema.index({ managerId: 1, createdAt: -1 });
 quotationSchema.index({ validUntil: 1 });
 quotationSchema.index({ isApprovedByManager: 1, status: 1 });
+quotationSchema.index({ isLocked: 1, status: 1 });
 
 // ============================================
 // Virtual Fields
 // ============================================
 
-/**
- * Check if quotation is expired
- */
+/** Check if quotation is expired */
 quotationSchema.virtual('isExpired').get(function () {
-    return new Date() > this.validUntil;
+    return this.validUntil ? new Date() > this.validUntil : false;
 });
 
-/**
- * Check if quotation is visible to client app
- * client app only sees price if approved by manager
- */
+/** Check if quotation is visible to the client app */
 quotationSchema.virtual('isVisibleToClient').get(function () {
-    return ['QUOTATION_SENT', 'ACCEPTED', 'REJECTED', 'BOOKED', 'NEGOTIATION_REQUESTED', 'EXPIRED'].includes(this.status);
+    return [
+        'PENDING_CUSTOMER_APPROVAL',
+        'AWAITING_FINAL_CHARGE_SHEET',
+        'PAYMENT_PENDING',
+        'CONVERTED_TO_SHIPMENT',
+        'REJECTED',
+    ].includes(this.status);
 });
 
-/**
- * Days until expiry
- */
+/** Days until expiry */
 quotationSchema.virtual('daysUntilExpiry').get(function () {
+    if (!this.validUntil) return null;
     const now = new Date();
     const expiry = new Date(this.validUntil);
     const diffTime = expiry - now;
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+});
+
+/**
+ * Convenience: whether the final charge sheet charges are populated.
+ * True when both firstMileCharge and lastMileCharge have been explicitly set.
+ */
+quotationSchema.virtual('isFinalChargeSheetReady').get(function () {
+    return (
+        typeof this.firstMileCharge === 'number' &&
+        typeof this.lastMileCharge === 'number'
+    );
 });
 
 // ============================================
@@ -454,15 +711,15 @@ quotationSchema.virtual('daysUntilExpiry').get(function () {
 // ============================================
 
 /**
- * Auto-generate quotation number and calculate totals
+ * Auto-generate quotation number / ID and recalculate totals.
  */
 quotationSchema.pre('save', async function () {
-    // Generate quotation number (legacy)
+    // Generate quotation number (legacy sequential format)
     if (this.isNew && !this.quotationNumber) {
         this.quotationNumber = await generateQuotationNumber();
     }
 
-    // Generate quotation ID (New Format: QT-YYYYMMDD-Random)
+    // Generate quotation ID (QT-YYYYMMDD-XXXX format)
     if (this.isNew && !this.quotationId) {
         const date = new Date();
         const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
@@ -470,8 +727,18 @@ quotationSchema.pre('save', async function () {
         this.quotationId = `QT-${dateStr}-${randomSuffix}`;
     }
 
-    // Recalculate totals if items changed
-    if (this.isModified('items') || this.isModified('taxRate') || this.isModified('discount')) {
+    // Recalculate totals whenever any pricing field changes
+    const pricingFields = [
+        'items',
+        'taxRate',
+        'discount',
+        'itemizedCosts',
+        'baseFreightCharge',
+        'estimatedHandlingFee',
+        'firstMileCharge',
+        'lastMileCharge',
+    ];
+    if (pricingFields.some(f => this.isModified(f))) {
         this.calculateTotals();
     }
 });
@@ -481,47 +748,63 @@ quotationSchema.pre('save', async function () {
 // ============================================
 
 /**
- * Calculate subtotal, tax, and total from line items
+ * Recalculate totalAmount from the structured pricing fields.
+ *
+ * Formula:
+ *   totalAmount = baseFreightCharge
+ *               + estimatedHandlingFee
+ *               + firstMileCharge
+ *               + lastMileCharge
+ *               + tax (derived from subtotal × taxRate)
+ *               − discount
+ *
+ * `subtotal` here is the sum of all lineItem.amount values and is used purely
+ * as the basis for tax calculation — it is NOT stored separately any more.
  */
 quotationSchema.methods.calculateTotals = function () {
-    // Calculate subtotal from items
-    this.subtotal = this.items.reduce((sum, item) => sum + item.amount, 0);
+    // Sum of line-item amounts (for tax base)
+    const itemsSubtotal = (this.items || []).reduce((sum, item) => sum + (item.amount || 0), 0);
 
-    // Calculate tax
-    this.tax = (this.subtotal * this.taxRate) / 100;
+    // Tax on items subtotal
+    this.tax = (itemsSubtotal * (this.taxRate || 0)) / 100;
 
-    // Calculate total
-    this.totalAmount = this.subtotal + this.tax - this.discount;
+    // Grand total
+    const rawTotal =
+        (this.baseFreightCharge || 0) +
+        (this.estimatedHandlingFee || 0) +
+        (this.firstMileCharge || 0) +
+        (this.lastMileCharge || 0) +
+        itemsSubtotal +
+        this.tax -
+        (this.discount || 0);
 
-    // Ensure total is not negative
-    if (this.totalAmount < 0) {
-        this.totalAmount = 0;
-    }
+    this.totalAmount = Math.max(0, rawTotal);
 };
 
 /**
- * Approve quotation by manager
+ * Approve quotation by manager and transition to PENDING_CUSTOMER_APPROVAL.
  */
 quotationSchema.methods.approveByManager = async function () {
     this.isApprovedByManager = true;
     this.managerApprovedAt = new Date();
-    this.status = 'VERIFIED';
+    this.status = 'PENDING_CUSTOMER_APPROVAL';
+    this.revisionCount = (this.revisionCount || 0) + 1;
     return this.save();
 };
 
 /**
- * Send quotation to client
+ * Send / re-send quotation to client (sets status to PENDING_CUSTOMER_APPROVAL).
  */
 quotationSchema.methods.sendToClient = async function () {
     if (!this.isApprovedByManager) {
         throw new Error('Quotation must be approved by manager before sending to client');
     }
-    this.status = 'QUOTATION_SENT';
+    this.status = 'PENDING_CUSTOMER_APPROVAL';
     return this.save();
 };
 
 /**
- * Client accepts quotation
+ * Client accepts the base quote → lock it and await final charge sheet (Phase 4).
  */
 quotationSchema.methods.acceptByClient = async function () {
     if (this.isExpired) {
@@ -529,12 +812,13 @@ quotationSchema.methods.acceptByClient = async function () {
     }
     this.isAcceptedByClient = true;
     this.clientAcceptedAt = new Date();
-    this.status = 'ACCEPTED';
+    this.isLocked = true;
+    this.status = 'AWAITING_FINAL_CHARGE_SHEET';
     return this.save();
 };
 
 /**
- * Client rejects quotation
+ * Client rejects quotation.
  * @param {string} reason - Rejection reason
  */
 quotationSchema.methods.rejectByClient = async function (reason = '') {
@@ -546,53 +830,73 @@ quotationSchema.methods.rejectByClient = async function (reason = '') {
 };
 
 /**
- * Check if quotation can be edited
- * @returns {boolean}
+ * Admin issues the final charge sheet (Phase 5 — adds first/last mile charges).
+ * Transitions to PAYMENT_PENDING.
+ * @param {number} firstMile - First-mile charge amount
+ * @param {number} lastMile  - Last-mile charge amount
  */
-quotationSchema.methods.canBeEdited = function () {
-    return ['DRAFT', 'PENDING_REVIEW', 'INFO_REQUIRED'].includes(this.status);
+quotationSchema.methods.issueFinalChargeSheet = async function (firstMile = 0, lastMile = 0) {
+    if (!this.isLocked) {
+        throw new Error('Cannot issue a final charge sheet on an unlocked quotation. Customer must first accept the base quote.');
+    }
+    this.firstMileCharge = firstMile;
+    this.lastMileCharge = lastMile;
+    this.status = 'PAYMENT_PENDING';
+    return this.save();
 };
 
 /**
- * Get client-safe version (hides sensitive data if not approved)
+ * Mark as converted to shipment (post-payment).
+ */
+quotationSchema.methods.convertToShipment = async function () {
+    if (this.status !== 'PAYMENT_PENDING') {
+        throw new Error('Quotation must be in PAYMENT_PENDING state before converting to a shipment');
+    }
+    this.status = 'CONVERTED_TO_SHIPMENT';
+    return this.save();
+};
+
+/**
+ * Check if quotation core pricing can still be edited (not locked).
+ * @returns {boolean}
+ */
+quotationSchema.methods.canBeEdited = function () {
+    return ['DRAFT', 'PENDING_ADMIN_REVIEW'].includes(this.status) && !this.isLocked;
+};
+
+/**
+ * Get client-safe version of the quotation.
+ * Hides pricing until the quote reaches PENDING_CUSTOMER_APPROVAL.
  * @returns {Object}
  */
 quotationSchema.methods.toClientJSON = function () {
     const obj = this.toJSON();
     const status = this.status;
 
-    // Define statuses where price/details are ALWAYS visible to client
-    // This overrides any other flags like isApprovedByManager
-    const alwaysVisibleStatuses = [
-        'QUOTATION_SENT',
-        'ACCEPTED',
+    // Statuses where pricing details are fully visible to the client
+    const pricingVisibleStatuses = [
+        'PENDING_CUSTOMER_APPROVAL',
+        'AWAITING_FINAL_CHARGE_SHEET',
+        'PAYMENT_PENDING',
+        'CONVERTED_TO_SHIPMENT',
         'REJECTED',
-        'BOOKED',
-        'NEGOTIATION_REQUESTED',
-        'EXPIRED'
     ];
 
-    if (alwaysVisibleStatuses.includes(status)) {
+    if (pricingVisibleStatuses.includes(status)) {
         return obj;
     }
 
-    // For other statuses (request_sent, cost_calculated, details_submitted), 
-    // hide details if not explicitly approved or if it's a draft
-
-    // Check if price should be hidden
-    // Hide if NOT approved by manager 
+    // For DRAFT / PENDING_ADMIN_REVIEW — hide all pricing details
     if (!this.isApprovedByManager) {
-        // Hide pricing details for unapproved quotations
         obj.items = [];
-        obj.subtotal = null;
-        obj.tax = null;
+        obj.itemizedCosts = [];
+        obj.baseFreightCharge = null;
+        obj.estimatedHandlingFee = null;
+        obj.firstMileCharge = null;
+        obj.lastMileCharge = null;
         obj.totalAmount = null;
         obj.discount = null;
-
-        // Also mask status so client doesn't see "cost_calculated" or other internal statuses
-        if (obj.status === 'QUOTATION_GENERATED') {
-            obj.status = 'PENDING_REVIEW';
-        }
+        obj.tax = null;
     }
 
     return obj;
@@ -603,43 +907,51 @@ quotationSchema.methods.toClientJSON = function () {
 // ============================================
 
 /**
- * Find quotations for a specific request
- * @param {ObjectId} requestId - Request ID
- * @returns {Promise<Quotation[]>}
+ * Find quotations for a specific request.
+ * @param {ObjectId} requestId
  */
 quotationSchema.statics.findByRequest = function (requestId) {
     return this.find({ requestId })
         .populate('managerId', 'fullName email')
-        .sort({ revisionNumber: -1 });
+        .sort({ revisionCount: -1 });
 };
 
 /**
- * Find quotations visible to client
- * @param {ObjectId} clientId - client ID
- * @returns {Promise<Quotation[]>}
+ * Find quotations visible to the client (pricing approved by manager).
+ * @param {ObjectId} clientId
  */
 quotationSchema.statics.findVisibleToClient = function (clientId) {
     return this.find({
         clientId,
         isApprovedByManager: true,
-        status: { $in: ['QUOTATION_SENT', 'ACCEPTED', 'REJECTED', 'BOOKED', 'NEGOTIATION_REQUESTED', 'EXPIRED'] }
+        status: {
+            $in: [
+                'PENDING_CUSTOMER_APPROVAL',
+                'AWAITING_FINAL_CHARGE_SHEET',
+                'PAYMENT_PENDING',
+                'CONVERTED_TO_SHIPMENT',
+                'REJECTED',
+            ],
+        },
     })
         .populate('requestId', 'requestNumber itemName mode')
         .sort({ createdAt: -1 });
 };
 
 /**
- * Find pending quotations for manager
- * @param {ObjectId} managerId - Manager ID (optional, for all if not provided)
- * @returns {Promise<Quotation[]>}
+ * Find quotations pending admin review / pricing.
+ * @param {ObjectId} [managerId] - Optional; if omitted, returns all pending.
  */
 quotationSchema.statics.findPendingApproval = function (managerId = null) {
-    const query = { status: { $in: ['PENDING_REVIEW', 'VERIFIED', 'QUOTATION_GENERATED'] } };
+    const query = {
+        status: {
+            $in: ['PENDING_ADMIN_REVIEW', 'AWAITING_FINAL_CHARGE_SHEET'],
+        },
+    };
     if (managerId) {
         query.managerId = managerId;
     }
     return this.find(query)
-        .populate('requestId', 'requestNumber itemName')
         .populate('clientId', 'fullName email customerCode')
         .sort({ createdAt: -1 });
 };
@@ -649,34 +961,31 @@ quotationSchema.statics.findPendingApproval = function (managerId = null) {
 // ============================================
 
 /**
- * Generate unique quotation number
- * @returns {Promise<string>} - Generated quotation number (e.g., "QUO-20260114-001234")
+ * Generate a unique sequential quotation number.
+ * Format: QUO-YYYYMMDD-NNNNNN
+ * @returns {Promise<string>}
  */
 async function generateQuotationNumber() {
     const date = new Date();
     const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
 
-    // Get count of quotations created today
     const startOfDay = new Date(date.setHours(0, 0, 0, 0));
     const endOfDay = new Date(date.setHours(23, 59, 59, 999));
 
     const count = await mongoose.model('Quotation').countDocuments({
-        createdAt: { $gte: startOfDay, $lte: endOfDay }
+        createdAt: { $gte: startOfDay, $lte: endOfDay },
     });
 
-    // Try to generate a unique number, incrementing if duplicates exist
     let attempt = count + 1;
     let quotationNumber;
     let isUnique = false;
-    const maxAttempts = 100; // Prevent infinite loops
+    const maxAttempts = 100;
 
     while (!isUnique && attempt < count + maxAttempts) {
         const sequenceNumber = String(attempt).padStart(6, '0');
         quotationNumber = `QUO-${dateStr}-${sequenceNumber}`;
 
-        // Check if this number already exists
         const existing = await mongoose.model('Quotation').findOne({ quotationNumber });
-
         if (!existing) {
             isUnique = true;
         } else {
@@ -685,7 +994,7 @@ async function generateQuotationNumber() {
     }
 
     if (!isUnique) {
-        // Fallback: use timestamp to ensure uniqueness
+        // Fallback: timestamp ensures uniqueness
         quotationNumber = `QUO-${dateStr}-${Date.now()}`;
     }
 

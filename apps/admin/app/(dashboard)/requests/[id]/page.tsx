@@ -361,7 +361,7 @@ export default function RequestDetailsPage({ params }: { params: Promise<{ id: s
                 {/* Footer Buttons */}
                 <div className="mt-8 flex justify-center gap-6">
                     {/* Action Buttons for Triage Phase */}
-                    {['PENDING_REVIEW', 'NEGOTIATION_REQUESTED'].includes(request.status) && (
+                    {['PENDING_ADMIN_REVIEW', 'NEGOTIATION_REQUESTED'].includes(request.status) && (
                         <>
                             <button
                                 onClick={() => setShowClarificationModal(true)}

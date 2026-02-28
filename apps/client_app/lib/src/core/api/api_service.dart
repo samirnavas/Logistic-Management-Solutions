@@ -100,6 +100,41 @@ class ApiService {
     }
   }
 
+  Future<dynamic> patchRequest(
+    String endpoint,
+    Map<String, dynamic> data,
+  ) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+    String? token = await _storage.read(key: 'jwt_token');
+
+    try {
+      final response = await http
+          .patch(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              if (token != null) 'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode(data),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body);
+      } else {
+        throw _handleErrorResponse(response);
+      }
+    } on UserError {
+      rethrow;
+    } on SocketException {
+      throw UserError.connectionError();
+    } on TimeoutException {
+      throw UserError.unknown('Connection timed out');
+    } catch (e) {
+      throw UserError.unknown(e.toString());
+    }
+  }
+
   Future<dynamic> getRequest(String endpoint) async {
     final url = Uri.parse('$baseUrl$endpoint');
     String? token = await _storage.read(key: 'jwt_token');

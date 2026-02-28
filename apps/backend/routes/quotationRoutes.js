@@ -35,7 +35,7 @@ router.delete('/:id', protect, quotationController.deleteQuotation);
 // Save as Draft (Client: Save without submitting)
 router.post('/draft', protect, quotationController.saveAsDraft);
 
-// Submit Quotation (Transition DRAFT -> PENDING_REVIEW)
+// Submit Quotation (Transition DRAFT -> PENDING_ADMIN_REVIEW)
 // Added to ensure the draft workflow can be completed
 router.put('/:id/submit', protect, quotationController.submitQuotation);
 
@@ -90,6 +90,61 @@ router.patch('/:id/send', protect, quotationController.sendToClient);
 
 // Send warehouse drop-off details to client (Admin only)
 router.put('/:id/warehouse-details', protect, quotationController.sendWarehouseDetails);
+
+
+// ============================================
+// Iterative Quotation Workflow  (New State Machine)
+// ============================================
+
+/**
+ * Phase 1 — Customer submits a new inquiry with routingData.
+ * Creates the quotation and sets status to PENDING_ADMIN_REVIEW.
+ * Replaces the old POST / for the new workflow; old POST / is still active for legacy clients.
+ *
+ * POST /api/quotations/workflow/inquire
+ * Body: { routingData, items?, cargoType?, serviceType?, specialInstructions? }
+ */
+router.post('/workflow/inquire', protect, quotationController.createDraftQuotation);
+
+/**
+ * Phase 3 — Admin prices the base quote and sends it to the customer.
+ * Guard: status must be PENDING_ADMIN_REVIEW.
+ * Result: status → PENDING_CUSTOMER_APPROVAL.
+ *
+ * PATCH /api/quotations/:id/workflow/price
+ * Body: { baseFreightCharge, itemizedCosts?, estimatedHandlingFee?, taxRate?, discount?, validUntil? }
+ */
+router.patch('/:id/workflow/price', protect, quotationController.adminPriceQuotation);
+
+/**
+ * Phase 3 (bounce-back) — Customer requests changes and sends the quote back.
+ * Guard: status must be PENDING_CUSTOMER_APPROVAL AND isLocked must be false.
+ * Result: revisionCount++, status → PENDING_ADMIN_REVIEW.
+ *
+ * PATCH /api/quotations/:id/workflow/revise
+ * Body: { items?, specialInstructions?, additionalNotes?, revisionNotes? }
+ */
+router.patch('/:id/workflow/revise', protect, quotationController.customerReviseQuotation);
+
+/**
+ * Phase 4 — Customer accepts the base price and provides exact fulfillment addresses.
+ * Guard: status must be PENDING_CUSTOMER_APPROVAL.
+ * Result: isLocked = true, status → AWAITING_FINAL_CHARGE_SHEET.
+ *
+ * PATCH /api/quotations/:id/workflow/accept
+ * Body: { fulfillmentDetails: { pickupType, deliveryType, pickupCity, deliveryCity, ... } }
+ */
+router.patch('/:id/workflow/accept', protect, quotationController.customerAcceptQuotation);
+
+/**
+ * Phase 5 — Admin adds first/last mile charges and issues the final charge sheet.
+ * Guard: status must be AWAITING_FINAL_CHARGE_SHEET.
+ * Result: calculateTotals() recalculates grand total, status → PAYMENT_PENDING.
+ *
+ * PATCH /api/quotations/:id/workflow/finalize-charges
+ * Body: { firstMileCharge, lastMileCharge, additionalNotes?, internalNotes? }
+ */
+router.patch('/:id/workflow/finalize-charges', protect, quotationController.adminFinalizeChargeSheet);
 
 
 module.exports = router;

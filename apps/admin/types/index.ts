@@ -52,7 +52,7 @@ export interface LineItem {
 
 export type QuotationStatus =
     | 'DRAFT'
-    | 'PENDING_REVIEW'
+    | 'PENDING_ADMIN_REVIEW'
     | 'INFO_REQUIRED'
     | 'VERIFIED'
     | 'ADDRESS_PROVIDED'
