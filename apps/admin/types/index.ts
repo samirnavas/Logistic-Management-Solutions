@@ -47,7 +47,15 @@ export interface LineItem {
     quantity: number;
     unitPrice: number;
     amount: number;
-    category: 'freight' | 'handling' | 'customs' | 'insurance' | 'surcharge' | 'other';
+    category: string;
+    targetRate?: number;
+    targetCurrency?: string;
+    isHazardous?: boolean;
+    weight?: number;
+    packingVolume?: number;
+    declaredValue?: number;
+    value?: number;
+    shippingCharge?: number;
 }
 
 export type QuotationStatus =
@@ -116,9 +124,16 @@ export interface Quotation {
         deliveryCountry?: string;
         deliveryZip?: string;
         deliveryType?: string;
+        deliveryAddress?: string;
         senderName?: string;
         senderPhone?: string;
         pickupAddressLine?: string;
+        pickupCity?: string;
+        pickupState?: string;
+        pickupCountry?: string;
+        pickupZip?: string;
+        pickupType?: string;
+        pickupAddress?: string;
     };
 
     // Approval Workflow

@@ -1,12 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useEffect, useState, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import LiveQuotationLedger from '../../../components/LiveQuotationLedger';
 import { Quotation } from '../../../../types';
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-interface ItemPrice { unitPrice: number; }
+import {
+    MapPin, Package, StickyNote, ArrowRight, DollarSign,
+    AlertTriangle, Loader2, CheckCircle2, Clock, Check, RefreshCw, ChevronLeft
+} from 'lucide-react';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const statusLabel: Record<string, { text: string; color: string }> = {
@@ -14,13 +16,13 @@ const statusLabel: Record<string, { text: string; color: string }> = {
     PENDING_CUSTOMER_APPROVAL: { text: 'Sent — Awaiting Customer', color: 'bg-blue-100 text-blue-800 border-blue-200' },
     AWAITING_FINAL_CHARGE_SHEET: { text: 'Customer Accepted — Finalize Charges', color: 'bg-purple-100 text-purple-800 border-purple-200' },
     PAYMENT_PENDING: { text: 'Payment Pending', color: 'bg-orange-100 text-orange-800 border-orange-200' },
-    ACCEPTED: { text: 'Accepted', color: 'bg-green-100 text-green-800 border-green-200' },
+    ACCEPTED: { text: 'Accepted', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
     REJECTED: { text: 'Rejected', color: 'bg-red-100 text-red-800 border-red-200' },
-    DRAFT: { text: 'Draft', color: 'bg-gray-100 text-gray-600 border-gray-200' },
+    DRAFT: { text: 'Draft', color: 'bg-slate-100 text-slate-600 border-slate-200' },
 };
 
 function StatusPill({ status }: { status: string }) {
-    const s = statusLabel[status] ?? { text: status?.replace(/_/g, ' '), color: 'bg-gray-100 text-gray-700 border-gray-200' };
+    const s = statusLabel[status] ?? { text: status?.replace(/_/g, ' '), color: 'bg-slate-100 text-slate-700 border-slate-200' };
     return (
         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${s.color}`}>
             {s.text}
@@ -28,22 +30,27 @@ function StatusPill({ status }: { status: string }) {
     );
 }
 
-function InputField({ label, prefix = '$', value, onChange, min = 0 }: {
-    label: string; prefix?: string; value: number | string; onChange: (v: number | string) => void; min?: number;
+function InputField({ label, prefix, value, onChange, min = 0, disabled = false }: {
+    label: string; prefix?: string; value: number | string; onChange: (v: number | string) => void; min?: number; disabled?: boolean;
 }) {
     return (
         <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{label}</label>
+            <label className="block text-sm font-semibold text-slate-500 mb-1.5">{label}</label>
             <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium text-sm">{prefix}</span>
+                {prefix && (
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">
+                        {prefix}
+                    </span>
+                )}
                 <input
                     type="number"
                     min={min}
                     step="0.01"
                     value={value}
                     placeholder="0.00"
+                    disabled={disabled}
                     onChange={e => onChange(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="pl-8 w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
+                    className={`w-full border border-slate-300 rounded-lg py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed ${prefix ? 'pl-9 pr-3' : 'px-3'}`}
                 />
             </div>
         </div>
@@ -64,12 +71,12 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
     const [baseFreightCharge, setBaseFreightCharge] = useState<number | string>('');
     const [estimatedHandlingFee, setEstimatedHandlingFee] = useState<number | string>('');
     const [pricingNotes, setPricingNotes] = useState('');
-    // keyed by item index — holds the admin-set SHIPPING CHARGE (not commercial value)
+    // keyed by item index
     const [itemPrices, setItemPrices] = useState<Record<number, { shippingCharge: number }>>({});
 
     // Final charges state (AWAITING_FINAL_CHARGE_SHEET)
-    const [firstMileCharge, setFirstMileCharge] = useState(0);
-    const [lastMileCharge, setLastMileCharge] = useState(0);
+    const [firstMileCharge, setFirstMileCharge] = useState<number | string>('');
+    const [lastMileCharge, setLastMileCharge] = useState<number | string>('');
 
     const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
         setToast({ msg, type });
@@ -86,18 +93,20 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
             if (res.ok) {
                 const data = await res.json();
                 setQuotation(data);
-                // Pre-fill item prices if available
+
+                // Pre-fill items pricing mapping
                 if (data.items?.length) {
                     const prices: Record<number, { shippingCharge: number }> = {};
                     data.items.forEach((item: any, i: number) => {
-                        // Pre-fill from saved shippingCharge (or legacy unitPrice)
                         prices[i] = { shippingCharge: item.shippingCharge || item.unitPrice || 0 };
                     });
                     setItemPrices(prices);
                 }
-                // Pre-fill charges from nested 'pricing' object
-                setBaseFreightCharge(data.pricing?.baseFreightCharge || '');
-                setEstimatedHandlingFee(data.pricing?.estimatedHandlingFee || '');
+
+                // Pre-fill form state for pending review edits
+                setBaseFreightCharge(data.pricing?.baseFreightCharge ?? data.baseFreightCharge ?? '');
+                setEstimatedHandlingFee(data.pricing?.estimatedHandlingFee ?? data.estimatedHandlingFee ?? '');
+
             } else {
                 showToast('Failed to load quotation', 'error');
             }
@@ -124,11 +133,11 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                 weight: item.weight,
                 category: item.category,
                 isHazardous: item.isHazardous,
-                // Preserve client commercial value — admin only sets shippingCharge
-                declaredValue: item.declaredValue || 0,
+                // Preserve client commercial value
+                declaredValue: item.value || item.declaredValue || 0,
                 targetRate: item.targetRate || 0,
                 shippingCharge: itemPrices[i]?.shippingCharge || 0,
-                // Legacy mirrors
+                // Legacy fields
                 unitPrice: itemPrices[i]?.shippingCharge || 0,
                 amount: (itemPrices[i]?.shippingCharge || 0) * (item.quantity || 1),
             })) || [];
@@ -142,7 +151,7 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
 
             const res = await fetch(`/api/quotations/${id}/workflow/price`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(body),
             });
 
@@ -160,14 +169,17 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
         }
     };
 
-    // ── AWAITING_FINAL_CHARGE_SHEET: Finalize → PAYMENT_PENDING ──────────
     const handleFinalizeChargeSheet = async () => {
         setSending(true);
         try {
+            const token = localStorage.getItem('token');
             const res = await fetch(`/api/quotations/${id}/workflow/finalize-charges`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-                body: JSON.stringify({ firstMileCharge: Number(firstMileCharge), lastMileCharge: Number(lastMileCharge) }),
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({
+                    firstMileCharge: Number(firstMileCharge),
+                    lastMileCharge: Number(lastMileCharge)
+                }),
             });
 
             if (res.ok) {
@@ -184,448 +196,464 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
         }
     };
 
-    // ── Loading / Error ────────────────────────────────────────────────────
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-[80vh] flex flex-col items-center justify-center bg-transparent">
+                <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
+                <p className="text-sm font-medium text-slate-500">Loading quotation profile...</p>
+            </div>
+        );
+    }
+
+    if (!quotation) {
+        return (
+            <div className="min-h-[80vh] flex flex-col items-center justify-center bg-transparent p-6">
                 <div className="text-center">
-                    <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                    <p className="text-sm text-gray-500">Loading quotation...</p>
+                    <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                    <p className="text-red-600 font-semibold mb-2">Quotation not found or unable to load data.</p>
+                    <button onClick={() => router.push('/quotations')} className="flex items-center gap-2 mx-auto mt-6 text-sm text-blue-600 hover:text-blue-800 font-medium transition">
+                        <ChevronLeft className="w-4 h-4" /> Return to Quotations
+                    </button>
                 </div>
             </div>
         );
     }
-    if (!quotation) {
-        return (
-            <div className="p-8 text-center">
-                <p className="text-red-500 font-medium">Quotation not found.</p>
-                <button onClick={() => router.push('/quotations')} className="mt-4 text-sm text-primary underline">← Back to list</button>
-            </div>
-        );
-    }
 
+    // Unpack data mappings safely
     const rd = quotation.routingData;
     const fd = quotation.fulfillmentDetails;
+
+    // Dynamic Custom Currency Mapping
     const currency = quotation.currency || 'USD';
     const CURRENCY_SYMBOL: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', AED: 'AED ', CNY: '¥', JPY: '¥', INR: '₹' };
-    const currencySymbol = CURRENCY_SYMBOL[currency] || '$';
+    const currencySymbol = CURRENCY_SYMBOL[currency] || `${currency} `;
+
+    // Derived values
     const itemsTotal = Object.values(itemPrices).reduce((sum, ip) => sum + ((ip as any).shippingCharge || 0), 0);
     const subtotal = Number(baseFreightCharge || 0) + Number(estimatedHandlingFee || 0) + itemsTotal;
+    const isPostAcceptance = ['AWAITING_FINAL_CHARGE_SHEET', 'PAYMENT_PENDING', 'ACCEPTED', 'CONVERTED_TO_SHIPMENT'].includes(quotation.status);
+
+    // Helpers
+    const formatPending = (val: any) => val ? <span className="text-slate-900 font-medium">{val}</span> : <span className="text-slate-400 italic">Pending</span>;
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Toast */}
+        <div className="min-h-screen bg-slate-50/50 pb-12">
+
+            {/* Elegant Toast Feedback */}
             {toast && (
-                <div className={`fixed top-4 right-4 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium transition-all ${toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+                <div className={`fixed top-4 right-4 z-50 px-5 py-3 rounded-xl shadow-lg border text-sm font-medium transition-all flex items-center gap-2 animate-in slide-in-from-top-4 ${toast.type === 'success' ? 'bg-white border-emerald-200 text-emerald-700 shadow-emerald-500/10' : 'bg-red-600 border-red-700 text-white'
                     }`}>
+                    {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <AlertTriangle className="w-5 h-5" />}
                     {toast.msg}
                 </div>
             )}
 
             {/* Page Header */}
-            <div className="sticky top-0 z-40 bg-white border-b border-gray-200 px-6 py-4">
-                <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
+            <header className="bg-white border-b border-slate-200 px-6 py-4 rounded-xl shadow-sm mx-6 mt-6">
+                <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
                         <button
                             onClick={() => router.push('/quotations')}
-                            className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-500"
+                            className="p-2.5 hover:bg-slate-100 rounded-full transition text-slate-500"
+                            title="Back"
                         >
-                            ← Back
+                            <ChevronLeft className="w-5 h-5" />
                         </button>
                         <div>
-                            <div className="flex items-center gap-2">
-                                <h1 className="text-lg font-bold text-gray-900">
-                                    {quotation.quotationId || `Quotation #${id.slice(-8).toUpperCase()}`}
+                            <div className="flex items-center gap-3">
+                                <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                                    {quotation.quotationId || `Quote #${id.slice(-8).toUpperCase()}`}
                                 </h1>
                                 <StatusPill status={quotation.status} />
                             </div>
-                            <p className="text-xs text-gray-500 mt-0.5">
-                                Client: <span className="font-medium text-gray-700">{quotation.clientId?.fullName || 'N/A'}</span>
-                                {quotation.clientId?.email && <span className="ml-2 text-gray-400">{quotation.clientId.email}</span>}
+                            <p className="text-sm text-slate-500 mt-0.5">
+                                Ordered by: <span className="font-semibold text-slate-700">{quotation.clientId?.fullName || 'Client Not Assigned'}</span>
+                                {quotation.clientId?.email && <span className="ml-1 opacity-80">— {quotation.clientId.email}</span>}
                             </p>
                         </div>
                     </div>
-                    <button onClick={fetchQuotation} className="text-sm text-gray-500 hover:text-primary transition">↻ Refresh</button>
+                    <button
+                        onClick={fetchQuotation}
+                        className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-blue-600 transition bg-white border border-slate-200 px-4 py-2 rounded-lg shadow-sm hover:shadow active:scale-95"
+                    >
+                        <RefreshCw className="w-4 h-4" /> Refresh
+                    </button>
                 </div>
-            </div>
+            </header>
 
-            <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+            <main className="max-w-7xl mx-auto px-6 py-8">
 
-                {/* ── Routing / Request summary ─────────────────────────────── */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
-                        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Shipment Request Overview</h2>
-                    </div>
-                    <div className="px-6 py-5 grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
-                        <div>
-                            <p className="text-xs font-medium text-gray-400 uppercase mb-1">Origin</p>
-                            <p className="font-semibold text-gray-800">{rd?.sourceCity || quotation.origin?.city || '—'}</p>
-                            <p className="text-gray-500">{rd?.sourceRegion || quotation.origin?.country || ''}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs font-medium text-gray-400 uppercase mb-1">Destination</p>
-                            <p className="font-semibold text-gray-800">{rd?.destinationCity || quotation.destination?.city || '—'}</p>
-                            <p className="text-gray-500">{rd?.destinationRegion || quotation.destination?.country || ''}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs font-medium text-gray-400 uppercase mb-1">Service Mode</p>
-                            <p className="font-semibold text-gray-800">{quotation.serviceMode || '—'}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs font-medium text-gray-400 uppercase mb-1">Special Notes</p>
-                            <p className="text-gray-600 text-xs">{quotation.specialInstructions || 'None'}</p>
-                        </div>
-                    </div>
-                </div>
+                {/* Vertical Architecture */}
+                <div className="flex flex-col gap-8">
 
-                {/* ── Items Table ────────────────────────────────────────────── */}
-                {quotation.items?.length > 0 && (
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
-                            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                                Items ({quotation.items.length})
-                            </h2>
-                        </div>
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="text-xs font-semibold text-gray-400 uppercase border-b border-gray-100">
-                                    <th className="px-6 py-3 text-left">Description</th>
-                                    <th className="px-6 py-3 text-center">Qty</th>
-                                    <th className="px-6 py-3 text-center">Weight</th>
-                                    <th className="px-6 py-3 text-center">Volume (CBM)</th>
-                                    <th className="px-6 py-3 text-center">Category</th>
-                                    <th className="px-6 py-3 text-right">Target Rate</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {quotation.items.map((item: any, i: number) => (
-                                    <tr key={i} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-6 py-3 font-medium text-gray-800">
-                                            {item.description}
-                                            {item.isHazardous && (
-                                                <span className="ml-2 text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium">⚠ Hazardous</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-3 text-center text-gray-600">{item.quantity}</td>
-                                        <td className="px-6 py-3 text-center text-gray-600">{item.weight ? `${item.weight} kg` : '—'}</td>
-                                        <td className="px-6 py-3 text-center text-gray-600">{item.packingVolume ? `${item.packingVolume} CBM` : '—'}</td>
-                                        <td className="px-6 py-3 text-center">
-                                            <span className="px-2 py-0.5 bg-gray-100 rounded text-gray-600 text-xs">{item.category || 'General'}</span>
-                                        </td>
-                                        <td className="px-6 py-3 text-right text-gray-500">
-                                            {item.targetRate ? `${item.targetCurrency || 'USD'} ${item.targetRate}` : '—'}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                    {/* ── Shipment Request Overview ── */}
+                    <div className="space-y-6">
 
-                {/* ── Fulfillment Details (shown when customer has accepted) ─── */}
-                {fd && (
-                    <div className="bg-white rounded-xl border border-purple-200 shadow-sm overflow-hidden">
-                        <div className="px-6 py-4 border-b border-purple-100 bg-purple-50">
-                            <h2 className="text-sm font-semibold text-purple-800 uppercase tracking-wide">✓ Customer Fulfillment Details</h2>
+                        {/* Section Header */}
+                        <div className="flex items-center gap-2 mb-2 px-1">
+                            <h2 className="text-lg font-bold text-slate-800 tracking-tight">Shipment Request Overview</h2>
                         </div>
-                        <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
-                            <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase mb-3">
-                                    Origin ({fd.pickupType === 'WAREHOUSE_DROP' ? '🏭 Warehouse Drop-Off' : '🏠 Home/Office Pickup'})
-                                </p>
-                                <p className="font-semibold text-gray-800">{fd.senderName}</p>
-                                <p className="text-gray-500">{fd.senderPhone}</p>
-                                {fd.pickupAddressLine && <p className="text-gray-600 mt-1">{fd.pickupAddressLine}</p>}
-                                <p className="text-gray-600">{[fd.pickupCity, fd.pickupState, fd.pickupCountry].filter(Boolean).join(', ')}</p>
-                                {fd.pickupZip && <p className="text-gray-400 text-xs">{fd.pickupZip}</p>}
+
+                        {/* Card 1: Routing & Fulfillment Mapping */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center gap-3">
+                                <div className="p-1.5 bg-blue-100/50 text-blue-600 rounded-lg"><MapPin className="w-5 h-5" /></div>
+                                <h3 className="font-semibold text-slate-800 text-sm tracking-wide">ROUTING LOGISTICS</h3>
                             </div>
-                            <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase mb-3">
-                                    Destination ({fd.deliveryType === 'WAREHOUSE_PICKUP' ? '🏭 Warehouse Pickup' : '🚚 Home Delivery'})
-                                </p>
-                                <p className="font-semibold text-gray-800">{fd.recipientName}</p>
-                                <p className="text-gray-500">{fd.recipientPhone}</p>
-                                {fd.deliveryAddressLine && <p className="text-gray-600 mt-1">{fd.deliveryAddressLine}</p>}
-                                <p className="text-gray-600">{[fd.deliveryCity, fd.deliveryState, fd.deliveryCountry].filter(Boolean).join(', ')}</p>
-                                {fd.deliveryZip && <p className="text-gray-400 text-xs">{fd.deliveryZip}</p>}
-                            </div>
-                        </div>
-                    </div>
-                )}
+                            <div className="p-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative pb-2">
 
-                {/* ── LIVE LEDGER ─────────────────────────────────────────────── */}
-                <LiveQuotationLedger quotation={quotation as Quotation} />
+                                    {/* Origin Point */}
+                                    <div className="space-y-4">
+                                        <div>
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">Origin</p>
+                                            <div className="space-y-1">
+                                                <p className="text-sm text-slate-500 flex justify-between border-b border-slate-50 pb-1">
+                                                    <span>City</span> <span>{formatPending(rd?.sourceCity || quotation.origin?.city)}</span>
+                                                </p>
+                                                <p className="text-sm text-slate-500 flex justify-between border-b border-slate-50 pb-1">
+                                                    <span>Region</span> <span>{formatPending(rd?.sourceRegion || quotation.origin?.country)}</span>
+                                                </p>
+                                            </div>
+                                        </div>
 
-                {/* ═══════════════════════════════════════════════════════════════
-                    ACTION PANELS — rendered per status
-                ═══════════════════════════════════════════════════════════════ */}
+                                        {/* Progressive Disclosure of Specific Address */}
+                                        {isPostAcceptance && (
+                                            <div className="p-3 bg-blue-50/40 rounded-xl border border-blue-100">
+                                                <p className="text-[11px] font-bold text-blue-600 uppercase tracking-widest mb-1.5">Confirmed Pickup details</p>
+                                                <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                                                    {formatPending(fd?.pickupAddressLine || fd?.pickupAddress)}
+                                                </p>
+                                                {fd?.senderName && <p className="text-xs text-slate-500 mt-2 font-medium">Contact: {fd.senderName} {fd.senderPhone && `(${fd.senderPhone})`}</p>}
+                                            </div>
+                                        )}
+                                    </div>
 
-                {/* ── PANEL 1: Admin Pricing (PENDING_ADMIN_REVIEW) ─────────── */}
-                {quotation.status === 'PENDING_ADMIN_REVIEW' && (
-                    <div className="bg-white rounded-xl border-2 border-amber-300 shadow-lg overflow-hidden">
-                        <div className="px-6 py-4 bg-amber-50 border-b border-amber-200 flex items-center gap-3">
-                            <span className="text-2xl">⚡</span>
-                            <div>
-                                <h2 className="text-base font-bold text-amber-900">Admin Action Required: Price This Quotation</h2>
-                                <p className="text-xs text-amber-700">Enter your pricing below and submit to send to the customer for approval.</p>
-                            </div>
-                        </div>
+                                    {/* Desktop UI Separator */}
+                                    <div className="hidden md:flex absolute left-1/2 top-4 -translate-x-1/2 items-center justify-center w-8 h-8 bg-slate-50 rounded-full border border-slate-200 text-slate-400 shadow-sm z-10">
+                                        <ArrowRight className="w-4 h-4" />
+                                    </div>
 
-                        <div className="px-6 py-6 space-y-6">
-                            {/* Core charges */}
-                            <div>
-                                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Core Transport Charges</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <InputField
-                                        label="Base Freight Charge"
-                                        prefix={currencySymbol}
-                                        value={baseFreightCharge}
-                                        onChange={setBaseFreightCharge}
-                                    />
-                                    <InputField
-                                        label="Estimated Handling Fee"
-                                        prefix={currencySymbol}
-                                        value={estimatedHandlingFee}
-                                        onChange={setEstimatedHandlingFee}
-                                    />
-                                </div>
-                            </div>
+                                    {/* Destination Point */}
+                                    <div className="space-y-4">
+                                        <div>
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">Destination</p>
+                                            <div className="space-y-1">
+                                                <p className="text-sm text-slate-500 flex justify-between border-b border-slate-50 pb-1">
+                                                    <span>City</span> <span>{formatPending(rd?.destinationCity || quotation.destination?.city)}</span>
+                                                </p>
+                                                <p className="text-sm text-slate-500 flex justify-between border-b border-slate-50 pb-1">
+                                                    <span>Region</span> <span>{formatPending(rd?.destinationRegion || quotation.destination?.country)}</span>
+                                                </p>
+                                            </div>
+                                        </div>
 
-                            {/* Per-item shipping charges */}
-                            {quotation.items?.length > 0 && (
-                                <div>
-                                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
-                                        Itemized Shipping Charges
-                                    </h3>
-                                    <p className="text-xs text-gray-400 mb-3">
-                                        Enter the <strong>freight/shipping cost</strong> for each item. The client's declared commercial value is shown as read-only context.
-                                    </p>
-                                    <div className="border border-gray-200 rounded-xl overflow-hidden">
-                                        <table className="w-full text-sm">
-                                            <thead className="bg-gray-50 text-xs font-semibold text-gray-500 uppercase">
-                                                <tr>
-                                                    <th className="px-4 py-3 text-left">Item</th>
-                                                    <th className="px-4 py-3 text-center">Qty</th>
-                                                    <th className="px-4 py-3 text-right text-blue-600">Client Declared Value</th>
-                                                    <th className="px-4 py-3 text-right text-blue-400">Target Rate</th>
-                                                    <th className="px-4 py-3 text-right w-40 text-amber-700">Shipping Charge ↓ Set This</th>
-                                                    <th className="px-4 py-3 text-right w-32">Line Total</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-100">
-                                                {quotation.items.map((item: any, i: number) => {
-                                                    const sc = itemPrices[i]?.shippingCharge || 0;
-                                                    const lineTotal = sc * (item.quantity || 1);
-                                                    const cur = quotation.currency || 'USD';
-                                                    return (
-                                                        <tr key={i} className="hover:bg-amber-50/30 transition-colors">
-                                                            <td className="px-4 py-3">
-                                                                <div className="font-medium text-gray-800">
-                                                                    {item.description}
-                                                                    {item.isHazardous && <span className="ml-1.5 text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">⚠ Hazardous</span>}
-                                                                </div>
-                                                                <div className="text-xs text-gray-400 mt-0.5">{item.category} · {item.weight ? `${item.weight} kg` : '—'}</div>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-center text-gray-600 font-medium">{item.quantity}</td>
-                                                            {/* Read-only: client's commercial value */}
-                                                            <td className="px-4 py-3 text-right">
-                                                                <span className="text-blue-700 font-medium">
-                                                                    {item.declaredValue ? `${cur} ${Number(item.declaredValue).toFixed(2)}` : '—'}
-                                                                </span>
-                                                            </td>
-                                                            {/* Read-only: client's target rate */}
-                                                            <td className="px-4 py-3 text-right">
-                                                                <span className="text-gray-400 text-xs">
-                                                                    {item.targetRate ? `${cur} ${Number(item.targetRate).toFixed(2)}` : '—'}
-                                                                </span>
-                                                            </td>
-                                                            {/* Admin-set: shipping charge */}
-                                                            <td className="px-4 py-3 text-right">
-                                                                <div className="flex items-center justify-end gap-1">
-                                                                    <span className="text-gray-400 text-xs">{currencySymbol}</span>
-                                                                    <input
-                                                                        type="number"
-                                                                        min="0"
-                                                                        step="0.01"
-                                                                        placeholder="0.00"
-                                                                        value={sc || ''}
-                                                                        onChange={e => setItemPrices(prev => ({
-                                                                            ...prev,
-                                                                            [i]: { shippingCharge: e.target.value ? Number(e.target.value) : 0 }
-                                                                        }))}
-                                                                        className="w-28 text-right border-2 border-amber-300 rounded-lg px-2 py-1.5 text-sm bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-500 font-semibold"
-                                                                    />
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-right font-semibold text-gray-800">
-                                                                {lineTotal > 0 ? `${currencySymbol}${lineTotal.toFixed(2)}` : '—'}
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                            <tfoot className="bg-amber-50 border-t border-amber-200">
-                                                <tr>
-                                                    <td colSpan={5} className="px-4 py-2 text-right text-xs font-bold text-amber-800">Itemized Shipping Subtotal</td>
-                                                    <td className="px-4 py-2 text-right font-bold text-amber-900">{currencySymbol}{itemsTotal.toFixed(2)}</td>
-                                                </tr>
-                                            </tfoot>
-                                        </table>
+                                        {/* Progressive Disclosure of Specific Address */}
+                                        {isPostAcceptance && (
+                                            <div className="p-3 bg-emerald-50/40 rounded-xl border border-emerald-100">
+                                                <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-widest mb-1.5">Confirmed Delivery details</p>
+                                                <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                                                    {formatPending(fd?.deliveryAddressLine || fd?.deliveryAddress)}
+                                                </p>
+                                                {fd?.recipientName && <p className="text-xs text-slate-500 mt-2 font-medium">Contact: {fd.recipientName} {fd.recipientPhone && `(${fd.recipientPhone})`}</p>}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Card 2: Package/Item Specification Table */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center gap-3">
+                                <div className="p-1.5 bg-indigo-100/50 text-indigo-600 rounded-lg"><Package className="w-5 h-5" /></div>
+                                <h3 className="font-semibold text-slate-800 text-sm tracking-wide">CARGO / ITEMS INVENTORY</h3>
+                                <div className="ml-auto flex items-center text-[11px] font-bold bg-white border border-slate-200 text-slate-600 py-1 shadow-sm px-2.5 rounded-full">
+                                    {quotation.items?.length || 0} TOTAL ITEMS
+                                </div>
+                            </div>
+
+                            {quotation.items && quotation.items.length > 0 ? (
+                                <div className="overflow-x-auto p-1">
+                                    <table className="w-full text-sm text-left align-middle whitespace-nowrap">
+                                        <thead className="text-xs text-slate-400 uppercase font-bold border-b-2 border-slate-100">
+                                            <tr>
+                                                <th className="px-5 py-4 min-w-[200px]">Description & Type</th>
+                                                <th className="px-5 py-4 text-center">Qty</th>
+                                                <th className="px-5 py-4 text-center">Metrics</th>
+                                                <th className="px-5 py-4 text-right min-w-[140px]">Declared Value</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 text-slate-600">
+                                            {quotation.items.map((item: any, idx: number) => (
+                                                <tr key={idx} className="hover:bg-slate-50/60 transition group">
+                                                    <td className="px-5 py-4">
+                                                        <div className="font-semibold text-slate-900 truncate max-w-[240px] whitespace-normal group-hover:text-blue-700 transition-colors">
+                                                            {formatPending(item.description)}
+                                                        </div>
+                                                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                                            <span className="text-[10px] font-bold text-slate-500 bg-slate-100 uppercase px-2 py-0.5 rounded border border-slate-200">
+                                                                {item.category || 'General Cargo'}
+                                                            </span>
+                                                            {item.isHazardous && (
+                                                                <span className="text-[10px] text-red-700 bg-red-100/50 uppercase px-2 py-0.5 rounded border border-red-200 font-bold flex items-center gap-1">
+                                                                    <AlertTriangle className="w-3 h-3" /> Hazmat
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-5 py-4 text-center font-bold text-slate-800">{formatPending(item.quantity)}</td>
+                                                    <td className="px-5 py-4 text-center space-y-1">
+                                                        <div className="text-xs">{item.weight ? <><span className="font-semibold text-slate-800">{item.weight}</span> kg</> : formatPending(null)}</div>
+                                                        <div className="text-xs text-slate-400">{item.packingVolume ? <><span className="font-medium text-slate-600">{item.packingVolume}</span> CBM</> : '— CBM'}</div>
+                                                    </td>
+                                                    <td className="px-5 py-4 text-right">
+                                                        {(item.value || item.declaredValue) ? (
+                                                            <div className="inline-flex items-center bg-emerald-50 text-emerald-800 font-bold px-3 py-1 rounded-full border border-emerald-100">
+                                                                {currencySymbol}{Number(item.value || item.declaredValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                            </div>
+                                                        ) : formatPending(null)}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="p-8 text-center text-slate-400 flex flex-col justify-center items-center gap-3">
+                                    <Package className="w-10 h-10 opacity-20" />
+                                    <span className="text-sm font-medium">No particular cargo specified.</span>
+                                </div>
                             )}
+                        </div>
 
-                            {/* Admin notes */}
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                                    Pricing Notes for Customer (Optional)
-                                </label>
-                                <textarea
-                                    rows={3}
-                                    value={pricingNotes}
-                                    onChange={e => setPricingNotes(e.target.value)}
-                                    placeholder="Explain the pricing breakdown, validity period, included services, etc."
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 resize-none"
-                                />
+                        {/* Card 3: Additional Notes / Metadata */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center gap-3">
+                                <div className="p-1.5 bg-amber-100/50 text-amber-600 rounded-lg"><StickyNote className="w-5 h-5" /></div>
+                                <h3 className="font-semibold text-slate-800 text-sm tracking-wide">ADDITIONAL INSTRUCTIONS</h3>
                             </div>
-
-                            {/* Live Total Preview */}
-                            <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-                                <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-3">Quote Summary ({currency})</p>
-                                <div className="flex justify-between text-sm mb-1 text-gray-600">
-                                    <span>Base Freight Charge</span>
-                                    <span className="font-medium">{currencySymbol}{Number(baseFreightCharge).toFixed(2)}</span>
+                            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div>
+                                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">Service Request Mode</p>
+                                    <p className="text-sm font-semibold text-slate-800 bg-slate-50 p-3 rounded-xl border border-slate-100">{formatPending(quotation.serviceMode || quotation.serviceType)}</p>
                                 </div>
-                                <div className="flex justify-between text-sm mb-1 text-gray-600">
-                                    <span>Handling Fee</span>
-                                    <span className="font-medium">{currencySymbol}{Number(estimatedHandlingFee).toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between text-sm mb-2 text-gray-600">
-                                    <span>Itemized Shipping ({quotation.items?.length || 0} items)</span>
-                                    <span className="font-medium">{currencySymbol}{itemsTotal.toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between font-bold text-lg border-t border-blue-200 pt-2">
-                                    <span className="text-blue-900">Estimated Grand Total</span>
-                                    <span className="text-blue-700">{currencySymbol}{subtotal.toFixed(2)}</span>
+                                <div>
+                                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">Handling Instructions</p>
+                                    <p className="text-sm text-slate-600 bg-orange-50/30 p-3 rounded-xl border border-orange-100 font-medium">
+                                        {quotation.specialInstructions ? quotation.specialInstructions : <span className="opacity-60 italic">No special instructions provided.</span>}
+                                    </p>
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Submit Button */}
-                            <div className="flex justify-end pt-2">
-                                <button
-                                    onClick={handlePriceQuotation}
-                                    disabled={sending}
-                                    className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition shadow-md disabled:opacity-60 flex items-center gap-2"
-                                >
-                                    {sending ? (
-                                        <>
-                                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                            Sending...
-                                        </>
-                                    ) : (
-                                        '✉ Submit Pricing to Customer'
+                    </div>
+
+                    {/* ── Action Center ── */}
+                    <div className="space-y-6">
+
+                        {/* Section Header */}
+                        <div className="flex items-center gap-2 mb-2 px-1">
+                            <h2 className="text-lg font-bold text-slate-800 tracking-tight">Action Center</h2>
+                        </div>
+
+                        {/* Ledger */}
+                        <LiveQuotationLedger quotation={quotation as Quotation} />
+
+                        {/* ── Action Panel: PENDING_ADMIN_REVIEW ────────── */}
+                        {quotation.status === 'PENDING_ADMIN_REVIEW' && (
+                            <div className="bg-white rounded-2xl shadow-lg shadow-blue-900/5 overflow-hidden border border-slate-200 relative">
+                                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+                                <div className="px-5 py-5 border-b border-slate-100 bg-white flex items-center gap-3">
+                                    <div className="p-2 bg-blue-100 text-blue-700 rounded-full"><DollarSign className="w-5 h-5" /></div>
+                                    <h3 className="font-bold text-slate-900">Define Quote Pricing</h3>
+                                </div>
+
+                                <div className="p-5 space-y-6 bg-slate-50/30">
+                                    <div className="space-y-4">
+                                        <InputField
+                                            label="Base Freight Charge"
+                                            prefix={currencySymbol}
+                                            value={baseFreightCharge}
+                                            onChange={setBaseFreightCharge}
+                                        />
+                                        <InputField
+                                            label="Estimated Handling Fee"
+                                            prefix={currencySymbol}
+                                            value={estimatedHandlingFee}
+                                            onChange={setEstimatedHandlingFee}
+                                        />
+                                    </div>
+
+                                    {/* Per-item shipping charges */}
+                                    {quotation.items?.length > 0 && (
+                                        <div className="pt-2 border-t border-slate-200">
+                                            <label className="block text-sm font-semibold text-slate-600 mb-3 mt-4">Itemized Shipping Rates</label>
+                                            <div className="space-y-3">
+                                                {quotation.items.map((item: any, i: number) => (
+                                                    <div key={i} className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm hover:border-blue-300 transition-colors">
+                                                        <div className="flex justify-between items-start mb-2.5">
+                                                            <div className="text-xs font-bold text-slate-700 truncate pr-2 w-[70%]" title={item.description}>{item.description}</div>
+                                                            <div className="text-[10px] uppercase font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded shrink-0">Qty: {item.quantity || 1}</div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.01"
+                                                                placeholder={`${currencySymbol} 0.00`}
+                                                                value={itemPrices[i]?.shippingCharge || ''}
+                                                                onChange={e => setItemPrices(prev => ({
+                                                                    ...prev,
+                                                                    [i]: { shippingCharge: e.target.value ? Number(e.target.value) : 0 }
+                                                                }))}
+                                                                className="w-full text-sm font-medium border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition shadow-inner bg-slate-50"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                     )}
-                                </button>
+
+                                    {/* Notes */}
+                                    <div className="pt-4 border-t border-slate-200">
+                                        <label className="block text-sm font-semibold text-slate-600 mb-2">Internal / Customer Notes</label>
+                                        <textarea
+                                            value={pricingNotes}
+                                            onChange={e => setPricingNotes(e.target.value)}
+                                            placeholder="Ex: Includes export customs clearance and origin handling."
+                                            className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition resize-none h-24 shadow-inner bg-slate-50"
+                                        />
+                                    </div>
+
+                                    {/* Quote Summary Overview */}
+                                    <div className="bg-blue-50/50 rounded-xl p-5 mt-4 border border-blue-100 shadow-sm text-slate-700">
+                                        <p className="text-[10px] uppercase tracking-widest font-bold text-blue-600 mb-4 border-b border-blue-200 pb-2">Estimated Setup Preview</p>
+                                        <div className="flex justify-between items-center text-sm mb-2 font-medium">
+                                            <span className="opacity-80">Base + Handling</span>
+                                            <span className="text-slate-900 font-bold">{currencySymbol}{(Number(baseFreightCharge || 0) + Number(estimatedHandlingFee || 0)).toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm mb-4 font-medium">
+                                            <span className="opacity-80">Items Shipping Block</span>
+                                            <span className="text-slate-900 font-bold">{currencySymbol}{itemsTotal.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center font-bold text-slate-900 border-t border-blue-200 pt-3 text-xl">
+                                            <span className="text-blue-900">Subtotal ({currency})</span>
+                                            <span className="text-blue-700">{currencySymbol}{subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={handlePriceQuotation}
+                                        disabled={sending}
+                                        className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-bold tracking-wide rounded-xl transition-all shadow-md shadow-blue-500/20 disabled:opacity-70 disabled:pointer-events-none flex items-center justify-center gap-2 mt-2"
+                                    >
+                                        {sending ? (
+                                            <><Loader2 className="w-5 h-5 animate-spin" /> Transmitting...</>
+                                        ) : (
+                                            <>Submit & Send Quote to Client</>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                )}
+                        )}
 
-                {/* ── PANEL 2: Waiting for Customer (PENDING_CUSTOMER_APPROVAL) ─ */}
-                {quotation.status === 'PENDING_CUSTOMER_APPROVAL' && (
-                    <div className="bg-blue-50 border border-blue-200 p-6 rounded-xl flex items-start gap-4 shadow-sm">
-                        <div className="text-blue-500 text-3xl mt-0.5">⏳</div>
-                        <div>
-                            <h3 className="text-base font-bold text-blue-900">Waiting for Customer Decision</h3>
-                            <p className="text-sm text-blue-700 mt-1">
-                                Your priced quotation has been sent. The customer is reviewing and will either
-                                <strong> Accept</strong> (providing fulfillment addresses) or
-                                <strong> Revise</strong> (seeking re-pricing).
-                            </p>
-                            <p className="text-xs text-blue-500 mt-2">This quotation is locked from admin edits until the customer responds.</p>
-                        </div>
-                    </div>
-                )}
-
-                {/* ── PANEL 3: Finalize Charge Sheet (AWAITING_FINAL_CHARGE_SHEET) ─ */}
-                {quotation.status === 'AWAITING_FINAL_CHARGE_SHEET' && (
-                    <div className="bg-white rounded-xl border-2 border-purple-300 shadow-lg overflow-hidden">
-                        <div className="px-6 py-4 bg-purple-50 border-b border-purple-200 flex items-center gap-3">
-                            <span className="text-2xl">📋</span>
-                            <div>
-                                <h2 className="text-base font-bold text-purple-900">Finalize Charge Sheet</h2>
-                                <p className="text-xs text-purple-700">Customer has accepted. Add first & last mile charges to finalize.</p>
+                        {/* ── Action Panel: PENDING_CUSTOMER_APPROVAL ────────── */}
+                        {quotation.status === 'PENDING_CUSTOMER_APPROVAL' && (
+                            <div className="bg-white border text-center p-8 rounded-2xl shadow-sm relative overflow-hidden group">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-blue-200"></div>
+                                <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-50/50 rounded-full blur-2xl group-hover:bg-blue-100 transition-colors duration-700"></div>
+                                <Clock className="w-12 h-12 text-blue-400 mx-auto mb-4 animate-pulse relative z-10" />
+                                <h3 className="text-lg font-bold text-slate-800 relative z-10 tracking-tight">Awaiting Customer Decision</h3>
+                                <p className="text-sm text-slate-500 mt-2 font-medium relative z-10">
+                                    Quotation has been priced completely and pushed to the client application. Editing capabilities are suspended until they respond.
+                                </p>
                             </div>
-                        </div>
-                        <div className="px-6 py-6 space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <InputField
-                                    label="First Mile Charge (Origin Pickup / Drop-Off)"
-                                    prefix={currencySymbol}
-                                    value={firstMileCharge}
-                                    onChange={setFirstMileCharge}
-                                />
-                                <InputField
-                                    label="Last Mile Charge (Destination Delivery / Warehouse)"
-                                    prefix={currencySymbol}
-                                    value={lastMileCharge}
-                                    onChange={setLastMileCharge}
-                                />
+                        )}
+
+                        {/* ── Action Panel: AWAITING_FINAL_CHARGE_SHEET ────────── */}
+                        {quotation.status === 'AWAITING_FINAL_CHARGE_SHEET' && (
+                            <div className="bg-white rounded-2xl shadow-lg shadow-purple-900/5 overflow-hidden border border-slate-200 relative">
+                                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-purple-500 to-fuchsia-500"></div>
+                                <div className="px-5 py-4 border-b border-slate-100 bg-white flex items-center gap-3">
+                                    <div className="p-2 bg-purple-100 text-purple-700 rounded-full"><Check className="w-5 h-5" /></div>
+                                    <h3 className="font-bold text-slate-900">Final Charge Sheet</h3>
+                                </div>
+                                <div className="p-5 space-y-6 bg-slate-50/30">
+                                    <p className="text-sm text-slate-600 font-medium">
+                                        Client has authorized the shipment parameters. You must formally lock the final execution miles to convert to invoice.
+                                    </p>
+
+                                    <div className="space-y-4">
+                                        <InputField
+                                            label="First Mile Charge (Pickup)"
+                                            prefix={currencySymbol}
+                                            value={firstMileCharge}
+                                            onChange={setFirstMileCharge}
+                                        />
+                                        <InputField
+                                            label="Last Mile Charge (Delivery)"
+                                            prefix={currencySymbol}
+                                            value={lastMileCharge}
+                                            onChange={setLastMileCharge}
+                                        />
+                                    </div>
+
+                                    <button
+                                        onClick={handleFinalizeChargeSheet}
+                                        disabled={sending}
+                                        className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 active:scale-[0.98] text-white font-bold tracking-wide rounded-xl transition-all shadow-md shadow-purple-500/20 disabled:opacity-70 disabled:pointer-events-none flex items-center justify-center gap-2 mt-2"
+                                    >
+                                        {sending ? (
+                                            <><Loader2 className="w-5 h-5 animate-spin" /> Committing data...</>
+                                        ) : (
+                                            <>Finalize Sheet & Issue Invoice</>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
-                            <div className="flex justify-end">
-                                <button
-                                    onClick={handleFinalizeChargeSheet}
-                                    disabled={sending}
-                                    className="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition shadow-md disabled:opacity-60 flex items-center gap-2"
-                                >
-                                    {sending ? (
-                                        <>
-                                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                            Finalizing...
-                                        </>
-                                    ) : (
-                                        '✓ Finalize & Issue Payment Invoice'
-                                    )}
-                                </button>
+                        )}
+
+                        {/* ── Simple Status Indicator Panels ────────── */}
+                        {quotation.status === 'PAYMENT_PENDING' && (
+                            <div className="bg-white border border-slate-200 text-center p-8 rounded-2xl shadow-sm relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-orange-400"></div>
+                                <DollarSign className="w-12 h-12 text-orange-400 mx-auto mb-4" />
+                                <h3 className="text-lg font-bold text-slate-800 tracking-tight">Active Invoice Issued</h3>
+                                <p className="text-sm text-slate-500 mt-2 font-medium">Tracking integration pending system payment verification from the client side.</p>
                             </div>
-                        </div>
-                    </div>
-                )}
+                        )}
 
-                {/* ── PANEL 4: Payment Pending ──────────────────────────────── */}
-                {quotation.status === 'PAYMENT_PENDING' && (
-                    <div className="bg-orange-50 border border-orange-200 p-6 rounded-xl flex items-start gap-4">
-                        <span className="text-3xl">💳</span>
-                        <div>
-                            <h3 className="text-base font-bold text-orange-900">Awaiting Payment</h3>
-                            <p className="text-sm text-orange-700 mt-1">The charge sheet has been finalized and a payment invoice has been issued to the customer.</p>
-                        </div>
-                    </div>
-                )}
+                        {(quotation.status === 'ACCEPTED' || quotation.status === 'CONVERTED_TO_SHIPMENT') && (
+                            <div className="bg-white border border-slate-200 text-center p-8 rounded-2xl shadow-sm relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-emerald-400"></div>
+                                <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
+                                <h3 className="text-lg font-bold text-slate-800 tracking-tight">Quotation Fully Converted</h3>
+                                <p className="text-sm text-slate-500 mt-2 font-medium">The lifecycle of this quotation node is successful and locked.</p>
+                            </div>
+                        )}
 
-                {/* ── PANEL 5: Completed ────────────────────────────────────── */}
-                {(quotation.status === 'ACCEPTED' || quotation.status === 'CONVERTED_TO_SHIPMENT') && (
-                    <div className="bg-green-50 border border-green-200 p-6 rounded-xl flex items-start gap-4">
-                        <span className="text-3xl">✅</span>
-                        <div>
-                            <h3 className="text-base font-bold text-green-900">Quotation Complete</h3>
-                            <p className="text-sm text-green-700 mt-1">This quotation has been accepted and converted into an active shipment.</p>
-                        </div>
-                    </div>
-                )}
+                        {quotation.status === 'REJECTED' && (
+                            <div className="bg-white border border-slate-200 text-center p-8 rounded-2xl shadow-sm relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
+                                <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                                <h3 className="text-lg font-bold text-slate-800 tracking-tight">Client Reject Status</h3>
+                                <p className="text-sm text-slate-500 mt-2 font-medium mb-4">This quotation was aborted by the application end-user.</p>
 
-                {/* ── PANEL 6: Rejected ─────────────────────────────────────── */}
-                {quotation.status === 'REJECTED' && (
-                    <div className="bg-red-50 border border-red-200 p-6 rounded-xl flex items-start gap-4">
-                        <span className="text-3xl">❌</span>
-                        <div>
-                            <h3 className="text-base font-bold text-red-900">Quotation Rejected</h3>
-                            <p className="text-sm text-red-700 mt-1">The customer has rejected this quotation.</p>
-                        </div>
-                    </div>
-                )}
+                                {quotation.clientRejectionReason && (
+                                    <div className="bg-red-50/50 p-4 rounded-xl border border-red-100 text-left relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-1 h-full bg-red-400"></div>
+                                        <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-1.5 ml-2">Logged Context</p>
+                                        <p className="text-sm text-red-900 font-medium italic ml-2">{quotation.clientRejectionReason}</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
-            </div>
+                    </div>
+                </div>
+            </main>
         </div>
     );
 }
