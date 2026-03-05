@@ -372,22 +372,17 @@ const quotationSchema = new mongoose.Schema({
         default: [],
     },
 
-    /**
-     * Aggregate base freight charge across all items + route (admin-set, Phase 3).
-     */
-    baseFreightCharge: {
-        type: Number,
-        default: 0,
-        min: [0, 'Base freight charge cannot be negative'],
-    },
-
-    /**
-     * Aggregate estimated handling fee (admin-set, Phase 3).
-     */
-    estimatedHandlingFee: {
-        type: Number,
-        default: 0,
-        min: [0, 'Estimated handling fee cannot be negative'],
+    pricing: {
+        baseFreightCharge: {
+            type: Number,
+            default: 0,
+            min: [0, 'Base freight charge cannot be negative'],
+        },
+        estimatedHandlingFee: {
+            type: Number,
+            default: 0,
+            min: [0, 'Estimated handling fee cannot be negative'],
+        },
     },
 
     /**
@@ -740,8 +735,8 @@ quotationSchema.pre('save', async function () {
         'taxRate',
         'discount',
         'itemizedCosts',
-        'baseFreightCharge',
-        'estimatedHandlingFee',
+        'pricing.baseFreightCharge',
+        'pricing.estimatedHandlingFee',
         'firstMileCharge',
         'lastMileCharge',
     ];
@@ -778,8 +773,8 @@ quotationSchema.methods.calculateTotals = function () {
 
     // Grand total
     const rawTotal =
-        (this.baseFreightCharge || 0) +
-        (this.estimatedHandlingFee || 0) +
+        (this.pricing?.baseFreightCharge || 0) +
+        (this.pricing?.estimatedHandlingFee || 0) +
         (this.firstMileCharge || 0) +
         (this.lastMileCharge || 0) +
         itemsSubtotal +
@@ -898,8 +893,9 @@ quotationSchema.methods.toClientJSON = function () {
     if (!this.isApprovedByManager) {
         obj.items = [];
         obj.itemizedCosts = [];
-        obj.baseFreightCharge = null;
-        obj.estimatedHandlingFee = null;
+        if (!obj.pricing) obj.pricing = {};
+        obj.pricing.baseFreightCharge = null;
+        obj.pricing.estimatedHandlingFee = null;
         obj.firstMileCharge = null;
         obj.lastMileCharge = null;
         obj.totalAmount = null;

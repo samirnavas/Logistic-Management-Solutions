@@ -29,7 +29,7 @@ function StatusPill({ status }: { status: string }) {
 }
 
 function InputField({ label, prefix = '$', value, onChange, min = 0 }: {
-    label: string; prefix?: string; value: number; onChange: (v: number) => void; min?: number;
+    label: string; prefix?: string; value: number | string; onChange: (v: number | string) => void; min?: number;
 }) {
     return (
         <div>
@@ -40,9 +40,9 @@ function InputField({ label, prefix = '$', value, onChange, min = 0 }: {
                     type="number"
                     min={min}
                     step="0.01"
-                    value={value || ''}
+                    value={value}
                     placeholder="0.00"
-                    onChange={e => onChange(e.target.value ? Number(e.target.value) : 0)}
+                    onChange={e => onChange(e.target.value === '' ? '' : Number(e.target.value))}
                     className="pl-8 w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
                 />
             </div>
@@ -61,8 +61,8 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
     // Pricing state (PENDING_ADMIN_REVIEW)
-    const [baseFreightCharge, setBaseFreightCharge] = useState(0);
-    const [estimatedHandlingFee, setEstimatedHandlingFee] = useState(0);
+    const [baseFreightCharge, setBaseFreightCharge] = useState<number | string>('');
+    const [estimatedHandlingFee, setEstimatedHandlingFee] = useState<number | string>('');
     const [pricingNotes, setPricingNotes] = useState('');
     // keyed by item index — holds the admin-set SHIPPING CHARGE (not commercial value)
     const [itemPrices, setItemPrices] = useState<Record<number, { shippingCharge: number }>>({});
@@ -95,9 +95,9 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                     });
                     setItemPrices(prices);
                 }
-                // Pre-fill charges from root-level fields (not nested under 'pricing')
-                setBaseFreightCharge(data.baseFreightCharge ?? 0);
-                setEstimatedHandlingFee(data.estimatedHandlingFee ?? 0);
+                // Pre-fill charges from nested 'pricing' object
+                setBaseFreightCharge(data.pricing?.baseFreightCharge || '');
+                setEstimatedHandlingFee(data.pricing?.estimatedHandlingFee || '');
             } else {
                 showToast('Failed to load quotation', 'error');
             }
@@ -110,9 +110,8 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
 
     useEffect(() => { fetchQuotation(); }, [fetchQuotation]);
 
-    // ── PENDING_ADMIN_REVIEW: Submit pricing → PENDING_CUSTOMER_APPROVAL ──
     const handlePriceQuotation = async () => {
-        if (baseFreightCharge <= 0 && estimatedHandlingFee <= 0 && itemsTotal <= 0) {
+        if (Number(baseFreightCharge) <= 0 && Number(estimatedHandlingFee) <= 0 && itemsTotal <= 0) {
             showToast('Please enter at least one charge before submitting.', 'error');
             return;
         }
@@ -211,7 +210,7 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
     const CURRENCY_SYMBOL: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', AED: 'AED ', CNY: '¥', JPY: '¥', INR: '₹' };
     const currencySymbol = CURRENCY_SYMBOL[currency] || '$';
     const itemsTotal = Object.values(itemPrices).reduce((sum, ip) => sum + ((ip as any).shippingCharge || 0), 0);
-    const subtotal = Number(baseFreightCharge) + Number(estimatedHandlingFee) + itemsTotal;
+    const subtotal = Number(baseFreightCharge || 0) + Number(estimatedHandlingFee || 0) + itemsTotal;
 
     return (
         <div className="min-h-screen bg-gray-50">

@@ -1680,10 +1680,11 @@ exports.adminPriceQuotation = async (req, res) => {
         }
 
         // --- Apply pricing fields ---
-        quotation.baseFreightCharge = Number(baseFreightCharge);
+        if (!quotation.pricing) quotation.pricing = {};
+        quotation.pricing.baseFreightCharge = Number(baseFreightCharge);
 
         if (estimatedHandlingFee !== undefined) {
-            quotation.estimatedHandlingFee = Math.max(0, Number(estimatedHandlingFee));
+            quotation.pricing.estimatedHandlingFee = Math.max(0, Number(estimatedHandlingFee));
         }
         if (itemizedCosts && Array.isArray(itemizedCosts)) {
             quotation.itemizedCosts = itemizedCosts;
@@ -1804,13 +1805,16 @@ exports.customerReviseQuotation = async (req, res) => {
 
         // --- Apply customer changes ---
         if (items && Array.isArray(items) && items.length > 0) {
-            // Preserve client fields; reset admin pricing on each item
-            quotation.items = items.map(item => ({
-                ...item,
-                shippingCharge: 0,
-                unitPrice: 0,
-                amount: 0,
-            }));
+            // Preserve client fields AND preserve existing admin pricing on each item
+            quotation.items = items.map((item, i) => {
+                const oldItem = quotation.items && quotation.items.length > i ? quotation.items[i] : {};
+                return {
+                    ...item,
+                    shippingCharge: oldItem.shippingCharge || 0,
+                    unitPrice: oldItem.unitPrice || 0,
+                    amount: oldItem.amount || 0,
+                };
+            });
         }
         if (specialInstructions !== undefined) quotation.specialInstructions = specialInstructions;
         if (additionalNotes !== undefined) quotation.additionalNotes = additionalNotes;
@@ -1829,9 +1833,10 @@ exports.customerReviseQuotation = async (req, res) => {
         quotation.isApprovedByManager = false;
         quotation.managerApprovedAt = undefined;
 
-        // Reset base pricing so stale numbers are not shown to customer
-        quotation.baseFreightCharge = 0;
-        quotation.estimatedHandlingFee = 0;
+        // PRESERVE BASE PRICING: Do NOT let the client payload overwrite the pricing object
+        // Do not reset baseFreightCharge and estimatedHandlingFee
+        if (!quotation.pricing) quotation.pricing = {};
+
         quotation.itemizedCosts = [];
         quotation.totalAmount = 0;
 
@@ -2106,8 +2111,8 @@ exports.adminFinalizeChargeSheet = async (req, res) => {
             message: 'Final charge sheet issued. Quotation is now awaiting payment.',
             quotation: saved,
             chargeBreakdown: {
-                baseFreightCharge: saved.baseFreightCharge,
-                estimatedHandlingFee: saved.estimatedHandlingFee,
+                baseFreightCharge: saved.pricing?.baseFreightCharge || 0,
+                estimatedHandlingFee: saved.pricing?.estimatedHandlingFee || 0,
                 firstMileCharge: saved.firstMileCharge,
                 lastMileCharge: saved.lastMileCharge,
                 tax: saved.tax,
