@@ -3,11 +3,13 @@ import 'package:bb_logistics/src/core/widgets/app_drawer.dart';
 import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:bb_logistics/src/features/quotation/data/quotation_repository.dart';
 import 'package:bb_logistics/src/features/quotation/domain/quotation.dart';
+import 'package:bb_logistics/src/features/shipment/data/warehouse_repository.dart';
+import 'package:bb_logistics/src/features/shipment/domain/warehouse.dart';
 import 'package:bb_logistics/src/features/shipment/presentation/shipment_form_notifier.dart';
 import 'package:bb_logistics/src/features/shipment/presentation/widgets/shipment_item_form.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -24,11 +26,9 @@ class RequestShipmentScreen extends ConsumerStatefulWidget {
 class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // --- Routing Data (Phase 1 only — region/city strings) ---
-  final _sourceRegionController = TextEditingController();
-  final _sourceCityController = TextEditingController();
-  final _destinationRegionController = TextEditingController();
-  final _destinationCityController = TextEditingController();
+  // --- Routing Data — warehouse selection ---
+  Warehouse? _selectedOriginWarehouse;
+  Warehouse? _selectedDestinationWarehouse;
 
   // --- Cargo Meta ---
   String _shippingMode = 'By Air';
@@ -54,11 +54,9 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
     super.initState();
     final q = widget.existingQuotation;
     if (q != null) {
-      // Pre-fill from draft
-      _sourceRegionController.text = q.routingSourceRegion ?? '';
-      _sourceCityController.text = q.routingSourceCity ?? '';
-      _destinationRegionController.text = q.routingDestinationRegion ?? '';
-      _destinationCityController.text = q.routingDestinationCity ?? '';
+      // Pre-fill routing warehouses after the warehouse list loads
+      // (warehouses are matched by id stored in routingSourceRegion as warehouseId)
+      // Nothing to pre-fill here for free-text — warehouse will be re-selected by user.
       _cargoType = _cargoTypes.contains(q.cargoType)
           ? q.cargoType!
           : 'General Cargo';
@@ -106,10 +104,6 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
 
   @override
   void dispose() {
-    _sourceRegionController.dispose();
-    _sourceCityController.dispose();
-    _destinationRegionController.dispose();
-    _destinationCityController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -156,13 +150,35 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
           )
           .toList();
 
-      // Phase 1 payload — only routingData, items, and metadata
+      // Warehouse-based routing payload
+      final originW = _selectedOriginWarehouse;
+      final destinationW = _selectedDestinationWarehouse;
+
+      if (originW == null || destinationW == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Please select both origin and destination warehouses.',
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        setState(() => _isSubmitting = false);
+        return;
+      }
+
       final payload = {
         'routingData': {
-          'sourceRegion': _sourceRegionController.text.trim(),
-          'sourceCity': _sourceCityController.text.trim(),
-          'destinationRegion': _destinationRegionController.text.trim(),
-          'destinationCity': _destinationCityController.text.trim(),
+          'originWarehouseId': originW.id,
+          'originWarehouseName': originW.name,
+          'originWarehouseCity': originW.address.city,
+          'originWarehouseState': originW.address.state,
+          'destinationWarehouseId': destinationW.id,
+          'destinationWarehouseName': destinationW.name,
+          'destinationWarehouseCity': destinationW.address.city,
+          'destinationWarehouseState': destinationW.address.state,
         },
         'items': items,
         'cargoType': _cargoType,
@@ -265,8 +281,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                             ).animate().fadeIn(delay: 50.ms).slideX(),
                             const SizedBox(height: 4),
                             Text(
-                              'Tell us where you\'re shipping from and to. '
-                              'Exact addresses are collected after we price the quote.',
+                              'Select the origin and destination warehouses for your shipment.',
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(color: AppTheme.textGrey),
                             ).animate().fadeIn(delay: 80.ms),
@@ -286,74 +301,23 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                             ).animate().fadeIn(delay: 130.ms),
                             const SizedBox(height: 24),
 
-                            // ── SECTION 2: Routing (Region / City only) ──
+                            // ── SECTION 2: Routing — Warehouse Selection ──
                             _buildSectionTitle(
                               'Route',
                             ).animate().fadeIn(delay: 160.ms),
                             const SizedBox(height: 12),
 
-                            // Origin row
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: AppTheme.background,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: AppTheme.primaryBlue.withValues(
-                                    alpha: 0.15,
-                                  ),
-                                ),
+                            // Origin Warehouse
+                            _buildWarehouseSelector(
+                              label: 'Origin Warehouse',
+                              icon: Icons.trip_origin,
+                              accentColor: AppTheme.primaryBlue,
+                              borderColor: AppTheme.primaryBlue.withValues(
+                                alpha: 0.25,
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.trip_origin,
-                                        color: AppTheme.primaryBlue,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Origin',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleSmall
-                                            ?.copyWith(
-                                              color: AppTheme.primaryBlue,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: _buildTextField(
-                                          label: 'Region / State',
-                                          hint: 'e.g. Maharashtra',
-                                          controller: _sourceRegionController,
-                                          icon: Icons.public_outlined,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: _buildTextField(
-                                          label: 'City',
-                                          hint: 'e.g. Mumbai',
-                                          controller: _sourceCityController,
-                                          icon: Icons.location_city_outlined,
-                                          validator: (v) => v?.isEmpty == true
-                                              ? 'Required'
-                                              : null,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                              selectedWarehouse: _selectedOriginWarehouse,
+                              onChanged: (w) =>
+                                  setState(() => _selectedOriginWarehouse = w),
                             ).animate().fadeIn(delay: 180.ms),
                             const SizedBox(height: 8),
 
@@ -366,67 +330,15 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                             ),
                             const SizedBox(height: 8),
 
-                            // Destination row
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: AppTheme.background,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Colors.green.withValues(alpha: 0.3),
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.place,
-                                        color: Colors.green.shade700,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Destination',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleSmall
-                                            ?.copyWith(
-                                              color: Colors.green.shade700,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: _buildTextField(
-                                          label: 'Region / State',
-                                          hint: 'e.g. Karnataka',
-                                          controller:
-                                              _destinationRegionController,
-                                          icon: Icons.public_outlined,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: _buildTextField(
-                                          label: 'City',
-                                          hint: 'e.g. Bangalore',
-                                          controller:
-                                              _destinationCityController,
-                                          icon: Icons.location_city_outlined,
-                                          validator: (v) => v?.isEmpty == true
-                                              ? 'Required'
-                                              : null,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                            // Destination Warehouse
+                            _buildWarehouseSelector(
+                              label: 'Destination Warehouse',
+                              icon: Icons.place,
+                              accentColor: Colors.green.shade700,
+                              borderColor: Colors.green.withValues(alpha: 0.3),
+                              selectedWarehouse: _selectedDestinationWarehouse,
+                              onChanged: (w) => setState(
+                                () => _selectedDestinationWarehouse = w,
                               ),
                             ).animate().fadeIn(delay: 200.ms),
                             const SizedBox(height: 24),
@@ -777,60 +689,133 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
     );
   }
 
-  Widget _buildTextField({
+  /// Warehouse selector card: shows a dropdown of all warehouses.
+  Widget _buildWarehouseSelector({
     required String label,
-    required String hint,
-    required TextEditingController controller,
     required IconData icon,
-    String? Function(String?)? validator,
+    required Color accentColor,
+    required Color borderColor,
+    required Warehouse? selectedWarehouse,
+    required ValueChanged<Warehouse?> onChanged,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: AppTheme.textGrey,
+    final warehousesAsync = ref.watch(warehousesProvider);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.background,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: accentColor, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: accentColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 6),
-        TextFormField(
-          controller: controller,
-          validator: validator,
-          textCapitalization: TextCapitalization.words,
-          decoration: InputDecoration(
-            hintText: hint,
-            prefixIcon: Icon(icon, color: AppTheme.primaryBlue, size: 18),
-            hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-            filled: true,
-            fillColor: AppTheme.surface,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(
-                color: AppTheme.primaryBlue,
-                width: 1.5,
+          const SizedBox(height: 12),
+          warehousesAsync.when(
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: CircularProgressIndicator(strokeWidth: 2),
               ),
             ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AppTheme.error),
+            error: (e, _) => Text(
+              'Could not load warehouses',
+              style: TextStyle(color: Colors.red.shade400, fontSize: 13),
             ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 14,
-            ),
+            data: (warehouses) {
+              final activeWarehouses = warehouses
+                  .where((w) => w.isActive)
+                  .toList();
+              return DropdownButtonFormField<Warehouse>(
+                value:
+                    selectedWarehouse != null &&
+                        activeWarehouses.any(
+                          (w) => w.id == selectedWarehouse.id,
+                        )
+                    ? activeWarehouses.firstWhere(
+                        (w) => w.id == selectedWarehouse.id,
+                      )
+                    : null,
+                isExpanded: true,
+                hint: const Text('Select a warehouse'),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: AppTheme.surface,
+                  prefixIcon: Icon(
+                    Icons.warehouse_outlined,
+                    color: accentColor,
+                    size: 20,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(
+                      color: Colors.grey.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(
+                      color: Colors.grey.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: accentColor, width: 1.5),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 14,
+                  ),
+                ),
+                validator: (_) => selectedWarehouse == null ? 'Required' : null,
+                items: activeWarehouses
+                    .map(
+                      (w) => DropdownMenuItem<Warehouse>(
+                        value: w,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              w.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              '${w.address.city}, ${w.address.state}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: onChanged,
+              );
+            },
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

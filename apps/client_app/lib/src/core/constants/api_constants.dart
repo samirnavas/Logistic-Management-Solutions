@@ -6,9 +6,9 @@ class ApiConstants {
     if (Platform.isAndroid) {
       // Physical Device (Use computer's IP)
       print(
-        'ApiConstants: Using Android Physical/Specific URL: http://10.119.144.209:5000',
+        'ApiConstants: Using Android Physical/Specific URL: http://10.48.206.209:5000',
       );
-      return 'http://10.119.144.209:5000';
+      return 'http://10.48.206.209:5000';
 
       // Standard Android Emulator loopback address (Use this if using Emulator)
       // return 'http://10.0.2.2:5000';
