@@ -15,7 +15,6 @@ class ShipmentItemFormData {
   String? videoUrl;
   double? targetRate;
   double? declaredValue; // New field
-  String targetCurrency;
   double? packingVolume;
   // Financials
   double cost;
@@ -33,7 +32,6 @@ class ShipmentItemFormData {
     this.videoUrl,
     this.targetRate,
     this.declaredValue,
-    this.targetCurrency = 'USD',
     this.packingVolume,
     this.cost = 0.0,
   });
@@ -51,7 +49,6 @@ class ShipmentItemFormData {
     String? videoUrl,
     double? targetRate,
     double? declaredValue,
-    String? targetCurrency,
     double? packingVolume,
     double? cost,
   }) {
@@ -68,7 +65,6 @@ class ShipmentItemFormData {
       videoUrl: videoUrl ?? this.videoUrl,
       targetRate: targetRate ?? this.targetRate,
       declaredValue: declaredValue ?? this.declaredValue,
-      targetCurrency: targetCurrency ?? this.targetCurrency,
       packingVolume: packingVolume ?? this.packingVolume,
       cost: cost ?? this.cost,
     );

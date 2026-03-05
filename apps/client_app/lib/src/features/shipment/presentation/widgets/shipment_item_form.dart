@@ -36,7 +36,6 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
   late TextEditingController _videoUrlController;
   late TextEditingController _volumeController;
   late TextEditingController _hsCodeController;
-  String _targetCurrency = 'USD'; // Local state for dropdown
 
   @override
   void initState() {
@@ -75,7 +74,6 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
       text: widget.item.packingVolume?.toString() ?? '',
     );
     _hsCodeController = TextEditingController(text: widget.item.hsCode ?? '');
-    _targetCurrency = widget.item.targetCurrency;
   }
 
   @override
@@ -83,14 +81,6 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
     super.didUpdateWidget(oldWidget);
     // In this modal usage, we avoid syncing back text controllers from widget.item
     // because widget.item updates come from our own onChanged calls, causing loop-back issues.
-    // If external updates were possible (e.g. from network while editing), we'd need checks.
-
-    // Only update non-text controllers or if there's a strong reason
-    if (widget.item != oldWidget.item) {
-      if (_targetCurrency != widget.item.targetCurrency) {
-        _targetCurrency = widget.item.targetCurrency;
-      }
-    }
   }
 
   @override
@@ -153,7 +143,6 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
       videoUrl: _videoUrlController.text,
       packingVolume: double.tryParse(_volumeController.text),
       hsCode: _hsCodeController.text,
-      targetCurrency: _targetCurrency,
     );
     widget.onChanged(newItem);
   }
@@ -314,29 +303,6 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
                   decimal: true,
                 ),
                 onChanged: (v) => _updateItem(),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 1,
-              child: InputDecorator(
-                decoration: _inputDecoration('Currency'),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _targetCurrency,
-                    isDense: true,
-                    isExpanded: true,
-                    items: ['USD', 'EUR', 'GBP', 'AED', 'INR', 'CNY']
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() => _targetCurrency = val);
-                        _updateItem();
-                      }
-                    },
-                  ),
-                ),
               ),
             ),
           ],

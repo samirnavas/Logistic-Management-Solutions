@@ -30,6 +30,17 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
   Warehouse? _selectedOriginWarehouse;
   Warehouse? _selectedDestinationWarehouse;
 
+  // --- Global Currency ---
+  String _selectedCurrency = 'USD';
+  static const List<String> _supportedCurrencies = [
+    'USD',
+    'AED',
+    'INR',
+    'EUR',
+    'GBP',
+    'CNY',
+  ];
+
   // --- Cargo Meta ---
   String _shippingMode = 'By Air';
   String _servicePriority = 'Standard';
@@ -180,6 +191,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
           'destinationWarehouseCity': destinationW.address.city,
           'destinationWarehouseState': destinationW.address.state,
         },
+        'currency': _selectedCurrency,
         'items': items,
         'cargoType': _cargoType,
         'serviceType': _servicePriority,
@@ -343,7 +355,45 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                             ).animate().fadeIn(delay: 200.ms),
                             const SizedBox(height: 24),
 
-                            // ── SECTION 3: Cargo Type ──
+                            // ── SECTION 3: Global Currency ──
+                            _buildSectionTitle(
+                              'Currency',
+                            ).animate().fadeIn(delay: 210.ms),
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: Colors.grey.withValues(alpha: 0.3),
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                color: AppTheme.background,
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: _selectedCurrency,
+                                  isExpanded: true,
+                                  items: _supportedCurrencies
+                                      .map(
+                                        (c) => DropdownMenuItem(
+                                          value: c,
+                                          child: Text(c),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (v) {
+                                    if (v != null) {
+                                      setState(() => _selectedCurrency = v);
+                                    }
+                                  },
+                                ),
+                              ),
+                            ).animate().fadeIn(delay: 215.ms),
+                            const SizedBox(height: 24),
+
+                            // ── SECTION 4: Cargo Type ──
                             _buildSectionTitle(
                               'Cargo Type',
                             ).animate().fadeIn(delay: 220.ms),

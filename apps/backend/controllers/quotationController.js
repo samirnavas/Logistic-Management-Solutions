@@ -191,7 +191,8 @@ exports.createQuotation = async (req, res) => {
             specialInstructions,
             handoverMethod,
             pickupAddress,
-            warehouseDropOffLocation
+            warehouseDropOffLocation,
+            currency
             // Explicitly excluding 'status' from destructuring to prevent it from being passed
         } = req.body;
 
@@ -206,6 +207,10 @@ exports.createQuotation = async (req, res) => {
         // Conditional validation for Origin/Destination based on handover method
         // (Handled by Mongoose schema validation)
 
+        // Validate currency
+        const allowedCurrencies = ['USD', 'EUR', 'GBP', 'CNY', 'JPY', 'AED', 'INR'];
+        const resolvedCurrency = allowedCurrencies.includes(currency) ? currency : 'USD';
+
         const newQuotation = new Quotation({
             clientId: userId,
             origin,
@@ -219,6 +224,7 @@ exports.createQuotation = async (req, res) => {
             handoverMethod,
             pickupAddress,
             warehouseDropOffLocation,
+            currency: resolvedCurrency,
             status: 'PENDING_ADMIN_REVIEW', // Strict Default
             totalAmount: 0 // Initialize to 0
         });
@@ -1546,6 +1552,7 @@ exports.createDraftQuotation = async (req, res) => {
             productPhotos,
             additionalNotes,
             validUntil,
+            currency,  // Client-chosen global currency (USD / AED / INR / EUR …)
         } = req.body;
 
         // --- Validate routingData minimum fields ---
@@ -1567,6 +1574,10 @@ exports.createDraftQuotation = async (req, res) => {
             });
         }
 
+        // Validate currency if provided (falls back to schema default 'USD')
+        const allowedCurrencies = ['USD', 'EUR', 'GBP', 'CNY', 'JPY', 'AED', 'INR'];
+        const resolvedCurrency = allowedCurrencies.includes(currency) ? currency : 'USD';
+
         const newQuotation = new Quotation({
             clientId: userId,
             routingData,
@@ -1578,6 +1589,7 @@ exports.createDraftQuotation = async (req, res) => {
             productPhotos: productPhotos || [],
             additionalNotes: additionalNotes || '',
             validUntil: validUntil || null,
+            currency: resolvedCurrency,
             // Status goes straight to PENDING_ADMIN_REVIEW on first submit.
             // Customers who want to save a pure draft should use the existing
             // saveAsDraft endpoint and then submitQuotation.

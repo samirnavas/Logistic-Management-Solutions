@@ -95,9 +95,9 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                     });
                     setItemPrices(prices);
                 }
-                // Pre-fill charges if re-visiting
-                setBaseFreightCharge(data.pricing?.baseFreightCharge || 0);
-                setEstimatedHandlingFee(data.pricing?.estimatedHandlingFee || 0);
+                // Pre-fill charges from root-level fields (not nested under 'pricing')
+                setBaseFreightCharge(data.baseFreightCharge ?? 0);
+                setEstimatedHandlingFee(data.estimatedHandlingFee ?? 0);
             } else {
                 showToast('Failed to load quotation', 'error');
             }
@@ -208,7 +208,8 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
     const rd = quotation.routingData;
     const fd = quotation.fulfillmentDetails;
     const currency = quotation.currency || 'USD';
-    const currencySymbol = currency === 'AED' ? 'AED ' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
+    const CURRENCY_SYMBOL: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', AED: 'AED ', CNY: '¥', JPY: '¥', INR: '₹' };
+    const currencySymbol = CURRENCY_SYMBOL[currency] || '$';
     const itemsTotal = Object.values(itemPrices).reduce((sum, ip) => sum + ((ip as any).shippingCharge || 0), 0);
     const subtotal = Number(baseFreightCharge) + Number(estimatedHandlingFee) + itemsTotal;
 
@@ -378,11 +379,13 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <InputField
                                         label="Base Freight Charge"
+                                        prefix={currencySymbol}
                                         value={baseFreightCharge}
                                         onChange={setBaseFreightCharge}
                                     />
                                     <InputField
                                         label="Estimated Handling Fee"
+                                        prefix={currencySymbol}
                                         value={estimatedHandlingFee}
                                         onChange={setEstimatedHandlingFee}
                                     />
@@ -559,11 +562,13 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <InputField
                                     label="First Mile Charge (Origin Pickup / Drop-Off)"
+                                    prefix={currencySymbol}
                                     value={firstMileCharge}
                                     onChange={setFirstMileCharge}
                                 />
                                 <InputField
                                     label="Last Mile Charge (Destination Delivery / Warehouse)"
+                                    prefix={currencySymbol}
                                     value={lastMileCharge}
                                     onChange={setLastMileCharge}
                                 />
