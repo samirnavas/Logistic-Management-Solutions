@@ -891,7 +891,13 @@ quotationSchema.methods.toClientJSON = function () {
 
     // For DRAFT / PENDING_ADMIN_REVIEW — hide all pricing details
     if (!this.isApprovedByManager) {
-        obj.items = [];
+        obj.items = (obj.items || []).map(item => ({
+            ...item,
+            shippingCharge: 0,
+            amount: 0,
+            unitPrice: 0,
+            // (Client should be able to see their own declared value, but no freight charges)
+        }));
         obj.itemizedCosts = [];
         if (!obj.pricing) obj.pricing = {};
         obj.pricing.baseFreightCharge = null;

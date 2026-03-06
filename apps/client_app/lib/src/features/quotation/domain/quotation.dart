@@ -238,6 +238,16 @@ class Quotation {
   final String? routingDestinationRegion;
   final String? routingDestinationCity;
 
+  // New Pricing Breakdown Fields
+  final double? baseFreightCharge;
+  final double? estimatedHandlingFee;
+  final double? firstMileCharge;
+  final double? lastMileCharge;
+  final double? tax;
+  final double? discount;
+  final String? clientName;
+  final int? revisionCount;
+
   const Quotation({
     required this.id,
     this.quotationId,
@@ -263,6 +273,14 @@ class Quotation {
     this.routingSourceCity,
     this.routingDestinationRegion,
     this.routingDestinationCity,
+    this.baseFreightCharge,
+    this.estimatedHandlingFee,
+    this.firstMileCharge,
+    this.lastMileCharge,
+    this.tax,
+    this.discount,
+    this.clientName,
+    this.revisionCount,
   });
 
   Quotation copyWith({
@@ -317,6 +335,14 @@ class Quotation {
           routingDestinationRegion ?? this.routingDestinationRegion,
       routingDestinationCity:
           routingDestinationCity ?? this.routingDestinationCity,
+      baseFreightCharge: baseFreightCharge ?? this.baseFreightCharge,
+      estimatedHandlingFee: estimatedHandlingFee ?? this.estimatedHandlingFee,
+      firstMileCharge: firstMileCharge ?? this.firstMileCharge,
+      lastMileCharge: lastMileCharge ?? this.lastMileCharge,
+      tax: tax ?? this.tax,
+      discount: discount ?? this.discount,
+      clientName: clientName ?? this.clientName,
+      revisionCount: revisionCount ?? this.revisionCount,
     );
   }
 
@@ -366,6 +392,29 @@ class Quotation {
       routingSourceCity: routingData?['sourceCity'] as String?,
       routingDestinationRegion: routingData?['destinationRegion'] as String?,
       routingDestinationCity: routingData?['destinationCity'] as String?,
+      // Map Pricing Details
+      baseFreightCharge:
+          (json['pricing']?['baseFreightCharge'] ??
+                  json['baseFreightCharge'] as num?)
+              ?.toDouble(),
+      estimatedHandlingFee:
+          (json['pricing']?['estimatedHandlingFee'] ??
+                  json['estimatedHandlingFee'] as num?)
+              ?.toDouble(),
+      firstMileCharge:
+          (json['pricing']?['firstMileCharge'] ??
+                  json['firstMileCharge'] as num?)
+              ?.toDouble(),
+      lastMileCharge:
+          (json['pricing']?['lastMileCharge'] ?? json['lastMileCharge'] as num?)
+              ?.toDouble(),
+      tax: (json['pricing']?['tax'] ?? json['tax'] as num?)?.toDouble(),
+      discount: (json['pricing']?['discount'] ?? json['discount'] as num?)
+          ?.toDouble(),
+      clientName: (json['clientId'] is Map)
+          ? json['clientId']['fullName'] as String?
+          : null,
+      revisionCount: json['revisionCount'] as int?,
     );
   }
 

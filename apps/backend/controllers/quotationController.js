@@ -109,6 +109,7 @@ exports.getClientQuotations = async (req, res) => {
 
         const [quotations, total] = await Promise.all([
             Quotation.find(query)
+                .populate('clientId', 'fullName email customerCode phone')
                 .populate('managerId', 'fullName email')
                 .sort({ createdAt: -1 }) // Newest first
                 .skip(skip)
@@ -160,6 +161,7 @@ exports.getClientQuotation = async (req, res) => {
         const { id, clientId } = req.params;
 
         const quotation = await Quotation.findOne({ _id: id, clientId })
+            .populate('clientId', 'fullName email customerCode phone')
             .populate('managerId', 'fullName email');
 
         if (!quotation) {
