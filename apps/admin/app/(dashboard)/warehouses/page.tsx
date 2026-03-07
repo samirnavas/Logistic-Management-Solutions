@@ -59,7 +59,7 @@ export default function WarehousesPage() {
             setIsLoading(true);
             const token = localStorage.getItem('token');
             console.log('Fetching warehouses from:', `${process.env.NEXT_PUBLIC_API_URL}/warehouses/admin/all`);
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/warehouses/admin/all`, {
+            const res = await fetch(`/api/warehouses/admin/all`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
