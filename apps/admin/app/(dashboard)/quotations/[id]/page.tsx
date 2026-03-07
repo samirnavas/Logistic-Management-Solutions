@@ -7,7 +7,8 @@ import LiveQuotationLedger from '../../../components/LiveQuotationLedger';
 import { Quotation } from '../../../../types';
 import {
     MapPin, Package, StickyNote, ArrowRight, DollarSign,
-    AlertTriangle, Loader2, CheckCircle2, Clock, Check, RefreshCw, ChevronLeft
+    AlertTriangle, Loader2, CheckCircle2, Clock, Check, RefreshCw, ChevronLeft,
+    Sparkles, ChevronDown, ChevronUp, Plane, Ship
 } from 'lucide-react';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -78,6 +79,12 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
     const [firstMileCharge, setFirstMileCharge] = useState<number | string>('');
     const [lastMileCharge, setLastMileCharge] = useState<number | string>('');
 
+    // ── Automated Pricing Engine ─────────────────────────────────
+    const [transportMode, setTransportMode] = useState<'Air' | 'Sea'>('Air');
+    const [isCalculating, setIsCalculating] = useState(false);
+    const [estimateReceipt, setEstimateReceipt] = useState<any>(null);
+    const [showBreakdown, setShowBreakdown] = useState(false);
+
     const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
         setToast({ msg, type });
         setTimeout(() => setToast(null), 4000);
@@ -118,6 +125,53 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
     }, [id]);
 
     useEffect(() => { fetchQuotation(); }, [fetchQuotation]);
+
+    // ── Auto-Estimate via Pricing Engine ────────────────────────
+    const handleGenerateEstimate = useCallback(async () => {
+        setIsCalculating(true);
+        setEstimateReceipt(null);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`http://localhost:5000/api/pricing-config/calculate/${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ transportMode }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                showToast(data.message || 'Pricing engine failed. Check that items have weight/dimensions.', 'error');
+                return;
+            }
+
+            const receipt = data.data;
+            setEstimateReceipt(receipt);
+            setShowBreakdown(true);
+
+            // ── Pre-fill the form with calculated values ──────────
+            // Standard fees become the base freight + handling fields
+            const totalBaseFreight = receipt.breakdown.subtotals.baseFreight;
+            const handlingFee = receipt.breakdown.standardFees.customsClearance
+                + receipt.breakdown.standardFees.handlingFee;
+
+            setBaseFreightCharge(parseFloat(totalBaseFreight.toFixed(2)));
+            setEstimatedHandlingFee(parseFloat(handlingFee.toFixed(2)));
+
+            // Per-item: apply each item's lineTotal as its shippingCharge
+            if (receipt.breakdown.items?.length) {
+                const newPrices: Record<number, { shippingCharge: number }> = {};
+                receipt.breakdown.items.forEach((ri: any, i: number) => {
+                    newPrices[i] = { shippingCharge: parseFloat(ri.lineTotal.toFixed(2)) };
+                });
+                setItemPrices(newPrices);
+            }
+
+            showToast('✓ Estimate generated! Review the breakdown and adjust before submitting.');
+        } catch {
+            showToast('Network error while running the pricing engine.', 'error');
+        } finally {
+            setIsCalculating(false);
+        }
+    }, [id, transportMode]);
 
     const handlePriceQuotation = async () => {
         if (Number(baseFreightCharge) <= 0 && Number(estimatedHandlingFee) <= 0 && itemsTotal <= 0) {
@@ -462,14 +516,129 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
 
                         {/* ── Action Panel: PENDING_ADMIN_REVIEW ────────── */}
                         {quotation.status === 'PENDING_ADMIN_REVIEW' && (
-                            <div className="bg-white rounded-2xl shadow-lg shadow-blue-900/5 overflow-hidden border border-slate-200 relative">
-                                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
-                                <div className="px-5 py-5 border-b border-slate-100 bg-white flex items-center gap-3">
-                                    <div className="p-2 bg-blue-100 text-blue-700 rounded-full"><DollarSign className="w-5 h-5" /></div>
-                                    <h3 className="font-bold text-slate-900">Define Quote Pricing</h3>
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center gap-3">
+                                    <div className="p-1.5 bg-blue-100/50 text-blue-600 rounded-lg"><DollarSign className="w-5 h-5" /></div>
+                                    <h3 className="font-semibold text-slate-800 text-sm tracking-wide">DEFINE QUOTE PRICING</h3>
+                                    <div className="ml-auto flex items-center text-[11px] font-bold bg-white border border-slate-200 text-slate-600 py-1 shadow-sm px-2.5 rounded-full">
+                                        REV #{quotation.revisionCount ?? 0}
+                                    </div>
                                 </div>
 
-                                <div className="p-5 space-y-6 bg-slate-50/30">
+                                {/* ── Auto-Estimate Strip ───────────────────────── */}
+                                <div className="p-6 border-b border-slate-100">
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                        <Sparkles className="w-4 h-4" /> Auto-Estimate Framework
+                                    </p>
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                                        {/* Transport Mode Toggle */}
+                                        <div className="flex rounded-lg border border-slate-200 overflow-hidden shadow-sm bg-white">
+                                            <button
+                                                onClick={() => setTransportMode('Air')}
+                                                className={`flex items-center gap-2 px-5 py-2.5 text-sm font-semibold transition-all ${transportMode === 'Air'
+                                                    ? 'bg-blue-50 text-blue-700'
+                                                    : 'text-slate-600 hover:bg-slate-50'
+                                                    }`}
+                                            >
+                                                <Plane className="w-4 h-4" /> Air
+                                            </button>
+                                            <button
+                                                onClick={() => setTransportMode('Sea')}
+                                                className={`flex items-center gap-2 px-5 py-2.5 text-sm font-semibold transition-all border-l border-slate-200 ${transportMode === 'Sea'
+                                                    ? 'bg-blue-50 text-blue-700'
+                                                    : 'text-slate-600 hover:bg-slate-50'
+                                                    }`}
+                                            >
+                                                <Ship className="w-4 h-4" /> Sea
+                                            </button>
+                                        </div>
+
+                                        {/* Generate Button */}
+                                        <button
+                                            onClick={handleGenerateEstimate}
+                                            disabled={isCalculating}
+                                            className="px-6 py-2.5 bg-white border border-slate-200 hover:border-blue-300 hover:text-blue-700 hover:bg-blue-50 active:scale-[0.98] text-slate-700 text-sm font-bold rounded-lg transition-all shadow-sm disabled:opacity-60 disabled:pointer-events-none flex items-center gap-2"
+                                        >
+                                            {isCalculating ? (
+                                                <><Loader2 className="w-4 h-4 animate-spin" /> Calculating...</>
+                                            ) : (
+                                                <><Sparkles className="w-4 h-4" /> Generate Pre-fill Estimate</>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* ── Estimate Breakdown Panel ───────────────── */}
+                                {estimateReceipt && (
+                                    <div className="border-b border-slate-100 bg-slate-50/50">
+                                        <button
+                                            onClick={() => setShowBreakdown(v => !v)}
+                                            className="w-full flex items-center justify-between px-6 py-4 text-sm font-bold text-slate-700 hover:bg-slate-100 transition"
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <Sparkles className="w-4 h-4 text-blue-600" />
+                                                Computed Preview: {estimateReceipt.transportMode} · {estimateReceipt.deliveryMode?.replace(/_/g, '-')}
+                                            </span>
+                                            <span className="flex items-center gap-3">
+                                                <span className="text-slate-900 font-mono text-base">{currencySymbol}{estimateReceipt.grandTotal?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                {showBreakdown ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                                            </span>
+                                        </button>
+
+                                        {showBreakdown && (
+                                            <div className="px-6 pb-6 space-y-4">
+
+                                                {/* Per-item rows */}
+                                                {estimateReceipt.breakdown?.items?.map((ri: any, idx: number) => (
+                                                    <div key={idx} className="bg-white rounded-lg border border-slate-200 p-4 text-sm shadow-sm">
+                                                        <div className="flex justify-between font-bold text-slate-800 mb-3">
+                                                            <span className="truncate pr-4">{ri.description}</span>
+                                                            <span className="text-slate-900 shrink-0">{currencySymbol}{ri.lineTotal.toFixed(2)}</span>
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-slate-500">
+                                                            <div className="flex justify-between"><span>Qty</span><span className="font-medium text-slate-700">{ri.quantity}</span></div>
+                                                            <div className="flex justify-between"><span>Weight</span><span className="font-medium text-slate-700">{ri.totalWeightKg} kg</span></div>
+                                                            <div className="flex justify-between"><span>CBM</span><span className="font-medium text-slate-700">{ri.cbm}</span></div>
+                                                            <div className="flex justify-between"><span>Base Freight</span><span className="font-medium text-slate-700">{currencySymbol}{ri.baseFreightCharge.toFixed(2)}</span></div>
+                                                            <div className="flex justify-between col-span-2">
+                                                                <span>Category Surcharge ({ri.categorySurcharge.category} · {ri.categorySurcharge.type === 'percentage' ? `${ri.categorySurcharge.rate}%` : `${currencySymbol}${ri.categorySurcharge.rate}`})</span>
+                                                                <span className="font-medium text-slate-700">+{currencySymbol}{ri.categorySurcharge.amount.toFixed(2)}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+
+                                                {/* Delivery + Fees summary */}
+                                                <div className="bg-white rounded-lg border border-slate-200 p-4 text-sm shadow-sm space-y-2">
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Shipment-Level Charges</p>
+                                                    <div className="flex justify-between text-slate-600">
+                                                        <span>{estimateReceipt.breakdown?.deliveryModeAddon?.label}</span>
+                                                        <span className="font-medium">{currencySymbol}{estimateReceipt.breakdown?.deliveryModeAddon?.amount?.toFixed(2)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-slate-600">
+                                                        <span>Customs Clearance</span>
+                                                        <span className="font-medium">{currencySymbol}{estimateReceipt.breakdown?.standardFees?.customsClearance?.toFixed(2)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-slate-600">
+                                                        <span>Handling Fee</span>
+                                                        <span className="font-medium">{currencySymbol}{estimateReceipt.breakdown?.standardFees?.handlingFee?.toFixed(2)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-slate-600">
+                                                        <span>Fuel Surcharge ({estimateReceipt.breakdown?.standardFees?.fuelSurcharge?.percentage}% of base freight)</span>
+                                                        <span className="font-medium">{currencySymbol}{estimateReceipt.breakdown?.standardFees?.fuelSurcharge?.amount?.toFixed(2)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between font-bold text-slate-900 border-t border-slate-100 pt-2 mt-1">
+                                                        <span>Grand Total</span>
+                                                        <span className="text-slate-900">{currencySymbol}{estimateReceipt.grandTotal?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                <div className="p-6 space-y-6">
                                     <div className="space-y-4">
                                         <InputField
                                             label="Base Freight Charge"
@@ -491,7 +660,7 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                                             <label className="block text-sm font-semibold text-slate-600 mb-3 mt-4">Itemized Shipping Rates</label>
                                             <div className="space-y-3">
                                                 {quotation.items.map((item: any, i: number) => (
-                                                    <div key={i} className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm hover:border-blue-300 transition-colors">
+                                                    <div key={i} className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm hover:border-blue-300 transition-colors">
                                                         <div className="flex justify-between items-start mb-2.5">
                                                             <div className="text-xs font-bold text-slate-700 truncate pr-2 w-[70%]" title={item.description}>{item.description}</div>
                                                             <div className="text-[10px] uppercase font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded shrink-0">Qty: {item.quantity || 1}</div>
@@ -523,13 +692,13 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                                             value={pricingNotes}
                                             onChange={e => setPricingNotes(e.target.value)}
                                             placeholder="Ex: Includes export customs clearance and origin handling."
-                                            className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition resize-none h-24 shadow-inner bg-slate-50"
+                                            className="w-full border border-slate-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition resize-none h-24"
                                         />
                                     </div>
 
                                     {/* Quote Summary Overview */}
-                                    <div className="bg-blue-50/50 rounded-xl p-5 mt-4 border border-blue-100 shadow-sm text-slate-700">
-                                        <p className="text-[10px] uppercase tracking-widest font-bold text-blue-600 mb-4 border-b border-blue-200 pb-2">Estimated Setup Preview</p>
+                                    <div className="bg-slate-50 rounded-lg p-5 mt-4 border border-slate-200 shadow-sm text-slate-700">
+                                        <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-4 border-b border-slate-200 pb-2">Estimated Setup Preview</p>
                                         <div className="flex justify-between items-center text-sm mb-2 font-medium">
                                             <span className="opacity-80">Base + Handling</span>
                                             <span className="text-slate-900 font-bold">{currencySymbol}{(Number(baseFreightCharge || 0) + Number(estimatedHandlingFee || 0)).toFixed(2)}</span>
@@ -538,16 +707,16 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                                             <span className="opacity-80">Items Shipping Block</span>
                                             <span className="text-slate-900 font-bold">{currencySymbol}{itemsTotal.toFixed(2)}</span>
                                         </div>
-                                        <div className="flex justify-between items-center font-bold text-slate-900 border-t border-blue-200 pt-3 text-xl">
-                                            <span className="text-blue-900">Subtotal ({currency})</span>
-                                            <span className="text-blue-700">{currencySymbol}{subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        <div className="flex justify-between items-center font-bold text-slate-900 border-t border-slate-200 pt-3 text-xl">
+                                            <span className="text-slate-900">Subtotal ({currency})</span>
+                                            <span className="text-blue-600">{currencySymbol}{subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                         </div>
                                     </div>
 
                                     <button
                                         onClick={handlePriceQuotation}
                                         disabled={sending}
-                                        className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-bold tracking-wide rounded-xl transition-all shadow-md shadow-blue-500/20 disabled:opacity-70 disabled:pointer-events-none flex items-center justify-center gap-2 mt-2"
+                                        className="w-full py-3 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-bold tracking-wide rounded-lg transition-all shadow-sm disabled:opacity-70 disabled:pointer-events-none flex items-center justify-center gap-2 mt-2"
                                     >
                                         {sending ? (
                                             <><Loader2 className="w-5 h-5 animate-spin" /> Transmitting...</>

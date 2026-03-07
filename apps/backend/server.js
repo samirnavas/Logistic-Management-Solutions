@@ -18,15 +18,22 @@ const quotationRoutes = require('./routes/quotationRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const warehouseRoutes = require('./routes/warehouseRoutes');
+const pricingRoutes = require('./routes/pricingRoutes');
 
 // Import cron jobs
 const { initScheduledJobs } = require('./utils/cronJobs');
+
+// Import database seeders
+const seedPricingConfig = require('./utils/seedPricingConfig');
 
 // Connect to Database
 connectDB();
 
 // Initialize scheduled background jobs
 initScheduledJobs();
+
+// Seed default data (idempotent – safe to run on every restart)
+seedPricingConfig();
 
 // ============================================
 // Middleware
@@ -56,6 +63,7 @@ app.use('/api/quotations', quotationRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/warehouses', warehouseRoutes);
+app.use('/api/pricing-config', pricingRoutes);
 
 // ============================================
 // Health Check & Base Route
@@ -126,4 +134,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('  - GET    /api/requests');
     console.log('  - GET    /api/quotations');
     console.log('  - GET    /api/notifications/user/:userId');
+    console.log('  - GET    /api/pricing-config');
+    console.log('  - PUT    /api/pricing-config');
+    console.log('  - POST   /api/pricing-config/calculate/:quotationId');
 }); // Force restart to apply schema changes

@@ -9,11 +9,13 @@ const User = require('./User');
 const Quotation = require('./Quotation');
 const Shipment = require('./Shipment');
 const Notification = require('./Notification');
+const PricingConfig = require('./PricingConfig');
 
 module.exports = {
     User,
     Quotation,
     Shipment,
     Notification,
+    PricingConfig,
 };
 
