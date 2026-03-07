@@ -7,7 +7,8 @@ import LiveQuotationLedger from '../../../components/LiveQuotationLedger';
 import { Quotation } from '../../../../types';
 import {
     MapPin, Package, StickyNote, ArrowRight, DollarSign,
-    AlertTriangle, Loader2, CheckCircle2, Clock, Check, RefreshCw, ChevronLeft
+    AlertTriangle, Loader2, CheckCircle2, Clock, Check, RefreshCw, ChevronLeft,
+    Sparkles, ChevronDown, ChevronUp, Plane, Ship
 } from 'lucide-react';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -78,6 +79,12 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
     const [firstMileCharge, setFirstMileCharge] = useState<number | string>('');
     const [lastMileCharge, setLastMileCharge] = useState<number | string>('');
 
+    // ── Automated Pricing Engine ─────────────────────────────────
+    const [transportMode, setTransportMode] = useState<'Air' | 'Sea'>('Air');
+    const [isCalculating, setIsCalculating] = useState(false);
+    const [estimateReceipt, setEstimateReceipt] = useState<any>(null);
+    const [showBreakdown, setShowBreakdown] = useState(false);
+
     const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
         setToast({ msg, type });
         setTimeout(() => setToast(null), 4000);
@@ -118,6 +125,53 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
     }, [id]);
 
     useEffect(() => { fetchQuotation(); }, [fetchQuotation]);
+
+    // ── Auto-Estimate via Pricing Engine ────────────────────────
+    const handleGenerateEstimate = useCallback(async () => {
+        setIsCalculating(true);
+        setEstimateReceipt(null);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`http://localhost:5000/api/pricing-config/calculate/${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ transportMode }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                showToast(data.message || 'Pricing engine failed. Check that items have weight/dimensions.', 'error');
+                return;
+            }
+
+            const receipt = data.data;
+            setEstimateReceipt(receipt);
+            setShowBreakdown(true);
+
+            // ── Pre-fill the form with calculated values ──────────
+            // Standard fees become the base freight + handling fields
+            const totalBaseFreight = receipt.breakdown.subtotals.baseFreight;
+            const handlingFee = receipt.breakdown.standardFees.customsClearance
+                + receipt.breakdown.standardFees.handlingFee;
+
+            setBaseFreightCharge(parseFloat(totalBaseFreight.toFixed(2)));
+            setEstimatedHandlingFee(parseFloat(handlingFee.toFixed(2)));
+
+            // Per-item: apply each item's lineTotal as its shippingCharge
+            if (receipt.breakdown.items?.length) {
+                const newPrices: Record<number, { shippingCharge: number }> = {};
+                receipt.breakdown.items.forEach((ri: any, i: number) => {
+                    newPrices[i] = { shippingCharge: parseFloat(ri.lineTotal.toFixed(2)) };
+                });
+                setItemPrices(newPrices);
+            }
+
+            showToast('✓ Estimate generated! Review the breakdown and adjust before submitting.');
+        } catch {
+            showToast('Network error while running the pricing engine.', 'error');
+        } finally {
+            setIsCalculating(false);
+        }
+    }, [id, transportMode]);
 
     const handlePriceQuotation = async () => {
         if (Number(baseFreightCharge) <= 0 && Number(estimatedHandlingFee) <= 0 && itemsTotal <= 0) {
@@ -467,7 +521,129 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                                 <div className="px-5 py-5 border-b border-slate-100 bg-white flex items-center gap-3">
                                     <div className="p-2 bg-blue-100 text-blue-700 rounded-full"><DollarSign className="w-5 h-5" /></div>
                                     <h3 className="font-bold text-slate-900">Define Quote Pricing</h3>
+                                    <span className="ml-auto text-xs text-slate-400 font-medium border border-slate-200 rounded-full px-2.5 py-0.5">
+                                        Rev #{quotation.revisionCount ?? 0}
+                                    </span>
                                 </div>
+
+                                {/* ── Auto-Estimate Strip ───────────────────────── */}
+                                <div className="px-5 pt-5 pb-4 border-b border-slate-100 bg-gradient-to-br from-indigo-50/60 to-blue-50/30">
+                                    <p className="text-xs font-bold text-indigo-700 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                                        <Sparkles className="w-3.5 h-3.5" /> Automated Pricing Engine
+                                    </p>
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                                        {/* Transport Mode Toggle */}
+                                        <div className="flex rounded-xl border border-slate-200 overflow-hidden shadow-sm bg-white">
+                                            <button
+                                                onClick={() => setTransportMode('Air')}
+                                                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all ${transportMode === 'Air'
+                                                        ? 'bg-blue-600 text-white'
+                                                        : 'text-slate-600 hover:bg-slate-50'
+                                                    }`}
+                                            >
+                                                <Plane className="w-4 h-4" /> Air
+                                            </button>
+                                            <button
+                                                onClick={() => setTransportMode('Sea')}
+                                                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all border-l border-slate-200 ${transportMode === 'Sea'
+                                                        ? 'bg-blue-600 text-white'
+                                                        : 'text-slate-600 hover:bg-slate-50'
+                                                    }`}
+                                            >
+                                                <Ship className="w-4 h-4" /> Sea
+                                            </button>
+                                        </div>
+
+                                        {/* Generate Button */}
+                                        <button
+                                            onClick={handleGenerateEstimate}
+                                            disabled={isCalculating}
+                                            className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-indigo-500/20 disabled:opacity-60 disabled:pointer-events-none"
+                                        >
+                                            {isCalculating ? (
+                                                <><Loader2 className="w-4 h-4 animate-spin" /> Calculating...</>
+                                            ) : (
+                                                <><Sparkles className="w-4 h-4" /> Generate Estimate</>
+                                            )}
+                                        </button>
+                                    </div>
+                                    <p className="text-[11px] text-indigo-500 mt-2.5 font-medium">
+                                        Runs the global PricingConfig rules against this quotation's items, weight &amp; CBM. Pre-fills fields below — review before submitting.
+                                    </p>
+                                </div>
+
+                                {/* ── Estimate Breakdown Panel ───────────────── */}
+                                {estimateReceipt && (
+                                    <div className="border-b border-slate-100">
+                                        <button
+                                            onClick={() => setShowBreakdown(v => !v)}
+                                            className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <Sparkles className="w-4 h-4 text-indigo-500" />
+                                                Calculated Estimate — {estimateReceipt.transportMode} · {estimateReceipt.deliveryMode?.replace(/_/g, '-')}
+                                            </span>
+                                            <span className="flex items-center gap-2 text-indigo-600">
+                                                <span className="font-mono font-extrabold">{currencySymbol}{estimateReceipt.grandTotal?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                {showBreakdown ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                            </span>
+                                        </button>
+
+                                        {showBreakdown && (
+                                            <div className="px-5 pb-5 space-y-4 bg-slate-50/50">
+
+                                                {/* Per-item rows */}
+                                                {estimateReceipt.breakdown?.items?.map((ri: any, idx: number) => (
+                                                    <div key={idx} className="bg-white rounded-xl border border-slate-200 p-4 text-sm shadow-sm">
+                                                        <div className="flex justify-between font-bold text-slate-800 mb-3">
+                                                            <span className="truncate pr-4">{ri.description}</span>
+                                                            <span className="text-blue-700 shrink-0">{currencySymbol}{ri.lineTotal.toFixed(2)}</span>
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-slate-500">
+                                                            <div className="flex justify-between"><span>Qty</span><span className="font-medium text-slate-700">{ri.quantity}</span></div>
+                                                            <div className="flex justify-between"><span>Weight</span><span className="font-medium text-slate-700">{ri.totalWeightKg} kg</span></div>
+                                                            <div className="flex justify-between"><span>CBM</span><span className="font-medium text-slate-700">{ri.cbm}</span></div>
+                                                            <div className="flex justify-between"><span>Base Freight</span><span className="font-medium text-slate-700">{currencySymbol}{ri.baseFreightCharge.toFixed(2)}</span></div>
+                                                            <div className="flex justify-between col-span-2">
+                                                                <span>Category Surcharge ({ri.categorySurcharge.category} · {ri.categorySurcharge.type === 'percentage' ? `${ri.categorySurcharge.rate}%` : `${currencySymbol}${ri.categorySurcharge.rate}`})</span>
+                                                                <span className="font-medium text-amber-700">+{currencySymbol}{ri.categorySurcharge.amount.toFixed(2)}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+
+                                                {/* Delivery + Fees summary */}
+                                                <div className="bg-white rounded-xl border border-slate-200 p-4 text-sm shadow-sm space-y-2">
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Shipment-Level Charges</p>
+                                                    <div className="flex justify-between text-slate-600">
+                                                        <span>{estimateReceipt.breakdown?.deliveryModeAddon?.label}</span>
+                                                        <span className="font-medium">{currencySymbol}{estimateReceipt.breakdown?.deliveryModeAddon?.amount?.toFixed(2)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-slate-600">
+                                                        <span>Customs Clearance</span>
+                                                        <span className="font-medium">{currencySymbol}{estimateReceipt.breakdown?.standardFees?.customsClearance?.toFixed(2)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-slate-600">
+                                                        <span>Handling Fee</span>
+                                                        <span className="font-medium">{currencySymbol}{estimateReceipt.breakdown?.standardFees?.handlingFee?.toFixed(2)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-slate-600">
+                                                        <span>Fuel Surcharge ({estimateReceipt.breakdown?.standardFees?.fuelSurcharge?.percentage}% of base freight)</span>
+                                                        <span className="font-medium">{currencySymbol}{estimateReceipt.breakdown?.standardFees?.fuelSurcharge?.amount?.toFixed(2)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between font-bold text-slate-900 border-t border-slate-100 pt-2 mt-1">
+                                                        <span>Grand Total</span>
+                                                        <span className="text-indigo-700 font-extrabold">{currencySymbol}{estimateReceipt.grandTotal?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                </div>
+
+                                                <p className="text-[11px] text-indigo-500 font-medium text-center pb-1">
+                                                    ↓ Fields below have been pre-filled from this estimate. Edit freely before submitting.
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 <div className="p-5 space-y-6 bg-slate-50/30">
                                     <div className="space-y-4">
