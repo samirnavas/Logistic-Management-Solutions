@@ -414,7 +414,7 @@ class Quotation {
       clientName: (json['clientId'] is Map)
           ? json['clientId']['fullName'] as String?
           : null,
-      revisionCount: json['revisionCount'] as int?,
+      revisionCount: (json['revisionCount'] as num?)?.toInt(),
     );
   }
 

@@ -177,7 +177,10 @@ class LiveQuotationLedger extends StatelessWidget {
                       'Quotation Date:',
                       _formatDate(quotation.createdDate),
                     ),
-                    _buildMetaRow('Revision:', '0'),
+                    _buildMetaRow(
+                      'Revision:',
+                      '${quotation.revisionCount ?? 0}',
+                    ),
                     _buildMetaRow('Currency:', quotation.currency ?? 'USD'),
                     _buildMetaRow(
                       'Validity:',
@@ -273,13 +276,13 @@ class LiveQuotationLedger extends StatelessWidget {
                           TextAlign.right,
                         ),
                         _buildTableCell(
-                          _renderPrice(item.shippingCharge ?? item.cost),
+                          _renderPrice(
+                            item.cost / (item.quantity > 0 ? item.quantity : 1),
+                          ),
                           TextAlign.right,
                         ),
                         _buildTableCell(
-                          _renderPrice(
-                            (item.shippingCharge ?? item.cost) * item.quantity,
-                          ),
+                          _renderPrice(item.cost),
                           TextAlign.right,
                           isBold: true,
                         ),
