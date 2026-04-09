@@ -304,9 +304,9 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                               'Shipping Mode',
                             ).animate().fadeIn(delay: 100.ms),
                             const SizedBox(height: 12),
-                            _buildShippingModeToggle()
-                                .animate()
-                                .fadeIn(delay: 130.ms),
+                            _buildShippingModeToggle().animate().fadeIn(
+                              delay: 130.ms,
+                            ),
                             const SizedBox(height: 24),
 
                             // ── SECTION 2: Routing — Warehouse Selection ──
@@ -315,14 +315,14 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                             ).animate().fadeIn(delay: 160.ms),
                             const SizedBox(height: 12),
 
-                            _buildRouteSelectors()
-                                .animate()
-                                .fadeIn(delay: 180.ms),
+                            _buildRouteSelectors().animate().fadeIn(
+                              delay: 180.ms,
+                            ),
                             const SizedBox(height: 24),
 
-                            _buildCurrencyCargoGrid()
-                                .animate()
-                                .fadeIn(delay: 210.ms),
+                            _buildCurrencyCargoGrid().animate().fadeIn(
+                              delay: 210.ms,
+                            ),
                             const SizedBox(height: 24),
 
                             // ── SECTION 4: Service Priority ──
@@ -365,10 +365,8 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                                   ),
                                   style: ElevatedButton.styleFrom(
                                     elevation: 0,
-                                    backgroundColor:
-                                        AppTheme.primaryBlue.withValues(
-                                          alpha: 0.15,
-                                        ),
+                                    backgroundColor: AppTheme.primaryBlue
+                                        .withValues(alpha: 0.15),
                                     foregroundColor: AppTheme.primaryBlue,
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 16,
@@ -442,8 +440,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                                                   '${item.quantity} pcs · ${item.weight} kg'
                                                   '${item.packingVolume != null ? ' · ${item.packingVolume} CBM' : ''}',
                                                   style: TextStyle(
-                                                    color:
-                                                        Colors.grey.shade600,
+                                                    color: Colors.grey.shade600,
                                                     fontSize: 13,
                                                   ),
                                                 ),
@@ -478,11 +475,12 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                                                     ),
                                                     action: SnackBarAction(
                                                       label: 'UNDO',
-                                                      onPressed: () => formNotifier
-                                                          .insertItem(
-                                                            index,
-                                                            deletedItem,
-                                                          ),
+                                                      onPressed: () =>
+                                                          formNotifier
+                                                              .insertItem(
+                                                                index,
+                                                                deletedItem,
+                                                              ),
                                                     ),
                                                     duration: const Duration(
                                                       seconds: 4,
@@ -754,8 +752,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                 validator: (_) => selectedWarehouse == null ? 'Required' : null,
                 selectedItemBuilder: (context) {
                   return activeWarehouses.map((w) {
-                    final subtitle =
-                        '${w.address.city}, ${w.address.state}';
+                    final subtitle = '${w.address.city}, ${w.address.state}';
                     return Align(
                       alignment: AlignmentDirectional.centerStart,
                       child: Text.rich(
@@ -1250,7 +1247,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                       child: Row(
                         children: [
                           Text(
-                            index == null ? 'Add Item' : 'Edit Item',
+                            index == null ? 'Add New Item' : 'Edit Item',
                             style: Theme.of(context).textTheme.titleLarge
                                 ?.copyWith(fontWeight: FontWeight.bold),
                           ),
@@ -1287,12 +1284,12 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                                 const SizedBox(height: 16),
                                 SizedBox(
                                   width: double.infinity,
-                                  height: 50,
+                                  height: 54,
                                   child: ElevatedButton(
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppTheme.primaryBlue,
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
+                                        borderRadius: BorderRadius.circular(18),
                                       ),
                                     ),
                                     onPressed: () {
@@ -1339,20 +1336,14 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
 class _DashedBorderPainter extends CustomPainter {
   final double borderRadius;
   final Color color;
-  final double strokeWidth;
-  final double dashWidth;
-  final double dashGap;
 
-  _DashedBorderPainter({
-    required this.borderRadius,
-    required this.color,
-    this.strokeWidth = 1.2,
-    this.dashWidth = 6,
-    this.dashGap = 4,
-  });
+  _DashedBorderPainter({required this.borderRadius, required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
+    const strokeWidth = 1.2;
+    const dashWidth = 6.0;
+    const dashGap = 4.0;
     final rect = Offset.zero & size;
     final rrect = RRect.fromRectAndRadius(rect, Radius.circular(borderRadius));
     final path = Path()..addRRect(rrect);
@@ -1364,8 +1355,7 @@ class _DashedBorderPainter extends CustomPainter {
     for (final metric in path.computeMetrics()) {
       double distance = 0;
       while (distance < metric.length) {
-        final end =
-            (distance + dashWidth > metric.length)
+        final end = (distance + dashWidth > metric.length)
             ? metric.length
             : distance + dashWidth;
         canvas.drawPath(metric.extractPath(distance, end), paint);
@@ -1377,9 +1367,6 @@ class _DashedBorderPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
     return oldDelegate.borderRadius != borderRadius ||
-        oldDelegate.color != color ||
-        oldDelegate.strokeWidth != strokeWidth ||
-        oldDelegate.dashWidth != dashWidth ||
-        oldDelegate.dashGap != dashGap;
+        oldDelegate.color != color;
   }
 }

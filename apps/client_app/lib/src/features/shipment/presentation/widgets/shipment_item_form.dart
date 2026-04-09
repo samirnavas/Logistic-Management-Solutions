@@ -48,17 +48,13 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
     super.initState();
     _nameController = TextEditingController(text: widget.item.description);
 
-    // UX Fix: If quantity is default 1, show empty to avoid "15" on typing "5"
     _quantityController = TextEditingController(
       text: widget.item.quantity == 1 ? '' : widget.item.quantity.toString(),
     );
-
-    // UX Fix: If weight is default 0.0, show empty
     _weightController = TextEditingController(
       text: widget.item.weight == 0.0 ? '' : widget.item.weight.toString(),
     );
 
-    // Parse dimensions "LxWxH"
     final dims = widget.item.dimensions.toString().split('x');
     _lengthController = TextEditingController(
       text: dims.isNotEmpty ? dims[0] : '',
@@ -85,8 +81,6 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
   @override
   void didUpdateWidget(covariant ShipmentItemForm oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // In this modal usage, we avoid syncing back text controllers from widget.item
-    // because widget.item updates come from our own onChanged calls, causing loop-back issues.
   }
 
   @override
@@ -105,19 +99,12 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
   }
 
   void _onDimensionsChanged() {
-    // 1. Calculate Volume
     final l = double.tryParse(_lengthController.text) ?? 0;
     final w = double.tryParse(_widthController.text) ?? 0;
     final h = double.tryParse(_heightController.text) ?? 0;
 
     if (l > 0 && w > 0 && h > 0) {
-      // Calculate CBM: (L*W*H) / 1,000,000 assuming cm
       final cbm = (l * w * h) / 1000000;
-
-      // Update volume controller only if it was empty or autocalculated
-      // For now, let's just update it. User can override if they want by typing in volume field directly.
-      // A common pattern is to only overwrite if the user hasn't manually focused the volume field,
-      // but simpler is: update if dimensions are valid.
       _volumeController.text = cbm.toStringAsFixed(3);
     }
 
@@ -134,9 +121,8 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
               'x'
               '$w'
               'x'
-              '$h'; // Avoid braces lint
+              '$h';
 
-    // Fix: Allow 0 if empty to avoid forcing '1' back into the field
     final qty = int.tryParse(_quantityController.text) ?? 0;
     final weight = double.tryParse(_weightController.text) ?? 0.0;
 
@@ -158,7 +144,6 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
     if (pickedFiles.isNotEmpty) {
       final newPhotos = pickedFiles.map((e) => File(e.path)).toList();
       final updatedPhotos = [...widget.item.localPhotos, ...newPhotos];
-      // Limit to 5
       if (updatedPhotos.length > 5) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -184,74 +169,82 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 1. Basic Details
+        _buildFieldLabel('HS CODE (REQUIRED)'),
         _buildTextField(
-          controller: _nameController,
-          label: 'Product Name / Description',
+          controller: _hsCodeController,
+          hint: 'e.g. hs730456',
           onChanged: (v) => _updateItem(),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
+        _buildFieldLabel('PRODUCT DESCRIPTION'),
+        _buildTextField(
+          controller: _nameController,
+          hint: 'e.g. Industrial Steel Pipes',
+          onChanged: (v) => _updateItem(),
+        ),
+        const SizedBox(height: 14),
         Row(
           children: [
-            Expanded(
-              child: _buildTextField(
-                controller: _quantityController,
-                label: 'Quantity (Boxes)',
-                keyboardType: TextInputType.number,
-                onChanged: (v) => _updateItem(),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildTextField(
-                controller: _weightController,
-                label: 'Weight (kg)',
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                onChanged: (v) => _updateItem(),
-              ),
-            ),
+            Expanded(child: _buildFieldLabel('LENGTH (CM)')),
+            const SizedBox(width: 10),
+            Expanded(child: _buildFieldLabel('WIDTH (CM)')),
+            const SizedBox(width: 10),
+            Expanded(child: _buildFieldLabel('HEIGHT (CM)')),
           ],
         ),
-        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
               child: _buildTextField(
                 controller: _lengthController,
-                label: 'L (cm)',
+                hint: '0',
                 keyboardType: TextInputType.number,
                 onChanged: (v) => _onDimensionsChanged(),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
             Expanded(
               child: _buildTextField(
                 controller: _widthController,
-                label: 'W (cm)',
+                hint: '0',
                 keyboardType: TextInputType.number,
                 onChanged: (v) => _onDimensionsChanged(),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
             Expanded(
               child: _buildTextField(
                 controller: _heightController,
-                label: 'H (cm)',
+                hint: '0',
                 keyboardType: TextInputType.number,
                 onChanged: (v) => _onDimensionsChanged(),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(child: _buildFieldLabel('QUANTITY (BOXES)')),
+            const SizedBox(width: 10),
+            Expanded(child: _buildFieldLabel('WEIGHT (KG)')),
+          ],
+        ),
         Row(
           children: [
             Expanded(
               child: _buildTextField(
-                controller: _volumeController,
-                label: 'Volume (CBM) - Auto-calc',
+                controller: _quantityController,
+                hint: '0',
+                keyboardType: TextInputType.number,
+                onChanged: (v) => _updateItem(),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _buildTextField(
+                controller: _weightController,
+                hint: '0.00',
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
@@ -260,14 +253,27 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
             ),
           ],
         ),
-
-        const SizedBox(height: 16),
-        // 2. Category & HS Code
+        const SizedBox(height: 14),
+        _buildFieldLabel('VOL (CBM)'),
+        _buildTextField(
+          controller: _volumeController,
+          hint: '0.96',
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          onChanged: (v) => _updateItem(),
+        ),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(child: _buildFieldLabel('CATEGORY')),
+            const SizedBox(width: 10),
+            Expanded(child: _buildFieldLabel('DECLARED VALUE')),
+          ],
+        ),
         Row(
           children: [
             Expanded(
               child: InputDecorator(
-                decoration: _inputDecoration('Category'),
+                decoration: _inputDecoration(),
                 child: _buildStyledDropdown(
                   value: widget.item.category,
                   values: _categoryOptions,
@@ -279,26 +285,11 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
-              child: _buildTextField(
-                controller: _hsCodeController,
-                label: 'HS Code (Required)',
-                onChanged: (v) => _updateItem(),
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 16),
-        // 3. Extra Details
-        Row(
-          children: [
-            Expanded(
-              flex: 2,
               child: _buildTextField(
                 controller: _targetRateController,
-                label: 'Target Rate',
+                hint: '₹ 0.00',
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
@@ -307,66 +298,89 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        _buildTextField(
-          controller: _videoUrlController,
-          label: 'Product Video URL (Optional)',
-          onChanged: (v) => _updateItem(),
-        ),
-
         const SizedBox(height: 16),
-        // 4. Photos
-        const Text(
-          'Product Photos',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: _pickPhotos,
-                child: Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[400]!),
-                  ),
-                  child: const Icon(Icons.add_a_photo, color: Colors.grey),
-                ),
+        _buildHazardousToggleCard(),
+        const SizedBox(height: 16),
+        _buildFieldLabel('PRODUCT PHOTOS'),
+        const SizedBox(height: 6),
+        GestureDetector(
+          onTap: _pickPhotos,
+          child: CustomPaint(
+            painter: const _DashedRRectPainter(color: Color(0xFFCAD1DF)),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 22),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
               ),
-              const SizedBox(width: 12),
-              ...widget.item.localPhotos.asMap().entries.map((entry) {
+              child: const Column(
+                children: [
+                  Icon(
+                    Icons.add_photo_alternate_outlined,
+                    color: Color(0xFF3658A8),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Tap to upload photos',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF6B7280),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'MAX 5 FILES (JPG, PNG)',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFF9CA3AF),
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (widget.item.localPhotos.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 72,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: widget.item.localPhotos.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final file = widget.item.localPhotos[index];
                 return Stack(
                   children: [
                     Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      width: 70,
-                      height: 70,
+                      width: 72,
+                      height: 72,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(10),
                         image: DecorationImage(
-                          image: FileImage(entry.value),
+                          image: FileImage(file),
                           fit: BoxFit.cover,
                         ),
                       ),
                     ),
                     Positioned(
-                      top: 0,
-                      right: 8,
+                      top: 2,
+                      right: 2,
                       child: GestureDetector(
-                        onTap: () => _removePhoto(entry.key),
+                        onTap: () => _removePhoto(index),
                         child: Container(
+                          padding: const EdgeInsets.all(2),
                           decoration: const BoxDecoration(
                             color: Colors.white,
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
                             Icons.close,
-                            size: 16,
+                            size: 14,
                             color: Colors.red,
                           ),
                         ),
@@ -374,35 +388,81 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
                     ),
                   ],
                 );
-              }),
-            ],
+              },
+            ),
           ),
-        ),
-
-        const SizedBox(height: 8),
-        CheckboxListTile(
-          title: const Text('Is Hazardous Material?'),
-          value: widget.item.isHazardous,
-          onChanged: (val) {
-            widget.onChanged(widget.item.copyWith(isHazardous: val ?? false));
-          },
-          controlAffinity: ListTileControlAffinity.leading,
-          contentPadding: EdgeInsets.zero,
-        ),
+        ],
         const SizedBox(height: 24),
       ],
     );
   }
 
+  Widget _buildFieldLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 11,
+          color: Color(0xFF6B7280),
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHazardousToggleCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7DCC6),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.warning_amber_rounded,
+            size: 19,
+            color: Color(0xFF7A4A1A),
+          ),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              'Hazardous Material',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF3F2A14),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Switch(
+            value: widget.item.isHazardous,
+            onChanged: (val) {
+              widget.onChanged(widget.item.copyWith(isHazardous: val));
+            },
+            activeThumbColor: const Color(0xFFE6A86A),
+            activeTrackColor: const Color(0xFFD58D49),
+            inactiveThumbColor: Colors.white,
+            inactiveTrackColor: const Color(0xFFE5C4A4),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTextField({
     required TextEditingController controller,
-    required String label,
+    required String hint,
     TextInputType? keyboardType,
     Function(String)? onChanged,
   }) {
     return TextFormField(
       controller: controller,
-      decoration: _inputDecoration(label),
+      decoration: _inputDecoration(hint: hint),
       keyboardType: keyboardType,
       onChanged: onChanged,
     );
@@ -421,7 +481,7 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
 
     return DropdownButtonHideUnderline(
       child: DropdownButton<String>(
-        value: value,
+        value: values.contains(value) ? value : values.first,
         isDense: true,
         isExpanded: true,
         alignment: AlignmentDirectional.centerStart,
@@ -455,11 +515,7 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
             .map(
               (e) => DropdownMenuItem(
                 value: e,
-                child: Text(
-                  e,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                child: Text(e, maxLines: 1, overflow: TextOverflow.ellipsis),
               ),
             )
             .toList(),
@@ -468,20 +524,69 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
     );
   }
 
-  InputDecoration _inputDecoration(String label) {
+  InputDecoration _inputDecoration({String? hint}) {
     return InputDecoration(
-      labelText: label,
+      hintText: hint,
+      hintStyle: const TextStyle(
+        fontSize: 14,
+        color: Color(0xFF9CA3AF),
+        fontWeight: FontWeight.w500,
+      ),
       filled: true,
-      fillColor: Colors.grey[50], // Slightly lighter than standard background
+      fillColor: const Color(0xFFF1F2F7),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey[300]!),
+        borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey[300]!),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF9AA4B2), width: 1),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
     );
+  }
+}
+
+class _DashedRRectPainter extends CustomPainter {
+  final Color color;
+
+  const _DashedRRectPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const borderRadius = 14.0;
+    const strokeWidth = 1.2;
+    const dashWidth = 6.0;
+    const dashGap = 4.0;
+    final rect = Offset.zero & size;
+    final rrect = RRect.fromRectAndRadius(
+      rect,
+      const Radius.circular(borderRadius),
+    );
+    final path = Path()..addRRect(rrect);
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+
+    for (final metric in path.computeMetrics()) {
+      double distance = 0;
+      while (distance < metric.length) {
+        final end = (distance + dashWidth > metric.length)
+            ? metric.length
+            : distance + dashWidth;
+        canvas.drawPath(metric.extractPath(distance, end), paint);
+        distance += dashWidth + dashGap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedRRectPainter oldDelegate) {
+    return oldDelegate.color != color;
   }
 }
