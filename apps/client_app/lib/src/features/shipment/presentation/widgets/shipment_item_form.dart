@@ -25,6 +25,12 @@ class ShipmentItemForm extends StatefulWidget {
 }
 
 class _ShipmentItemFormState extends State<ShipmentItemForm> {
+  static const _categoryOptions = [
+    'General',
+    'Special',
+    'Harmful',
+    'Explosive',
+  ];
   final _picker = ImagePicker();
   late TextEditingController _nameController;
   late TextEditingController _quantityController;
@@ -262,20 +268,14 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
             Expanded(
               child: InputDecorator(
                 decoration: _inputDecoration('Category'),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: widget.item.category,
-                    isDense: true,
-                    isExpanded: true,
-                    items: ['General', 'Special', 'Harmful', 'Explosive']
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        widget.onChanged(widget.item.copyWith(category: val));
-                      }
-                    },
-                  ),
+                child: _buildStyledDropdown(
+                  value: widget.item.category,
+                  values: _categoryOptions,
+                  onChanged: (val) {
+                    if (val != null) {
+                      widget.onChanged(widget.item.copyWith(category: val));
+                    }
+                  },
                 ),
               ),
             ),
@@ -405,6 +405,66 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
       decoration: _inputDecoration(label),
       keyboardType: keyboardType,
       onChanged: onChanged,
+    );
+  }
+
+  Widget _buildStyledDropdown({
+    required String value,
+    required List<String> values,
+    required ValueChanged<String?> onChanged,
+  }) {
+    final style = Theme.of(context).textTheme.bodyMedium?.copyWith(
+      color: Colors.black87,
+      fontWeight: FontWeight.w600,
+      fontSize: 14,
+    );
+
+    return DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        value: value,
+        isDense: true,
+        isExpanded: true,
+        alignment: AlignmentDirectional.centerStart,
+        borderRadius: BorderRadius.circular(16),
+        dropdownColor: Colors.white,
+        elevation: 12,
+        menuMaxHeight: 320,
+        itemHeight: 48,
+        icon: Icon(
+          Icons.keyboard_arrow_down_rounded,
+          color: Colors.grey.shade600,
+          size: 22,
+        ),
+        style: style,
+        selectedItemBuilder: (context) {
+          return values
+              .map(
+                (v) => Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    v,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: style,
+                  ),
+                ),
+              )
+              .toList();
+        },
+        items: values
+            .map(
+              (e) => DropdownMenuItem(
+                value: e,
+                child: Text(
+                  e,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            )
+            .toList(),
+        onChanged: onChanged,
+      ),
     );
   }
 

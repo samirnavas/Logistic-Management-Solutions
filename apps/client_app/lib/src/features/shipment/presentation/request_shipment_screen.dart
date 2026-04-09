@@ -304,13 +304,9 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                               'Shipping Mode',
                             ).animate().fadeIn(delay: 100.ms),
                             const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                _buildModeChip('By Air', Icons.flight),
-                                const SizedBox(width: 12),
-                                _buildModeChip('By Sea', Icons.directions_boat),
-                              ],
-                            ).animate().fadeIn(delay: 130.ms),
+                            _buildShippingModeToggle()
+                                .animate()
+                                .fadeIn(delay: 130.ms),
                             const SizedBox(height: 24),
 
                             // ── SECTION 2: Routing — Warehouse Selection ──
@@ -319,116 +315,14 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                             ).animate().fadeIn(delay: 160.ms),
                             const SizedBox(height: 12),
 
-                            // Origin Warehouse
-                            _buildWarehouseSelector(
-                              label: 'Origin Warehouse',
-                              icon: Icons.trip_origin,
-                              accentColor: AppTheme.primaryBlue,
-                              borderColor: AppTheme.primaryBlue.withValues(
-                                alpha: 0.25,
-                              ),
-                              selectedWarehouse: _selectedOriginWarehouse,
-                              onChanged: (w) =>
-                                  setState(() => _selectedOriginWarehouse = w),
-                            ).animate().fadeIn(delay: 180.ms),
-                            const SizedBox(height: 8),
-
-                            // Arrow
-                            Center(
-                              child: Icon(
-                                Icons.keyboard_double_arrow_down,
-                                color: AppTheme.textGrey.withValues(alpha: 0.5),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-
-                            // Destination Warehouse
-                            _buildWarehouseSelector(
-                              label: 'Destination Warehouse',
-                              icon: Icons.place,
-                              accentColor: Colors.green.shade700,
-                              borderColor: Colors.green.withValues(alpha: 0.3),
-                              selectedWarehouse: _selectedDestinationWarehouse,
-                              onChanged: (w) => setState(
-                                () => _selectedDestinationWarehouse = w,
-                              ),
-                            ).animate().fadeIn(delay: 200.ms),
+                            _buildRouteSelectors()
+                                .animate()
+                                .fadeIn(delay: 180.ms),
                             const SizedBox(height: 24),
 
-                            // ── SECTION 3: Global Currency ──
-                            _buildSectionTitle(
-                              'Currency',
-                            ).animate().fadeIn(delay: 210.ms),
-                            const SizedBox(height: 12),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: Colors.grey.withValues(alpha: 0.3),
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                                color: AppTheme.background,
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _selectedCurrency,
-                                  isExpanded: true,
-                                  items: _supportedCurrencies
-                                      .map(
-                                        (c) => DropdownMenuItem(
-                                          value: c,
-                                          child: Text(c),
-                                        ),
-                                      )
-                                      .toList(),
-                                  onChanged: (v) {
-                                    if (v != null) {
-                                      setState(() => _selectedCurrency = v);
-                                    }
-                                  },
-                                ),
-                              ),
-                            ).animate().fadeIn(delay: 215.ms),
-                            const SizedBox(height: 24),
-
-                            // ── SECTION 4: Cargo Type ──
-                            _buildSectionTitle(
-                              'Cargo Type',
-                            ).animate().fadeIn(delay: 220.ms),
-                            const SizedBox(height: 12),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: Colors.grey.withValues(alpha: 0.3),
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                                color: AppTheme.background,
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _cargoType,
-                                  isExpanded: true,
-                                  items: _cargoTypes
-                                      .map(
-                                        (t) => DropdownMenuItem(
-                                          value: t,
-                                          child: Text(t),
-                                        ),
-                                      )
-                                      .toList(),
-                                  onChanged: (v) {
-                                    if (v != null) {
-                                      setState(() => _cargoType = v);
-                                    }
-                                  },
-                                ),
-                              ),
-                            ).animate().fadeIn(delay: 240.ms),
+                            _buildCurrencyCargoGrid()
+                                .animate()
+                                .fadeIn(delay: 210.ms),
                             const SizedBox(height: 24),
 
                             // ── SECTION 4: Service Priority ──
@@ -456,146 +350,153 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                             const SizedBox(height: 24),
 
                             // ── SECTION 5: Items ──
-                            _buildSectionTitle(
-                              'Package Items',
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildSectionTitle('Package Items'),
+                                ),
+                                ElevatedButton.icon(
+                                  onPressed: () => _showItemModal(context),
+                                  icon: const Icon(Icons.add, size: 16),
+                                  label: Text(
+                                    formState.items.isEmpty
+                                        ? 'Add Item'
+                                        : 'Add Another',
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    elevation: 0,
+                                    backgroundColor:
+                                        AppTheme.primaryBlue.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                    foregroundColor: AppTheme.primaryBlue,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 10,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ).animate().fadeIn(delay: 300.ms),
                             const SizedBox(height: 16),
-                            ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: formState.items.length,
-                              separatorBuilder: (c, i) =>
-                                  const SizedBox(height: 12),
-                              itemBuilder: (context, index) {
-                                final item = formState.items[index];
-                                return Card(
-                                  elevation: 0,
-                                  color: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    side: BorderSide(
-                                      color: Colors.grey.shade200,
+                            if (formState.items.isEmpty)
+                              _buildEmptyItemsState().animate().fadeIn(
+                                delay: 350.ms,
+                              )
+                            else
+                              ListView.separated(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: formState.items.length,
+                                separatorBuilder: (c, i) =>
+                                    const SizedBox(height: 12),
+                                itemBuilder: (context, index) {
+                                  final item = formState.items[index];
+                                  return Card(
+                                    elevation: 0,
+                                    color: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                      side: BorderSide(
+                                        color: Colors.grey.shade200,
+                                      ),
                                     ),
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 48,
-                                          height: 48,
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.primaryBlue
-                                                .withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(
-                                              12,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 48,
+                                            height: 48,
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.primaryBlue
+                                                  .withValues(alpha: 0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: const Icon(
+                                              Icons.inventory_2_outlined,
+                                              color: AppTheme.primaryBlue,
                                             ),
                                           ),
-                                          child: const Icon(
-                                            Icons.inventory_2_outlined,
-                                            color: AppTheme.primaryBlue,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                item.description.isNotEmpty
-                                                    ? item.description
-                                                    : 'Item ${index + 1}',
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 15,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                '${item.quantity} pcs · ${item.weight} kg'
-                                                '${item.packingVolume != null ? ' · ${item.packingVolume} CBM' : ''}',
-                                                style: TextStyle(
-                                                  color: Colors.grey.shade600,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.edit_outlined,
-                                            color: Colors.blue,
-                                          ),
-                                          onPressed: () => _showItemModal(
-                                            context,
-                                            index: index,
-                                            item: item,
-                                          ),
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.delete_outline,
-                                            color: Colors.red,
-                                          ),
-                                          onPressed: () {
-                                            final deletedItem = item;
-                                            formNotifier.removeItem(index);
-                                            ScaffoldMessenger.of(context)
-                                              ..clearSnackBars()
-                                              ..showSnackBar(
-                                                SnackBar(
-                                                  content: const Text(
-                                                    'Item removed',
-                                                  ),
-                                                  action: SnackBarAction(
-                                                    label: 'UNDO',
-                                                    onPressed: () =>
-                                                        formNotifier.insertItem(
-                                                          index,
-                                                          deletedItem,
-                                                        ),
-                                                  ),
-                                                  duration: const Duration(
-                                                    seconds: 4,
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  item.description.isNotEmpty
+                                                      ? item.description
+                                                      : 'Item ${index + 1}',
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 15,
                                                   ),
                                                 ),
-                                              );
-                                          },
-                                        ),
-                                      ],
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  '${item.quantity} pcs · ${item.weight} kg'
+                                                  '${item.packingVolume != null ? ' · ${item.packingVolume} CBM' : ''}',
+                                                  style: TextStyle(
+                                                    color:
+                                                        Colors.grey.shade600,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.edit_outlined,
+                                              color: Colors.blue,
+                                            ),
+                                            onPressed: () => _showItemModal(
+                                              context,
+                                              index: index,
+                                              item: item,
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.delete_outline,
+                                              color: Colors.red,
+                                            ),
+                                            onPressed: () {
+                                              final deletedItem = item;
+                                              formNotifier.removeItem(index);
+                                              ScaffoldMessenger.of(context)
+                                                ..clearSnackBars()
+                                                ..showSnackBar(
+                                                  SnackBar(
+                                                    content: const Text(
+                                                      'Item removed',
+                                                    ),
+                                                    action: SnackBarAction(
+                                                      label: 'UNDO',
+                                                      onPressed: () => formNotifier
+                                                          .insertItem(
+                                                            index,
+                                                            deletedItem,
+                                                          ),
+                                                    ),
+                                                    duration: const Duration(
+                                                      seconds: 4,
+                                                    ),
+                                                  ),
+                                                );
+                                            },
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                );
-                              },
-                            ).animate().fadeIn(delay: 350.ms),
-
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: () => _showItemModal(context),
-                                icon: const Icon(Icons.add),
-                                label: Text(
-                                  formState.items.isEmpty
-                                      ? 'Add Item'
-                                      : 'Add Another Item',
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppTheme.primaryBlue,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                  ),
-                                  side: const BorderSide(
-                                    color: AppTheme.primaryBlue,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(24),
-                                  ),
-                                ),
-                              ),
-                            ),
+                                  );
+                                },
+                              ).animate().fadeIn(delay: 350.ms),
                             const SizedBox(height: 24),
 
                             // ── SECTION 6: Special Instructions ──
@@ -753,9 +654,16 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.background,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor.withValues(alpha: 0.45)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0F000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -800,7 +708,19 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                       )
                     : null,
                 isExpanded: true,
+                isDense: true,
+                // Menu rows: two lines each. Closed field uses a single line (see
+                // selectedItemBuilder) so InputDecorator never clips at ~48px.
+                itemHeight: 72,
+                borderRadius: BorderRadius.circular(16),
+                dropdownColor: Colors.white,
+                elevation: 12,
+                menuMaxHeight: 340,
                 hint: const Text('Select a warehouse'),
+                icon: Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: AppTheme.textGrey.withValues(alpha: 0.85),
+                ),
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: AppTheme.surface,
@@ -825,12 +745,47 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                     borderRadius: BorderRadius.circular(10),
                     borderSide: BorderSide(color: accentColor, width: 1.5),
                   ),
+                  isDense: true,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12,
-                    vertical: 14,
+                    vertical: 12,
                   ),
                 ),
                 validator: (_) => selectedWarehouse == null ? 'Required' : null,
+                selectedItemBuilder: (context) {
+                  return activeWarehouses.map((w) {
+                    final subtitle =
+                        '${w.address.city}, ${w.address.state}';
+                    return Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: w.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                height: 1.15,
+                              ),
+                            ),
+                            TextSpan(
+                              text: ' · $subtitle',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w400,
+                                fontSize: 12,
+                                height: 1.15,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }).toList();
+                },
                 items: activeWarehouses
                     .map(
                       (w) => DropdownMenuItem<Warehouse>(
@@ -869,38 +824,326 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
     );
   }
 
-  Widget _buildModeChip(String label, IconData icon) {
-    final selected = _shippingMode == label;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _shippingMode = label),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          decoration: BoxDecoration(
-            color: selected
-                ? AppTheme.primaryBlue.withValues(alpha: 0.1)
-                : AppTheme.background,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected ? AppTheme.primaryBlue : Colors.grey.shade300,
-              width: selected ? 2 : 1,
-            ),
-          ),
+  static const Duration _shippingModeSlideDuration = Duration(
+    milliseconds: 320,
+  );
+
+  Widget _buildShippingModeToggle() {
+    const air = 'By Air';
+    const sea = 'By Sea';
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppTheme.background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final trackWidth = constraints.maxWidth;
+          final thumbWidth = trackWidth / 2;
+          final isAir = _shippingMode == air;
+          return Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.centerLeft,
+            children: [
+              AnimatedPositioned(
+                duration: _shippingModeSlideDuration,
+                curve: Curves.easeOutCubic,
+                left: isAir ? 0 : thumbWidth,
+                top: 0,
+                bottom: 0,
+                width: thumbWidth,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x22000000),
+                        blurRadius: 12,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildShippingModeSegment(
+                      label: air,
+                      icon: Icons.flight,
+                      selected: isAir,
+                      onTap: () => setState(() => _shippingMode = air),
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildShippingModeSegment(
+                      label: sea,
+                      icon: Icons.directions_boat,
+                      selected: !isAir,
+                      onTap: () => setState(() => _shippingMode = sea),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildShippingModeSegment({
+    required String label,
+    required IconData icon,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        splashColor: AppTheme.primaryBlue.withValues(alpha: 0.08),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 icon,
-                color: selected ? AppTheme.primaryBlue : Colors.grey.shade500,
+                size: 18,
+                color: selected ? AppTheme.primaryBlue : AppTheme.textGrey,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: selected ? AppTheme.textDark : AppTheme.textGrey,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRouteSelectors() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildWarehouseSelector(
+          label: 'Origin Warehouse',
+          icon: Icons.trip_origin,
+          accentColor: AppTheme.primaryBlue,
+          borderColor: AppTheme.primaryBlue,
+          selectedWarehouse: _selectedOriginWarehouse,
+          onChanged: (w) => setState(() => _selectedOriginWarehouse = w),
+        ),
+        const SizedBox(height: 12),
+        Center(
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x14000000),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(
+              Icons.keyboard_double_arrow_down_rounded,
+              size: 20,
+              color: AppTheme.textGrey.withValues(alpha: 0.7),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildWarehouseSelector(
+          label: 'Destination Warehouse',
+          icon: Icons.place,
+          accentColor: Colors.green.shade700,
+          borderColor: Colors.green,
+          selectedWarehouse: _selectedDestinationWarehouse,
+          onChanged: (w) => setState(() => _selectedDestinationWarehouse = w),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCurrencyCargoGrid() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionTitle('Currency'),
+              const SizedBox(height: 12),
+              _buildFlatDropdownContainer(
+                child: _buildStyledStringDropdown(
+                  value: _selectedCurrency,
+                  values: _supportedCurrencies,
+                  onChanged: (v) {
+                    if (v != null) setState(() => _selectedCurrency = v);
+                  },
+                  denseSelectedText: false,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionTitle('Cargo Type'),
+              const SizedBox(height: 12),
+              _buildFlatDropdownContainer(
+                child: _buildStyledStringDropdown(
+                  value: _cargoType,
+                  values: _cargoTypes,
+                  onChanged: (v) {
+                    if (v != null) setState(() => _cargoType = v);
+                  },
+                  denseSelectedText: true,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Shared menu styling for currency & cargo [DropdownButton]s (rounded panel, shadow).
+  Widget _buildStyledStringDropdown({
+    required String value,
+    required List<String> values,
+    required ValueChanged<String?> onChanged,
+    required bool denseSelectedText,
+  }) {
+    final menuRadius = BorderRadius.circular(16);
+    final baseStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+      color: AppTheme.textDark,
+      fontSize: denseSelectedText ? 12.5 : 14,
+      fontWeight: FontWeight.w600,
+    );
+
+    return DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        value: value,
+        isExpanded: true,
+        isDense: true,
+        alignment: AlignmentDirectional.centerStart,
+        borderRadius: menuRadius,
+        dropdownColor: Colors.white,
+        elevation: 12,
+        icon: Icon(
+          Icons.keyboard_arrow_down_rounded,
+          color: AppTheme.textGrey.withValues(alpha: 0.85),
+          size: 22,
+        ),
+        menuMaxHeight: 320,
+        itemHeight: 48,
+        style: baseStyle,
+        selectedItemBuilder: (context) {
+          return values.map((v) {
+            final text = Text(
+              v,
+              maxLines: 1,
+              softWrap: false,
+              style: baseStyle,
+            );
+            return Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: denseSelectedText
+                  ? FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: text,
+                    )
+                  : text,
+            );
+          }).toList();
+        },
+        items: values
+            .map(
+              (v) => DropdownMenuItem<String>(
+                value: v,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Text(
+                    v,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.textDark,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            )
+            .toList(),
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _buildFlatDropdownContainer({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppTheme.background,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildEmptyItemsState() {
+    return SizedBox(
+      width: double.infinity,
+      child: CustomPaint(
+        painter: _DashedBorderPainter(
+          borderRadius: 14,
+          color: Colors.grey.shade300,
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.inventory_2_outlined,
+                color: AppTheme.textGrey.withValues(alpha: 0.7),
                 size: 20,
               ),
               const SizedBox(width: 8),
               Text(
-                label,
+                'No items added yet',
                 style: TextStyle(
-                  color: selected ? AppTheme.primaryBlue : Colors.grey.shade700,
-                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  color: AppTheme.textGrey.withValues(alpha: 0.9),
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -1090,5 +1333,53 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
         );
       },
     );
+  }
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  final double borderRadius;
+  final Color color;
+  final double strokeWidth;
+  final double dashWidth;
+  final double dashGap;
+
+  _DashedBorderPainter({
+    required this.borderRadius,
+    required this.color,
+    this.strokeWidth = 1.2,
+    this.dashWidth = 6,
+    this.dashGap = 4,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final rrect = RRect.fromRectAndRadius(rect, Radius.circular(borderRadius));
+    final path = Path()..addRRect(rrect);
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+
+    for (final metric in path.computeMetrics()) {
+      double distance = 0;
+      while (distance < metric.length) {
+        final end =
+            (distance + dashWidth > metric.length)
+            ? metric.length
+            : distance + dashWidth;
+        canvas.drawPath(metric.extractPath(distance, end), paint);
+        distance += dashWidth + dashGap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
+    return oldDelegate.borderRadius != borderRadius ||
+        oldDelegate.color != color ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.dashWidth != dashWidth ||
+        oldDelegate.dashGap != dashGap;
   }
 }
