@@ -155,8 +155,8 @@ export default function QuotationsPage() {
                             ) : (
                                 paged.map((q) => {
                                     const id = q._id || q.id;
-                                    const origin = q.routingData?.sourceCity || q.origin?.city || '—';
-                                    const dest = q.routingData?.destinationCity || q.destination?.city || '—';
+                                    const origin = q.routingData?.originWarehouseName || q.routingData?.sourceCity || q.origin?.city || '—';
+                                    const dest = q.routingData?.destinationWarehouseName || q.routingData?.destinationCity || q.destination?.city || '—';
                                     const itemCount = q.items?.length || 0;
                                     return (
                                         <tr

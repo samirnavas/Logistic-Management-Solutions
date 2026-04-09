@@ -238,6 +238,14 @@ class Quotation {
   final String? routingDestinationRegion;
   final String? routingDestinationCity;
 
+  // Warehouse Routing Data
+  final String? originWarehouseName;
+  final String? originWarehouseCity;
+  final String? originWarehouseState;
+  final String? destinationWarehouseName;
+  final String? destinationWarehouseCity;
+  final String? destinationWarehouseState;
+
   // New Pricing Breakdown Fields
   final double? baseFreightCharge;
   final double? estimatedHandlingFee;
@@ -281,6 +289,12 @@ class Quotation {
     this.discount,
     this.clientName,
     this.revisionCount,
+    this.originWarehouseName,
+    this.originWarehouseCity,
+    this.originWarehouseState,
+    this.destinationWarehouseName,
+    this.destinationWarehouseCity,
+    this.destinationWarehouseState,
   });
 
   Quotation copyWith({
@@ -307,6 +321,12 @@ class Quotation {
     String? routingSourceCity,
     String? routingDestinationRegion,
     String? routingDestinationCity,
+    String? originWarehouseName,
+    String? originWarehouseCity,
+    String? originWarehouseState,
+    String? destinationWarehouseName,
+    String? destinationWarehouseCity,
+    String? destinationWarehouseState,
   }) {
     return Quotation(
       id: id ?? this.id,
@@ -343,6 +363,15 @@ class Quotation {
       discount: discount ?? this.discount,
       clientName: clientName ?? this.clientName,
       revisionCount: revisionCount ?? this.revisionCount,
+      originWarehouseName: originWarehouseName ?? this.originWarehouseName,
+      originWarehouseCity: originWarehouseCity ?? this.originWarehouseCity,
+      originWarehouseState: originWarehouseState ?? this.originWarehouseState,
+      destinationWarehouseName:
+          destinationWarehouseName ?? this.destinationWarehouseName,
+      destinationWarehouseCity:
+          destinationWarehouseCity ?? this.destinationWarehouseCity,
+      destinationWarehouseState:
+          destinationWarehouseState ?? this.destinationWarehouseState,
     );
   }
 
@@ -392,6 +421,17 @@ class Quotation {
       routingSourceCity: routingData?['sourceCity'] as String?,
       routingDestinationRegion: routingData?['destinationRegion'] as String?,
       routingDestinationCity: routingData?['destinationCity'] as String?,
+
+      // Warehouse Routing Data
+      originWarehouseName: routingData?['originWarehouseName'] as String?,
+      originWarehouseCity: routingData?['originWarehouseCity'] as String?,
+      originWarehouseState: routingData?['originWarehouseState'] as String?,
+      destinationWarehouseName:
+          routingData?['destinationWarehouseName'] as String?,
+      destinationWarehouseCity:
+          routingData?['destinationWarehouseCity'] as String?,
+      destinationWarehouseState:
+          routingData?['destinationWarehouseState'] as String?,
       // Map Pricing Details
       baseFreightCharge:
           (json['pricing']?['baseFreightCharge'] ??
@@ -545,6 +585,18 @@ class Quotation {
       'adminFeedback': adminFeedback,
       'handoverMethod': handoverMethod,
       'warehouseDropOffLocation': warehouseDropOffLocation,
+      'routingData': {
+        'sourceRegion': routingSourceRegion,
+        'sourceCity': routingSourceCity,
+        'destinationRegion': routingDestinationRegion,
+        'destinationCity': routingDestinationCity,
+        'originWarehouseName': originWarehouseName,
+        'originWarehouseCity': originWarehouseCity,
+        'originWarehouseState': originWarehouseState,
+        'destinationWarehouseName': destinationWarehouseName,
+        'destinationWarehouseCity': destinationWarehouseCity,
+        'destinationWarehouseState': destinationWarehouseState,
+      },
     };
   }
 }

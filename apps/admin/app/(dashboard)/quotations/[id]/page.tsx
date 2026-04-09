@@ -363,10 +363,13 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                                             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">Origin</p>
                                             <div className="space-y-1">
                                                 <p className="text-sm text-slate-500 flex justify-between border-b border-slate-50 pb-1">
-                                                    <span>City</span> <span>{formatPending(rd?.sourceCity || quotation.origin?.city)}</span>
+                                                    <span>Warehouse</span> <span>{formatPending(rd?.originWarehouseName)}</span>
                                                 </p>
                                                 <p className="text-sm text-slate-500 flex justify-between border-b border-slate-50 pb-1">
-                                                    <span>Region</span> <span>{formatPending(rd?.sourceRegion || quotation.origin?.country)}</span>
+                                                    <span>City</span> <span>{formatPending(rd?.originWarehouseCity || rd?.sourceCity || quotation.origin?.city)}</span>
+                                                </p>
+                                                <p className="text-sm text-slate-500 flex justify-between border-b border-slate-50 pb-1">
+                                                    <span>Region</span> <span>{formatPending(rd?.originWarehouseState || rd?.sourceRegion || quotation.origin?.country)}</span>
                                                 </p>
                                             </div>
                                         </div>
@@ -394,10 +397,13 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                                             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">Destination</p>
                                             <div className="space-y-1">
                                                 <p className="text-sm text-slate-500 flex justify-between border-b border-slate-50 pb-1">
-                                                    <span>City</span> <span>{formatPending(rd?.destinationCity || quotation.destination?.city)}</span>
+                                                    <span>Warehouse</span> <span>{formatPending(rd?.destinationWarehouseName)}</span>
                                                 </p>
                                                 <p className="text-sm text-slate-500 flex justify-between border-b border-slate-50 pb-1">
-                                                    <span>Region</span> <span>{formatPending(rd?.destinationRegion || quotation.destination?.country)}</span>
+                                                    <span>City</span> <span>{formatPending(rd?.destinationWarehouseCity || rd?.destinationCity || quotation.destination?.city)}</span>
+                                                </p>
+                                                <p className="text-sm text-slate-500 flex justify-between border-b border-slate-50 pb-1">
+                                                    <span>Region</span> <span>{formatPending(rd?.destinationWarehouseState || rd?.destinationRegion || quotation.destination?.country)}</span>
                                                 </p>
                                             </div>
                                         </div>

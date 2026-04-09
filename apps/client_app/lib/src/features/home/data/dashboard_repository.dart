@@ -28,7 +28,10 @@ class DashboardRepository {
       final response = await _apiService.getRequest(
         '/api/users/$_currentUserId/dashboard-stats',
       );
-      return DashboardStats.fromJson(response);
+      if (response is Map<String, dynamic>) {
+        return DashboardStats.fromJson(response);
+      }
+      throw Exception('Invalid dashboard stats response format');
     } catch (e) {
       // In case of error (or offline), return zeros or handle gracefully
       // For now, rethrow or return empty to allow UI to show error/empty

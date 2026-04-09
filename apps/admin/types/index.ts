@@ -110,6 +110,14 @@ export interface Quotation {
 
     // Logistics specific
     routingData?: {
+        originWarehouseId?: string;
+        originWarehouseName?: string;
+        originWarehouseCity?: string;
+        originWarehouseState?: string;
+        destinationWarehouseId?: string;
+        destinationWarehouseName?: string;
+        destinationWarehouseCity?: string;
+        destinationWarehouseState?: string;
         sourceRegion?: string;
         sourceCity?: string;
         destinationRegion?: string;

@@ -2,11 +2,11 @@ import 'package:bb_logistics/src/core/theme/theme.dart';
 import 'package:bb_logistics/src/core/widgets/app_drawer.dart';
 import 'package:bb_logistics/src/core/widgets/blue_background_scaffold.dart';
 import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
+import 'package:bb_logistics/src/features/auth/domain/user.dart';
 import 'package:bb_logistics/src/features/home/data/dashboard_repository.dart';
 import 'package:bb_logistics/src/features/home/domain/dashboard_stats.dart';
 import 'package:bb_logistics/src/features/shipment/data/mock_shipment_repository.dart';
-
-import 'package:bb_logistics/src/features/shipment/presentation/widgets/shipment_card.dart';
+import 'package:bb_logistics/src/features/shipment/domain/shipment.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -40,12 +40,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       drawer: const AppDrawer(),
       body: Stack(
         children: [
-          // 1. Scrollable Layer
           Positioned.fill(
             child: RefreshIndicator(
               onRefresh: () async {
                 HapticFeedback.lightImpact();
-                // Actually await the refresh of both providers
                 await Future.wait([
                   ref.refresh(dashboardStatsProvider.future),
                   ref.refresh(shipmentListProvider.future),
@@ -55,282 +53,160 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   children: [
-                    SizedBox(
-                      height: MediaQuery.of(context).padding.top + 70,
-                    ), // Dynamic top margin
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        // Dynamic horizontal padding based on available width
-                        final horizontalPadding = constraints.maxWidth < 360
-                            ? 16.0
-                            : constraints.maxWidth < 600
-                            ? 20.0
-                            : 24.0;
-
-                        return Container(
-                          width: double.infinity,
-                          decoration: const BoxDecoration(
-                            color: AppTheme.surface,
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(30),
-                              topRight: Radius.circular(30),
+                    SizedBox(height: MediaQuery.of(context).padding.top + 70),
+                    Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFAF8FF),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(24),
+                          topRight: Radius.circular(24),
+                        ),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 120),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildGreetingHeader(context, authState, user),
+                          const SizedBox(height: 28),
+                          Text(
+                            'Status Overview',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  color: const Color(0xFF2F3036),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          const SizedBox(height: 14),
+                          statsAsync.when(
+                            data: (stats) => _buildStatusGrid(context, stats),
+                            loading: () => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                            error: (e, s) => _buildErrorState(
+                              context,
+                              'Failed to load status',
+                              () {
+                                // ignore: unused_result
+                                ref.refresh(dashboardStatsProvider);
+                              },
                             ),
                           ),
-                          padding: EdgeInsets.fromLTRB(
-                            horizontalPadding,
-                            30,
-                            horizontalPadding,
-                            100,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Greeting with shimmer loading state
-                              authState.when(
-                                data: (userData) =>
-                                    Text(
-                                          'Hello, ${userData?.fullName ?? 'Guest'}!',
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.displayMedium,
-                                        )
-                                        .animate()
-                                        .fadeIn(duration: 500.ms)
-                                        .slideX(begin: -0.2, end: 0),
-                                loading: () => Shimmer.fromColors(
-                                  baseColor: Colors.grey[300]!,
-                                  highlightColor: Colors.grey[100]!,
-                                  child: Container(
-                                    width: 200,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                ),
-                                error: (_, __) => Text(
-                                  'Hello, Guest!',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.displayMedium,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Track, manage, and review all your shipment requests in one place.',
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      color: AppTheme.textGrey,
-                                      height: 1.5,
-                                    ),
-                              ).animate().fadeIn(
-                                delay: 100.ms,
-                                duration: 500.ms,
-                              ),
-                              const SizedBox(height: 24),
-
-                              // Customer Code Card
-                              if (user != null)
-                                _buildCustomerCodeCard(
+                          const SizedBox(height: 28),
+                          _buildRecentHeader(context),
+                          const SizedBox(height: 12),
+                          shipmentsAsync.when(
+                            data: (shipments) {
+                              if (shipments.isEmpty) {
+                                return _buildEmptyShipmentsState(context);
+                              }
+                              final recent = shipments.take(2).toList();
+                              return ListView.separated(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: recent.length,
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(height: 12),
+                                itemBuilder: (context, index) =>
+                                    _buildRecentRequestCard(
                                       context,
-                                      user.customerCode.isNotEmpty
-                                          ? user.customerCode
-                                          : 'N/A',
-                                    )
-                                    .animate()
-                                    .fadeIn(delay: 200.ms, duration: 500.ms)
-                                    .scale(),
-
-                              const SizedBox(height: 16),
-
-                              const SizedBox(height: 16),
-
-                              // Status Overview
-                              Text(
-                                'Status Overview',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ).animate().fadeIn(delay: 400.ms),
-                              const SizedBox(height: 16),
-
-                              statsAsync.when(
-                                data: (stats) =>
-                                    _buildStatusGrid(context, stats),
-                                loading: () => const Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                                error: (e, s) => _buildErrorState(
-                                  context,
-                                  'Failed to load status',
-                                  () {
-                                    // ignore: unused_result
-                                    ref.refresh(dashboardStatsProvider);
-                                  },
-                                ),
-                              ),
-
-                              const SizedBox(height: 32),
-
-                              // Recent Shipments
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      'Recent Requests',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleLarge,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Material(
-                                    color: AppTheme.primaryBlue.withValues(
-                                      alpha: 0.1,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: InkWell(
-                                      onTap: () {
-                                        HapticFeedback.lightImpact();
-                                        context.go('/requests');
-                                      },
-                                      borderRadius: BorderRadius.circular(20),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 8,
+                                      recent[index],
+                                    ).animate().fadeIn(
+                                          delay: (300 + (index * 120)).ms,
                                         ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              'View All',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodySmall
-                                                  ?.copyWith(
-                                                    color: AppTheme.primaryBlue,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            const Icon(
-                                              Icons.arrow_forward_ios,
-                                              size: 12,
-                                              color: AppTheme.primaryBlue,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ).animate().fadeIn(delay: 600.ms),
-                              const SizedBox(height: 8),
-
-                              shipmentsAsync.when(
-                                data: (shipments) {
-                                  if (shipments.isEmpty) {
-                                    return _buildEmptyShipmentsState(context);
-                                  }
-                                  final recent = shipments.take(2).toList();
-                                  return ListView.builder(
-                                    shrinkWrap: true,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    itemCount: recent.length,
-                                    itemBuilder: (context, index) {
-                                      final s = recent[index];
-                                      return ShipmentCard(
-                                            shipmentId: s.trackingNumber,
-                                            boxId:
-                                                '${s.packageCount} Box${s.packageCount != 1 ? 'es' : ''}',
-                                            status: s.status,
-                                            type: s.mode,
-                                            product:
-                                                '${s.origin} → ${s.destination}',
-                                            date:
-                                                '${s.estimatedDelivery.day} ${_getMonthName(s.estimatedDelivery.month)} ${s.estimatedDelivery.year}',
-                                            onTrack: () {
-                                              HapticFeedback.lightImpact();
-                                              context.push(
-                                                '/tracking/${s.trackingNumber}',
-                                              );
-                                            },
-                                            onViewDetails: () {
-                                              HapticFeedback.lightImpact();
-                                            },
-                                          )
-                                          .animate()
-                                          .fadeIn(
-                                            delay: (700 + (index * 100)).ms,
-                                          )
-                                          .slideY(begin: 0.2, end: 0);
-                                    },
-                                  );
-                                },
-                                loading: () => _buildShipmentSkeletonLoader(),
-                                error: (e, s) => _buildErrorState(
-                                  context,
-                                  'Failed to load shipments',
-                                  () {
-                                    // ignore: unused_result
-                                    ref.refresh(shipmentListProvider);
-                                  },
-                                ),
-                              ),
-                            ],
+                              );
+                            },
+                            loading: () => _buildShipmentSkeletonLoader(),
+                            error: (e, s) => _buildErrorState(
+                              context,
+                              'Failed to load shipments',
+                              () {
+                                // ignore: unused_result
+                                ref.refresh(shipmentListProvider);
+                              },
+                            ),
                           ),
-                        ); // Close Container
-                      }, // Close builder
-                    ), // Close LayoutBuilder
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
           ),
 
-          // 2. Custom App Bar Content (Menu, Bell) - MOVED TO TOP to capture clicks
           Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.menu,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                      onPressed: () {
+                    InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () {
                         HapticFeedback.lightImpact();
                         _scaffoldKey.currentState?.openDrawer();
                       },
+                      child: const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Icon(Icons.menu, color: Colors.white, size: 26),
+                      ),
+                    ),
+                    Text(
+                      'B&B Logistics',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     Container(
-                      decoration: const BoxDecoration(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
                         shape: BoxShape.circle,
-                        color: AppTheme.surface,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.notifications_none_outlined,
-                          color: AppTheme.primaryBlue,
-                        ),
-                        onPressed: () {
-                          HapticFeedback.lightImpact();
-                        },
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.notifications_none_outlined,
+                              color: Color(0xFF3250A2),
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                            },
+                          ),
+                          Positioned(
+                            top: -1,
+                            right: -1,
+                            child: Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF633000),
+                                border: Border.all(
+                                  color: const Color(0xFF3250A2),
+                                  width: 1.2,
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -341,53 +217,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 2),
+        padding: const EdgeInsets.only(bottom: 8),
         child: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.7,
-          height: 48,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-                  blurRadius: 12,
-                  spreadRadius: 0,
-                  offset: const Offset(0, 4),
-                ),
-                BoxShadow(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-                  blurRadius: 20,
-                  spreadRadius: 2,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+          width: MediaQuery.of(context).size.width * 0.76,
+          height: 56,
+          child: FloatingActionButton.extended(
+            onPressed: () {
+              HapticFeedback.mediumImpact();
+              context.push('/request-shipment');
+            },
+            backgroundColor: const Color(0xFF3250A2),
+            elevation: 0,
+            highlightElevation: 0,
+            hoverElevation: 0,
+            focusElevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(999),
             ),
-            child: FloatingActionButton.extended(
-              onPressed: () {
-                HapticFeedback.mediumImpact();
-                context.push('/request-shipment');
-              },
-              backgroundColor: AppTheme.primaryBlue,
-              elevation: 0,
-              highlightElevation: 0,
-              hoverElevation: 0,
-              focusElevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28),
-              ),
-              icon: const Icon(
-                Icons.add_circle_outline,
+            icon: const Icon(Icons.add, color: Colors.white, size: 22),
+            label: Text(
+              'CREATE NEW REQUEST',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: Colors.white,
-                size: 24,
-              ),
-              label: Text(
-                'CREATE NEW REQUEST',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                ),
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.4,
               ),
             ),
           ),
@@ -415,69 +268,106 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return months[month - 1];
   }
 
-  Widget _buildCustomerCodeCard(BuildContext context, String code) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          // Soft, diffused drop shadow matching the new design language
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 15,
-            spreadRadius: 0,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Text(
-            'Customer Code: ',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          Text(
-            code,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-          ),
-          const Spacer(),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () async {
-                HapticFeedback.mediumImpact();
-                await Clipboard.setData(ClipboardData(text: code));
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Customer code copied to clipboard'),
-                      duration: Duration(seconds: 2),
+  Widget _buildGreetingHeader(
+    BuildContext context,
+    AsyncValue<User?> authState,
+    User? user,
+  ) {
+    final customerCode = (user?.customerCode ?? '').trim().isNotEmpty
+        ? user!.customerCode.trim()
+        : 'N/A';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: authState.when(
+                data: (userData) => Text(
+                  'Hello, ${userData?.fullName ?? 'Guest'}!',
+                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                    fontSize: 30,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                loading: () => Shimmer.fromColors(
+                  baseColor: Colors.grey[300]!,
+                  highlightColor: Colors.grey[100]!,
+                  child: Container(
+                    width: 200,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  );
-                }
-              },
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
+                  ),
                 ),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  'Copy',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.primaryBlue,
-                    fontWeight: FontWeight.w600,
+                error: (_, __) => Text(
+                  'Hello, Guest!',
+                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                    fontSize: 30,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
+            ),
+            const SizedBox(width: 8),
+            _buildCustomerCodeCard(context, customerCode),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Track, manage, and review all your shipment requests in one place.',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: const Color(0xFF444651),
+            height: 1.45,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCustomerCodeCard(BuildContext context, String code) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8E7EF),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFC4C6D3).withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            code,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1A1B21),
+            ),
+          ),
+          const SizedBox(width: 6),
+          IconButton(
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            splashRadius: 16,
+            padding: EdgeInsets.zero,
+            onPressed: () async {
+              HapticFeedback.mediumImpact();
+              await Clipboard.setData(ClipboardData(text: code));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Customer code copied to clipboard'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+            icon: const Icon(
+              Icons.content_copy,
+              size: 16,
+              color: Color(0xFF3250A2),
             ),
           ),
         ],
@@ -485,100 +375,230 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildStatusGrid(BuildContext context, DashboardStats stats) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Responsive grid configuration: 3 columns × 2 rows layout preferred
-        final int crossAxisCount;
-        final double aspectRatio;
-        final double spacing;
+  Widget _buildRecentHeader(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          'Recent Requests',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF1A1B21),
+          ),
+        ),
+        Material(
+          color: const Color(0xFFE3E2E9),
+          borderRadius: BorderRadius.circular(999),
+          child: InkWell(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              context.go('/requests');
+            },
+            borderRadius: BorderRadius.circular(999),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'View All',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF214193),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  const Icon(
+                    Icons.chevron_right,
+                    size: 16,
+                    color: Color(0xFF214193),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
-        if (constraints.maxWidth < 240) {
-          // Very narrow screens: fallback to 2 columns
-          crossAxisCount = 2;
-          aspectRatio = 1.1;
-          spacing = 6.0;
-        } else if (constraints.maxWidth < 320) {
-          // Small screens: 3 columns, compact
-          crossAxisCount = 3;
-          aspectRatio = 0.9;
-          spacing = 6.0;
-        } else if (constraints.maxWidth < 400) {
-          // Normal phones: 3 columns
-          crossAxisCount = 3;
-          aspectRatio = 1.0;
-          spacing = 8.0;
-        } else if (constraints.maxWidth < 600) {
-          // Larger phones: 3 columns with more space
-          crossAxisCount = 3;
-          aspectRatio = 1.1;
-          spacing = 10.0;
-        } else {
-          // Tablets and large screens: 3 columns with generous spacing
-          crossAxisCount = 3;
-          aspectRatio = 1.2;
-          spacing = 14.0;
-        }
-
-        return GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: crossAxisCount,
-          crossAxisSpacing: spacing,
-          mainAxisSpacing: spacing,
-          childAspectRatio: aspectRatio,
+  Widget _buildRecentRequestCard(BuildContext context, Shipment shipment) {
+    final status = shipment.status.toString().trim();
+    final statusLower = status.toLowerCase();
+    final isInTransit = statusLower.contains('transit') || statusLower.contains('ship');
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFC4C6D3).withValues(alpha: 0.25)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF131B2E).withValues(alpha: 0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          context.push('/tracking/${shipment.trackingNumber}');
+        },
+        borderRadius: BorderRadius.circular(14),
+        child: Column(
           children: [
-            _buildStatusItem(
-              context,
-              'Requests',
-              '${stats.requests}',
-              Icons.assignment_outlined,
-              AppTheme.statusRequests.withValues(alpha: 0.1),
-              AppTheme.statusRequests,
-            ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2, end: 0),
-            _buildStatusItem(
-              context,
-              'Shipped',
-              '${stats.shipped}',
-              Icons.local_shipping_outlined,
-              AppTheme.statusShipped.withValues(alpha: 0.1),
-              AppTheme.statusShipped,
-            ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
-            _buildStatusItem(
-              context,
-              'Delivered',
-              '${stats.delivered}',
-              Icons.check_circle_outlined,
-              AppTheme.statusDelivered.withValues(alpha: 0.1),
-              AppTheme.statusDelivered,
-            ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2, end: 0),
-            _buildStatusItem(
-              context,
-              'Cleared',
-              '${stats.cleared}',
-              Icons.verified_user_outlined,
-              AppTheme.statusCleared.withValues(alpha: 0.1),
-              AppTheme.statusCleared,
-            ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
-            _buildStatusItem(
-              context,
-              'Dispatch',
-              '${stats.dispatch}',
-              Icons.send_outlined,
-              AppTheme.statusDispatch.withValues(alpha: 0.1),
-              AppTheme.statusDispatch,
-            ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.2, end: 0),
-            _buildStatusItem(
-              context,
-              'Waiting',
-              '${stats.waiting}',
-              Icons.access_time,
-              AppTheme.statusWaiting.withValues(alpha: 0.1),
-              AppTheme.statusWaiting,
-            ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2, end: 0),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Tracking Number',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontSize: 10,
+                        letterSpacing: 0.6,
+                        color: const Color(0xFF444651),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '#${shipment.trackingNumber}',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isInTransit
+                        ? const Color(0xFFCCD6FD)
+                        : const Color(0xFFE8E7EF),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    status,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: isInTransit
+                          ? const Color(0xFF525C7E)
+                          : const Color(0xFF444651),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            if (isInTransit) ...[
+              Row(
+                children: [
+                  _buildRouteNode(Icons.hub, context),
+                  Expanded(
+                    child: Container(
+                      height: 2,
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      color: const Color(0xFFC4C6D3).withValues(alpha: 0.55),
+                    ),
+                  ),
+                  _buildRouteNode(Icons.location_on_outlined, context),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ],
+            Row(
+              children: [
+                Expanded(
+                  child: _buildMeta(context, 'Route', '${shipment.origin} → ${shipment.destination}'),
+                ),
+                Expanded(
+                  child: _buildMeta(
+                    context,
+                    'Packages',
+                    '${shipment.packageCount} Item${shipment.packageCount == 1 ? '' : 's'}',
+                    alignEnd: true,
+                  ),
+                ),
+                Expanded(
+                  child: _buildMeta(
+                    context,
+                    'Date',
+                    '${shipment.estimatedDelivery.day} ${_getMonthName(shipment.estimatedDelivery.month)} ${shipment.estimatedDelivery.year}',
+                    alignEnd: true,
+                  ),
+                ),
+              ],
+            ),
           ],
-        );
-      },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRouteNode(IconData icon, BuildContext context) {
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Color(0xFFE8E7EF),
+      ),
+      child: Icon(icon, size: 16, color: const Color(0xFF3250A2)),
+    );
+  }
+
+  Widget _buildMeta(
+    BuildContext context,
+    String label,
+    String value, {
+    bool alignEnd = false,
+  }) {
+    return Column(
+      crossAxisAlignment: alignEnd
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            fontSize: 10,
+            color: const Color(0xFF444651),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF1A1B21),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatusGrid(BuildContext context, DashboardStats stats) {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 3,
+      crossAxisSpacing: 10,
+      mainAxisSpacing: 10,
+      childAspectRatio: 1,
+      children: [
+        _buildStatusItem(context, 'Requests', '${stats.requests}', Icons.pending_actions),
+        _buildStatusItem(context, 'Shipped', '${stats.shipped}', Icons.local_shipping_outlined),
+        _buildStatusItem(context, 'Delivered', '${stats.delivered}', Icons.check_circle_outline),
+        _buildStatusItem(context, 'Cleared', '${stats.cleared}', Icons.verified_user_outlined),
+        _buildStatusItem(context, 'Dispatch', '${stats.dispatch}', Icons.departure_board_outlined),
+        _buildStatusItem(context, 'Waiting', '${stats.waiting}', Icons.hourglass_empty_outlined),
+      ],
     );
   }
 
@@ -587,8 +607,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     String label,
     String count,
     IconData icon,
-    Color bgColor,
-    Color iconColor,
   ) {
     return GestureDetector(
       onTap: () {
@@ -596,45 +614,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: AppTheme.surface,
+          color: const Color(0xFFF4F3FA),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 15,
-              spreadRadius: 0,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          border: Border.all(color: const Color(0xFFC4C6D3).withValues(alpha: 0.2)),
         ),
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(8),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
-              child: Icon(icon, size: 16, color: iconColor),
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: const Color(0xFF3250A2).withValues(alpha: 0.14),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 16, color: const Color(0xFF3250A2)),
             ),
-            const SizedBox(height: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  count,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  label,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
-                ),
-              ],
+            const SizedBox(height: 6),
+            Text(
+              count,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Text(
+              label.toUpperCase(),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: const Color(0xFF444651),
+                fontSize: 9,
+                letterSpacing: 0.7,
+              ),
             ),
           ],
         ),

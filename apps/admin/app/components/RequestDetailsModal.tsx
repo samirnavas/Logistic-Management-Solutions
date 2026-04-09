@@ -463,6 +463,10 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 mb-2">
                                     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Pickup Information</div>
                                     <div className="mb-3">
+                                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Warehouse</div>
+                                        <div className="text-sm text-gray-900 font-semibold">{request.routingData?.originWarehouseName || 'N/A'}</div>
+                                    </div>
+                                    <div className="mb-3">
                                         <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Name / Client</div>
                                         <div className="text-sm text-gray-900 font-semibold">{request.origin?.name || request.clientId?.fullName || 'N/A'}</div>
                                     </div>
@@ -483,6 +487,10 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                 {/* Drop-off Detail */}
                                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 mb-2">
                                     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Drop-off Information</div>
+                                    <div className="mb-3">
+                                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Warehouse</div>
+                                        <div className="text-sm text-gray-900 font-semibold">{request.routingData?.destinationWarehouseName || 'N/A'}</div>
+                                    </div>
                                     <div className="mb-3">
                                         <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Name</div>
                                         <div className="text-sm text-gray-900 font-semibold">{request.destination?.name === 'To Be Confirmed' ? 'TBC' : (request.destination?.name || 'TBC')}</div>

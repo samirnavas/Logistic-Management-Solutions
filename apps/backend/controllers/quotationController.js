@@ -194,7 +194,8 @@ exports.createQuotation = async (req, res) => {
             handoverMethod,
             pickupAddress,
             warehouseDropOffLocation,
-            currency
+            currency,
+            routingData
             // Explicitly excluding 'status' from destructuring to prevent it from being passed
         } = req.body;
 
@@ -227,6 +228,7 @@ exports.createQuotation = async (req, res) => {
             pickupAddress,
             warehouseDropOffLocation,
             currency: resolvedCurrency,
+            routingData: routingData || {},
             status: 'PENDING_ADMIN_REVIEW', // Strict Default
             totalAmount: 0 // Initialize to 0
         });
@@ -1246,7 +1248,8 @@ exports.saveAsDraft = async (req, res) => {
             productPhotos,
             validUntil,
             termsAndConditions,
-            additionalNotes
+            additionalNotes,
+            routingData
         } = req.body;
 
         // For drafts, we allow partial data
@@ -1271,6 +1274,7 @@ exports.saveAsDraft = async (req, res) => {
         if (validUntil) draftData.validUntil = validUntil;
         if (termsAndConditions) draftData.termsAndConditions = termsAndConditions;
         if (additionalNotes) draftData.additionalNotes = additionalNotes;
+        if (routingData) draftData.routingData = routingData;
 
         const newDraft = new Quotation(draftData);
 
@@ -1338,7 +1342,8 @@ exports.submitQuotation = async (req, res) => {
             cargoType,
             serviceType,
             specialInstructions,
-            productPhotos
+            productPhotos,
+            routingData
         } = req.body;
 
         // Update fields if provided
@@ -1351,16 +1356,24 @@ exports.submitQuotation = async (req, res) => {
         if (serviceType) quotation.serviceType = serviceType;
         if (specialInstructions) quotation.specialInstructions = specialInstructions;
         if (productPhotos) quotation.productPhotos = productPhotos;
+        if (routingData) quotation.routingData = routingData;
 
         // Check 3: Validate all required fields are present
         const validationErrors = [];
 
-        if (!quotation.origin || !quotation.origin.city || !quotation.origin.country) {
-            validationErrors.push('Origin address is incomplete (city and country required)');
+        // Check for either explicit origin/destination address objects OR warehouse-based routing data
+        const hasOrigin = (quotation.origin && quotation.origin.city && quotation.origin.country) || 
+                         (quotation.routingData && (quotation.routingData.sourceCity || quotation.routingData.originWarehouseCity));
+        
+        const hasDestination = (quotation.destination && quotation.destination.city && quotation.destination.country) || 
+                              (quotation.routingData && (quotation.routingData.destinationCity || quotation.routingData.destinationWarehouseCity));
+
+        if (!hasOrigin) {
+            validationErrors.push('Origin information is incomplete (address or warehouse required)');
         }
 
-        if (!quotation.destination || !quotation.destination.city || !quotation.destination.country) {
-            validationErrors.push('Destination address is incomplete (city and country required)');
+        if (!hasDestination) {
+            validationErrors.push('Destination information is incomplete (address or warehouse required)');
         }
 
         if (!quotation.items || !Array.isArray(quotation.items) || quotation.items.length === 0) {
@@ -1560,12 +1573,12 @@ exports.createDraftQuotation = async (req, res) => {
         // --- Validate routingData minimum fields ---
         if (
             !routingData ||
-            !routingData.sourceCity ||
-            !routingData.destinationCity
+            (!routingData.sourceCity && !routingData.originWarehouseCity) ||
+            (!routingData.destinationCity && !routingData.destinationWarehouseCity)
         ) {
             return res.status(400).json({
-                message: 'routingData is required with at least sourceCity and destinationCity',
-                required: ['routingData.sourceCity', 'routingData.destinationCity'],
+                message: 'routingData is required with at least a source and destination (city or warehouse)',
+                required: ['routingData.sourceCity or originWarehouseCity', 'routingData.destinationCity or destinationWarehouseCity'],
             });
         }
 

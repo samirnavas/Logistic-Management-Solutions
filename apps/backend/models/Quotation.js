@@ -112,26 +112,19 @@ const itemizedCostSchema = new mongoose.Schema({
 // Collected at the time the customer first submits the quote request.
 // ============================================
 const routingDataSchema = new mongoose.Schema({
-    sourceRegion: {
-        type: String,
-        trim: true,
-        maxlength: [100, 'Source region cannot exceed 100 characters'],
-    },
-    sourceCity: {
-        type: String,
-        trim: true,
-        maxlength: [100, 'Source city cannot exceed 100 characters'],
-    },
-    destinationRegion: {
-        type: String,
-        trim: true,
-        maxlength: [100, 'Destination region cannot exceed 100 characters'],
-    },
-    destinationCity: {
-        type: String,
-        trim: true,
-        maxlength: [100, 'Destination city cannot exceed 100 characters'],
-    },
+    originWarehouseId: { type: String, trim: true },
+    originWarehouseName: { type: String, trim: true },
+    originWarehouseCity: { type: String, trim: true },
+    originWarehouseState: { type: String, trim: true },
+    destinationWarehouseId: { type: String, trim: true },
+    destinationWarehouseName: { type: String, trim: true },
+    destinationWarehouseCity: { type: String, trim: true },
+    destinationWarehouseState: { type: String, trim: true },
+    // Keeping these for legacy support if needed
+    sourceRegion: { type: String, trim: true, maxlength: [100, 'Source region cannot exceed 100 characters'] },
+    sourceCity: { type: String, trim: true, maxlength: [100, 'Source city cannot exceed 100 characters'] },
+    destinationRegion: { type: String, trim: true, maxlength: [100, 'Destination region cannot exceed 100 characters'] },
+    destinationCity: { type: String, trim: true, maxlength: [100, 'Destination city cannot exceed 100 characters'] },
 }, { _id: false });
 
 // ============================================
