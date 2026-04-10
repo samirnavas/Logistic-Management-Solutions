@@ -252,34 +252,62 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
       onTap: () => FocusScope.of(context).unfocus(),
       child: BlueBackgroundScaffold(
         drawer: const AppDrawer(),
-        body: Stack(
-          children: [
+        body: CustomScrollView(
+          slivers: [
+            // ── Frosted Glass Header ──
+            SliverAppBar(
+              pinned: true,
+              elevation: 0,
+              scrolledUnderElevation: 4,
+              backgroundColor: Colors.transparent,
+              leading: IconButton(
+                icon: const Icon(
+                  Icons.arrow_back,
+                  color: Colors.white,
+                  size: 26,
+                ),
+                onPressed: () => context.pop(),
+              ),
+              title: const Text(
+                'Create Request',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              flexibleSpace: ClipRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                  child: Container(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.6),
+                  ),
+                ),
+              ),
+            ),
+
             // ── Scrollable Content ──
-            Positioned.fill(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    SizedBox(height: MediaQuery.of(context).padding.top + 70),
-                    Container(
-                      width: double.infinity,
-                      decoration: const BoxDecoration(
-                        color: AppTheme.surface,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(30),
-                          topRight: Radius.circular(30),
-                        ),
-                      ),
-                      padding: EdgeInsets.fromLTRB(
-                        MediaQuery.of(context).size.width < 380 ? 16 : 24,
-                        30,
-                        MediaQuery.of(context).size.width < 380 ? 16 : 24,
-                        contentBottomPadding,
-                      ),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+            SliverToBoxAdapter(
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  color: AppTheme.surface,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(30),
+                    topRight: Radius.circular(30),
+                  ),
+                ),
+                padding: EdgeInsets.fromLTRB(
+                  MediaQuery.of(context).size.width < 380 ? 16 : 24,
+                  30,
+                  MediaQuery.of(context).size.width < 380 ? 16 : 24,
+                  contentBottomPadding,
+                ),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                             // ── Header ──
                             Text(
                               widget.existingQuotation != null
@@ -540,46 +568,6 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-
-            // ── AppBar ──
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 8,
-                  ),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.arrow_back,
-                          color: Colors.white,
-                          size: 26,
-                        ),
-                        onPressed: () => context.pop(),
-                      ),
-                      const Expanded(
-                        child: Text(
-                          'Create Request',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             ),
           ],
         ),
