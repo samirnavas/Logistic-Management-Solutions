@@ -83,7 +83,7 @@ class ShipmentFormState {
     this.isLoading = false,
     this.error,
     this.successMessage,
-    this.selectedServiceMode = 'door_to_door',
+    this.selectedServiceMode = 'Door to Door',
   });
 
   ShipmentFormState copyWith({

@@ -446,35 +446,47 @@ class LiveQuotationLedger extends StatelessWidget {
                             Divider(color: Colors.grey.shade300),
                             const SizedBox(height: 12),
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Text(
-                                  _isPendingReview
-                                      ? 'Quote Pending'
-                                      : 'Final Quoted Amount',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF1F2937), // gray-800
+                                Expanded(
+                                  child: Text(
+                                    _isPendingReview
+                                        ? 'Quote Pending'
+                                        : 'Final Quoted Amount',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF1F2937), // gray-800
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                _isPendingReview
-                                    ? const Text(
-                                        'Awaiting Admin Pricing',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontStyle: FontStyle.italic,
-                                          color: Colors.deepOrange,
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: _isPendingReview
+                                      ? const Text(
+                                          'Awaiting Admin Pricing',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontStyle: FontStyle.italic,
+                                            color: Colors.deepOrange,
+                                          ),
+                                          textAlign: TextAlign.end,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        )
+                                      : Text(
+                                          _renderPrice(quotation.totalAmount),
+                                          style: const TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF1D4ED8), // blue-700
+                                          ),
+                                          textAlign: TextAlign.end,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      )
-                                    : Text(
-                                        _renderPrice(quotation.totalAmount),
-                                        style: const TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF1D4ED8), // blue-700
-                                        ),
-                                      ),
+                                ),
                               ],
                             ),
                           ],
@@ -565,21 +577,30 @@ class LiveQuotationLedger extends StatelessWidget {
 
   Widget _buildSummaryRow(String label, String value, {TextStyle? valueStyle}) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF374151)),
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 14, color: Color(0xFF374151)),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
-        Text(
-          value,
-          style:
-              valueStyle ??
-              const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF1F2937),
-              ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            value,
+            style:
+                valueStyle ??
+                const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF1F2937),
+                ),
+            textAlign: TextAlign.end,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );

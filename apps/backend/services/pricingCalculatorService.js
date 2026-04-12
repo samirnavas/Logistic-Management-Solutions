@@ -118,24 +118,40 @@ function applySurcharge(surchargeConfig, baseAmount = 0) {
     return surchargeConfig.value;
 }
 
-function deliveryModeLabel(serviceMode) {
-    const labels = {
-        door_to_door: 'Door-to-Door',
-        door_to_warehouse: 'Door-to-Warehouse',
-        warehouse_to_door: 'Warehouse-to-Door',
-        warehouse_to_warehouse: 'Warehouse-to-Warehouse',
+/**
+ * Maps stored serviceMode (canonical title case or legacy snake_case) to pricing keys.
+ */
+function normalizeServiceMode(serviceMode) {
+    if (!serviceMode) return 'Door to Door';
+    const legacy = {
+        door_to_door: 'Door to Door',
+        door_to_warehouse: 'Door to Warehouse',
+        warehouse_to_door: 'Warehouse to Door',
+        warehouse_to_warehouse: 'Warehouse to Warehouse',
     };
-    return labels[serviceMode] || serviceMode;
+    return legacy[serviceMode] || serviceMode;
+}
+
+function deliveryModeLabel(serviceMode) {
+    const key = normalizeServiceMode(serviceMode);
+    const labels = {
+        'Door to Door': 'Door-to-Door',
+        'Door to Warehouse': 'Door-to-Warehouse',
+        'Warehouse to Door': 'Warehouse-to-Door',
+        'Warehouse to Warehouse': 'Warehouse-to-Warehouse',
+    };
+    return labels[key] || key;
 }
 
 function deliveryModeRate(deliveryModes, serviceMode) {
+    const key = normalizeServiceMode(serviceMode);
     const map = {
-        door_to_door: deliveryModes.doorToDoor,
-        door_to_warehouse: deliveryModes.doorToWarehouse,
-        warehouse_to_door: deliveryModes.warehouseToDoor,
-        warehouse_to_warehouse: deliveryModes.warehouseToWarehouse,
+        'Door to Door': deliveryModes.doorToDoor,
+        'Door to Warehouse': deliveryModes.doorToWarehouse,
+        'Warehouse to Door': deliveryModes.warehouseToDoor,
+        'Warehouse to Warehouse': deliveryModes.warehouseToWarehouse,
     };
-    return map[serviceMode] ?? 0;
+    return map[key] ?? 0;
 }
 
 /**
@@ -209,7 +225,11 @@ async function calculateEstimatedQuote(quotationId, transportMode = 'Air') {
         throw err;
     }
 
-    const mode = transportMode === 'Sea' ? 'Sea' : 'Air';
+    const mode =
+        quotation.mode === 'Sea' ||
+        (quotation.mode == null && transportMode === 'Sea')
+            ? 'Sea'
+            : 'Air';
     const quotationCurrency = quotation.currency || 'USD';
 
     // ── Currency conversion setup ─────────────────────────────

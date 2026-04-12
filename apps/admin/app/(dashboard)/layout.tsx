@@ -39,21 +39,23 @@ export default function DashboardLayout({
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
     useEffect(() => {
-        // Auth Check
         const token = localStorage.getItem('token');
         const userStr = localStorage.getItem('user');
 
         if (!token || !userStr) {
-            router.push('/login');
+            router.replace('/login');
             return;
         }
 
         try {
             setUser(JSON.parse(userStr));
-        } catch (e) {
-            router.push('/login');
+        } catch {
+            router.replace('/login');
         }
-    }, [router]);
+        // `router` is intentionally omitted: in the App Router its identity can change every render,
+        // which would retrigger this effect and cause an infinite update loop with setUser.
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only auth read from localStorage
+    }, []);
 
     // Close sidebar on route change (mobile)
     useEffect(() => {

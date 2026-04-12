@@ -67,6 +67,9 @@ router.put('/:id/reject', protect, quotationController.rejectQuotation);
 // Get quotations for a specific client
 router.get('/client/:clientId', protect, quotationController.getClientQuotations);
 
+// Invoice PDF (ledger layout; must be registered before /client/:clientId/:id)
+router.get('/client/:clientId/:id/invoice', protect, quotationController.downloadClientInvoicePdf);
+
 // Get single quotation for client (with visibility check)
 router.get('/client/:clientId/:id', protect, quotationController.getClientQuotation);
 

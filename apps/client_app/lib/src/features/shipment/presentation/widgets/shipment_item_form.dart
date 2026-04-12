@@ -25,6 +25,27 @@ class ShipmentItemForm extends StatefulWidget {
 }
 
 class _ShipmentItemFormState extends State<ShipmentItemForm> {
+  /// Per-box CBM from dimensions in cm: (L×B×H) / 1e6; total CBM = per-box × box count.
+  int _parseBoxCountForForm() {
+    final t = _quantityController.text.trim();
+    if (t.isEmpty) return 1;
+    return int.tryParse(t) ?? 0;
+  }
+
+  void _syncTotalCbmFromInputs() {
+    final a = double.tryParse(_lengthController.text.trim()) ?? 0;
+    final b = double.tryParse(_widthController.text.trim()) ?? 0;
+    final c = double.tryParse(_heightController.text.trim()) ?? 0;
+    if (a <= 0 || b <= 0 || c <= 0) {
+      _volumeController.clear();
+      return;
+    }
+    final perBoxCbm = (a * b * c) / 1000000;
+    final boxes = _parseBoxCountForForm();
+    final total = perBoxCbm * boxes;
+    _volumeController.text = total.toStringAsFixed(3);
+  }
+
   static const _categoryOptions = [
     'General',
     'Special',
@@ -56,15 +77,12 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
     );
 
     final dims = widget.item.dimensions.toString().split('x');
-    _lengthController = TextEditingController(
-      text: dims.isNotEmpty ? dims[0] : '',
-    );
-    _widthController = TextEditingController(
-      text: dims.length > 1 ? dims[1] : '',
-    );
-    _heightController = TextEditingController(
-      text: dims.length > 2 ? dims[2] : '',
-    );
+    final lenStr = dims.isNotEmpty ? dims[0] : '';
+    final widStr = dims.length > 1 ? dims[1] : '';
+    final hgtStr = dims.length > 2 ? dims[2] : '';
+    _lengthController = TextEditingController(text: lenStr);
+    _widthController = TextEditingController(text: widStr);
+    _heightController = TextEditingController(text: hgtStr);
 
     _targetRateController = TextEditingController(
       text: widget.item.targetRate?.toString() ?? '',
@@ -72,9 +90,19 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
     _videoUrlController = TextEditingController(
       text: widget.item.videoUrl ?? '',
     );
-    _volumeController = TextEditingController(
-      text: widget.item.packingVolume?.toString() ?? '',
-    );
+    final packed = widget.item.packingVolume;
+    String volText = packed != null ? packed.toString() : '';
+    if (packed == null) {
+      final a = double.tryParse(lenStr.trim()) ?? 0;
+      final b = double.tryParse(widStr.trim()) ?? 0;
+      final c = double.tryParse(hgtStr.trim()) ?? 0;
+      if (a > 0 && b > 0 && c > 0) {
+        final perBox = (a * b * c) / 1000000;
+        final n = widget.item.quantity <= 0 ? 0 : widget.item.quantity;
+        volText = (perBox * n).toStringAsFixed(3);
+      }
+    }
+    _volumeController = TextEditingController(text: volText);
     _hsCodeController = TextEditingController(text: widget.item.hsCode ?? '');
   }
 
@@ -99,15 +127,12 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
   }
 
   void _onDimensionsChanged() {
-    final l = double.tryParse(_lengthController.text) ?? 0;
-    final w = double.tryParse(_widthController.text) ?? 0;
-    final h = double.tryParse(_heightController.text) ?? 0;
+    _syncTotalCbmFromInputs();
+    _updateItem();
+  }
 
-    if (l > 0 && w > 0 && h > 0) {
-      final cbm = (l * w * h) / 1000000;
-      _volumeController.text = cbm.toStringAsFixed(3);
-    }
-
+  void _onQuantityOrDimensionsForCbm() {
+    _syncTotalCbmFromInputs();
     _updateItem();
   }
 
@@ -123,7 +148,7 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
               'x'
               '$h';
 
-    final qty = int.tryParse(_quantityController.text) ?? 0;
+    final qty = _parseBoxCountForForm();
     final weight = double.tryParse(_weightController.text) ?? 0.0;
 
     final newItem = widget.item.copyWith(
@@ -187,7 +212,7 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
           children: [
             Expanded(child: _buildFieldLabel('LENGTH (CM)')),
             const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel('WIDTH (CM)')),
+            Expanded(child: _buildFieldLabel('BREADTH (CM)')),
             const SizedBox(width: 10),
             Expanded(child: _buildFieldLabel('HEIGHT (CM)')),
           ],
@@ -198,7 +223,9 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
               child: _buildTextField(
                 controller: _lengthController,
                 hint: '0',
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 onChanged: (v) => _onDimensionsChanged(),
               ),
             ),
@@ -207,7 +234,9 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
               child: _buildTextField(
                 controller: _widthController,
                 hint: '0',
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 onChanged: (v) => _onDimensionsChanged(),
               ),
             ),
@@ -216,7 +245,9 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
               child: _buildTextField(
                 controller: _heightController,
                 hint: '0',
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 onChanged: (v) => _onDimensionsChanged(),
               ),
             ),
@@ -237,7 +268,7 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
                 controller: _quantityController,
                 hint: '0',
                 keyboardType: TextInputType.number,
-                onChanged: (v) => _updateItem(),
+                onChanged: (v) => _onQuantityOrDimensionsForCbm(),
               ),
             ),
             const SizedBox(width: 10),
@@ -254,12 +285,12 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
           ],
         ),
         const SizedBox(height: 14),
-        _buildFieldLabel('VOL (CBM)'),
+        _buildFieldLabel('TOTAL VOL (CBM)'),
         _buildTextField(
           controller: _volumeController,
-          hint: '0.96',
+          hint: 'Per box L×B×H (cm) × boxes',
+          readOnly: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          onChanged: (v) => _updateItem(),
         ),
         const SizedBox(height: 14),
         Row(
@@ -459,12 +490,14 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
     required String hint,
     TextInputType? keyboardType,
     Function(String)? onChanged,
+    bool readOnly = false,
   }) {
     return TextFormField(
       controller: controller,
       decoration: _inputDecoration(hint: hint),
       keyboardType: keyboardType,
       onChanged: onChanged,
+      readOnly: readOnly,
     );
   }
 

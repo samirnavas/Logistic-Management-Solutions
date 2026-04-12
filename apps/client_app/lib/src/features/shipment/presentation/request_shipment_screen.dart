@@ -73,14 +73,20 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
           : 'General Cargo';
       _servicePriority = q.serviceType ?? 'Standard';
 
-      if (q.specialInstructions != null) {
-        final notesIdx = q.specialInstructions!.indexOf('Notes: ');
-        if (notesIdx != -1) {
-          _notesController.text = q.specialInstructions!.substring(
-            notesIdx + 7,
-          );
+      if (q.mode == 'Sea') {
+        _shippingMode = 'By Sea';
+      } else {
+        _shippingMode = 'By Air';
+      }
+
+      if (q.specialInstructions != null &&
+          q.specialInstructions!.isNotEmpty) {
+        final s = q.specialInstructions!;
+        final legacyNotesIdx = s.indexOf('\nNotes: ');
+        if (s.startsWith('Mode:') && legacyNotesIdx != -1) {
+          _notesController.text = s.substring(legacyNotesIdx + 8);
         } else {
-          _notesController.text = q.specialInstructions ?? '';
+          _notesController.text = s;
         }
       }
 
@@ -180,6 +186,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
         return;
       }
 
+      final notesTrim = _notesController.text.trim();
       final payload = {
         'routingData': {
           'originWarehouseId': originW.id,
@@ -194,10 +201,9 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
         'currency': _selectedCurrency,
         'items': items,
         'cargoType': _cargoType,
+        'mode': _shippingMode == 'By Sea' ? 'Sea' : 'Air',
         'serviceType': _servicePriority,
-        'specialInstructions':
-            'Mode: $_shippingMode'
-            '${_notesController.text.trim().isNotEmpty ? '\nNotes: ${_notesController.text.trim()}' : ''}',
+        'specialInstructions': notesTrim.isEmpty ? null : notesTrim,
       };
 
       await ref.read(quotationRepositoryProvider).createQuotation(payload);

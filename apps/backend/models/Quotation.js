@@ -300,10 +300,17 @@ const quotationSchema = new mongoose.Schema({
         required: [function () { return this.status !== 'DRAFT'; }, 'Cargo type is required'],
         default: 'General Cargo',
     },
+    /** Transport leg: Air / Sea / Land / Rail / Multimodal (client request + pricing). */
+    mode: {
+        type: String,
+        enum: ['Air', 'Sea', 'Land', 'Rail', 'Multimodal'],
+        default: 'Air',
+    },
+    /** First-mile / last-mile service pattern (door vs warehouse at each end). */
     serviceMode: {
         type: String,
-        enum: ['door_to_door', 'door_to_warehouse', 'warehouse_to_door', 'warehouse_to_warehouse'],
-        default: 'door_to_door',
+        enum: ['Door to Door', 'Door to Warehouse', 'Warehouse to Door', 'Warehouse to Warehouse'],
+        default: 'Door to Door',
     },
     serviceType: {
         type: String,
@@ -314,7 +321,7 @@ const quotationSchema = new mongoose.Schema({
         type: String,
         trim: true,
         maxlength: [500, 'Instructions cannot exceed 500 characters'],
-        default: '',
+        default: null,
     },
 
     // --- Handover Method ---
@@ -709,6 +716,19 @@ quotationSchema.virtual('isFinalChargeSheetReady').get(function () {
  * Auto-generate quotation number / ID and recalculate totals.
  */
 quotationSchema.pre('save', async function () {
+    const legacyServiceMode = {
+        door_to_door: 'Door to Door',
+        door_to_warehouse: 'Door to Warehouse',
+        warehouse_to_door: 'Warehouse to Door',
+        warehouse_to_warehouse: 'Warehouse to Warehouse',
+    };
+    if (this.serviceMode && legacyServiceMode[this.serviceMode]) {
+        this.serviceMode = legacyServiceMode[this.serviceMode];
+    }
+    if (this.mode == null || this.mode === '') {
+        this.mode = 'Air';
+    }
+
     // Generate quotation number (legacy sequential format)
     if (this.isNew && !this.quotationNumber) {
         this.quotationNumber = await generateQuotationNumber();

@@ -41,7 +41,7 @@ export default function DashboardPage() {
 
             // Guard: if no token, redirect to login immediately
             if (!token) {
-                router.push('/login');
+                router.replace('/login');
                 return;
             }
 
@@ -67,7 +67,7 @@ export default function DashboardPage() {
             if (resQuotations.status === 401) {
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
-                router.push('/login');
+                router.replace('/login');
                 return;
             }
 
@@ -90,7 +90,10 @@ export default function DashboardPage() {
         } finally {
             setLoading(false);
         }
-    }, [itemsPerPage, router]);
+        // router omitted: unstable reference in App Router would recreate this callback every render
+        // and retrigger the effect that calls fetchData → endless refresh.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [itemsPerPage]);
 
     useEffect(() => {
         fetchData(currentPage, statusFilter);

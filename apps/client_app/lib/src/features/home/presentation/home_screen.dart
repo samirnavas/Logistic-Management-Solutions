@@ -112,8 +112,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       context,
                                       recent[index],
                                     ).animate().fadeIn(
-                                          delay: (300 + (index * 120)).ms,
-                                        ),
+                                      delay: (300 + (index * 120)).ms,
+                                    ),
                               );
                             },
                             loading: () => _buildShipmentSkeletonLoader(),
@@ -141,7 +141,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             right: 0,
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -331,11 +334,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildCustomerCodeCard(BuildContext context, String code) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 1),
       decoration: BoxDecoration(
         color: const Color(0xFFE8E7EF),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFC4C6D3).withValues(alpha: 0.4)),
+        border: Border.all(
+          color: const Color(0xFFC4C6D3).withValues(alpha: 0.4),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -425,13 +430,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildRecentRequestCard(BuildContext context, Shipment shipment) {
     final status = shipment.status.toString().trim();
     final statusLower = status.toLowerCase();
-    final isInTransit = statusLower.contains('transit') || statusLower.contains('ship');
+    final isInTransit =
+        statusLower.contains('transit') || statusLower.contains('ship');
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFC4C6D3).withValues(alpha: 0.25)),
+        border: Border.all(
+          color: const Color(0xFFC4C6D3).withValues(alpha: 0.25),
+        ),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF131B2E).withValues(alpha: 0.03),
@@ -473,7 +481,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: isInTransit
                         ? const Color(0xFFCCD6FD)
@@ -513,7 +524,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _buildMeta(context, 'Route', '${shipment.origin} → ${shipment.destination}'),
+                  child: _buildMeta(
+                    context,
+                    'Route',
+                    '${shipment.origin} → ${shipment.destination}',
+                  ),
                 ),
                 Expanded(
                   child: _buildMeta(
@@ -592,12 +607,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       mainAxisSpacing: 10,
       childAspectRatio: 1,
       children: [
-        _buildStatusItem(context, 'Requests', '${stats.requests}', Icons.pending_actions),
-        _buildStatusItem(context, 'Shipped', '${stats.shipped}', Icons.local_shipping_outlined),
-        _buildStatusItem(context, 'Delivered', '${stats.delivered}', Icons.check_circle_outline),
-        _buildStatusItem(context, 'Cleared', '${stats.cleared}', Icons.verified_user_outlined),
-        _buildStatusItem(context, 'Dispatch', '${stats.dispatch}', Icons.departure_board_outlined),
-        _buildStatusItem(context, 'Waiting', '${stats.waiting}', Icons.hourglass_empty_outlined),
+        _buildStatusItem(
+          context,
+          'Requests',
+          '${stats.requests}',
+          Icons.pending_actions,
+        ),
+        _buildStatusItem(
+          context,
+          'Shipped',
+          '${stats.shipped}',
+          Icons.local_shipping_outlined,
+        ),
+        _buildStatusItem(
+          context,
+          'Delivered',
+          '${stats.delivered}',
+          Icons.check_circle_outline,
+        ),
+        _buildStatusItem(
+          context,
+          'Cleared',
+          '${stats.cleared}',
+          Icons.verified_user_outlined,
+        ),
+        _buildStatusItem(
+          context,
+          'Dispatch',
+          '${stats.dispatch}',
+          Icons.departure_board_outlined,
+        ),
+        _buildStatusItem(
+          context,
+          'Waiting',
+          '${stats.waiting}',
+          Icons.hourglass_empty_outlined,
+        ),
       ],
     );
   }
@@ -616,7 +661,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         decoration: BoxDecoration(
           color: const Color(0xFFF4F3FA),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFC4C6D3).withValues(alpha: 0.2)),
+          border: Border.all(
+            color: const Color(0xFFC4C6D3).withValues(alpha: 0.2),
+          ),
         ),
         padding: const EdgeInsets.all(8),
         child: Column(
@@ -634,9 +681,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const SizedBox(height: 6),
             Text(
               count,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             Text(
               label.toUpperCase(),

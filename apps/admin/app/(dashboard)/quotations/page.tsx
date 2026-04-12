@@ -32,7 +32,7 @@ export default function QuotationsPage() {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            if (!token) { router.push('/login'); return; }
+            if (!token) { router.replace('/login'); return; }
 
             const res = await fetch('/api/quotations', {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -40,7 +40,7 @@ export default function QuotationsPage() {
 
             if (res.status === 401) {
                 localStorage.clear();
-                router.push('/login');
+                router.replace('/login');
                 return;
             }
 
@@ -55,7 +55,8 @@ export default function QuotationsPage() {
         } finally {
             setLoading(false);
         }
-    }, [router]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- router identity is unstable; omit to avoid fetch loops
+    }, []);
 
     useEffect(() => { fetchQuotations(); }, [fetchQuotations]);
 

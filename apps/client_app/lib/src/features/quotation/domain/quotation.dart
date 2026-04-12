@@ -223,7 +223,9 @@ class Quotation {
   final DateTime? pickupDate;
   final DateTime? deliveryDate;
   final String? cargoType;
-  final String? serviceMode; // New field
+  /// Transport mode: Air, Sea, Land, Rail, Multimodal (matches backend).
+  final String? mode;
+  final String? serviceMode;
   final String? serviceType;
   final String? specialInstructions;
 
@@ -270,6 +272,7 @@ class Quotation {
     this.pickupDate,
     this.deliveryDate,
     this.cargoType,
+    this.mode,
     this.serviceMode,
     this.serviceType,
     this.specialInstructions,
@@ -311,6 +314,7 @@ class Quotation {
     DateTime? pickupDate,
     DateTime? deliveryDate,
     String? cargoType,
+    String? mode,
     String? serviceMode,
     String? serviceType,
     String? specialInstructions,
@@ -342,6 +346,7 @@ class Quotation {
       pickupDate: pickupDate ?? this.pickupDate,
       deliveryDate: deliveryDate ?? this.deliveryDate,
       cargoType: cargoType ?? this.cargoType,
+      mode: mode ?? this.mode,
       serviceMode: serviceMode ?? this.serviceMode,
       serviceType: serviceType ?? this.serviceType,
       specialInstructions: specialInstructions ?? this.specialInstructions,
@@ -409,6 +414,7 @@ class Quotation {
           ? DateTime.tryParse(json['deliveryDate'])
           : null,
       cargoType: json['cargoType'] as String?,
+      mode: json['mode'] as String?,
       serviceMode: json['serviceMode'] as String?,
       serviceType: json['serviceType'] as String?,
       specialInstructions: json['specialInstructions'] as String?,
@@ -577,6 +583,7 @@ class Quotation {
       'pickupDate': pickupDate?.toIso8601String(),
       'deliveryDate': deliveryDate?.toIso8601String(),
       'cargoType': cargoType,
+      'mode': mode,
       'serviceMode': serviceMode,
       'serviceType': serviceType,
       'specialInstructions': specialInstructions,

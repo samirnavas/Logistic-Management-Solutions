@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Quotation {{quotationId}}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-size: 11px;
+      color: #111827;
+      margin: 0;
+      padding: 24px;
+      background: #fff;
+    }
+    .ledger {
+      max-width: 900px;
+      margin: 0 auto;
+      border: 1px solid #d1d5db;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      padding: 32px;
+      background: #fff;
+    }
+    .row-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 28px;
+      gap: 24px;
+    }
+    .title {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: #2563eb;
+      margin: 0 0 8px 0;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #1f2937;
+      text-transform: capitalize;
+    }
+    .to-label { font-size: 14px; font-weight: 700; color: #374151; margin: 16px 0 4px 0; }
+    .client-name { font-weight: 600; color: #1f2937; }
+    .route { color: #4b5563; font-size: 12px; margin-top: 4px; line-height: 1.4; }
+    .brand { text-align: right; }
+    .brand h2 { margin: 0; font-size: 22px; font-weight: 900; color: #1d4ed8; line-height: 1; }
+    .brand h3 { margin: 0; font-size: 17px; font-weight: 700; color: #1d4ed8; }
+    .brand .tag { font-size: 9px; color: #3b82f6; font-style: italic; font-weight: 500; margin-top: 2px; }
+    .meta { text-align: right; font-size: 12px; color: #374151; line-height: 1.6; }
+    .meta strong { font-weight: 600; }
+    table.items {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 28px;
+      font-size: 11px;
+    }
+    table.items th, table.items td {
+      border: 1px solid #d1d5db;
+      padding: 8px 10px;
+      vertical-align: top;
+    }
+    table.items thead { background: #f9fafb; }
+    table.items th {
+      font-weight: 600;
+      color: #374151;
+      text-align: left;
+    }
+    table.items th.num, table.items td.num { text-align: center; width: 36px; }
+    table.items th.right, table.items td.right { text-align: right; }
+    table.items .desc { font-weight: 500; }
+    table.items .cat { font-size: 10px; color: #6b7280; margin-top: 2px; text-transform: capitalize; }
+    table.items .haz { font-size: 10px; color: #dc2626; font-weight: 600; margin-top: 2px; }
+    .pending { color: #ea580c; font-style: italic; font-size: 10px; }
+    .awaiting { color: #ea580c; font-style: italic; font-size: 14px; }
+    .bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+    }
+    .terms {
+      flex: 1;
+      min-width: 0;
+      font-size: 11px;
+      color: #4b5563;
+      line-height: 1.5;
+    }
+    .terms h4 { margin: 0 0 8px 0; font-size: 12px; color: #1f2937; }
+    .admin-note {
+      margin-top: 12px;
+      padding: 10px 12px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      font-size: 10px;
+      color: #92400e;
+    }
+    .admin-note strong { display: block; margin-bottom: 4px; color: #b45309; }
+    .summary {
+      width: 340px;
+      flex-shrink: 0;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      padding: 14px 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+    .summary-row.discount { color: #15803d; }
+    .summary-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #d1d5db;
+    }
+    .summary-total .label { font-size: 16px; font-weight: 700; color: #1f2937; }
+    .summary-total .amt { font-size: 20px; font-weight: 800; color: #1d4ed8; }
+    .footer {
+      margin-top: 36px;
+      text-align: center;
+      font-size: 10px;
+      color: #9ca3af;
+      line-height: 1.5;
+    }
+    .extras { font-size: 10px; color: #6b7280; margin: 8px 0 16px 0; }
+    .extras span { margin-right: 16px; }
+  </style>
+</head>
+<body>
+  <div class="ledger">
+    <div class="row-top">
+      <div>
+        <h1 class="title">QUOTATION</h1>
+        <div class="badge">{{statusLabel}}</div>
+        <div class="to-label">TO:</div>
+        <div class="client-name">{{clientName}}</div>
+        {{#if routingFrom}}<div class="route">{{routingFrom}}</div>{{/if}}
+        {{#if routingTo}}<div class="route">{{routingTo}}</div>{{/if}}
+      </div>
+      <div class="brand">
+        <h2>B&amp;B</h2>
+        <h3>INTERNATIONAL</h3>
+        <div class="tag">Serving You Beyond Borders</div>
+        <div class="meta" style="margin-top: 20px;">
+          <p><strong>Quotation #:</strong> {{quotationId}}</p>
+          {{#if quotationNumber}}<p><strong>Ref:</strong> {{quotationNumber}}</p>{{/if}}
+          <p><strong>Date:</strong> {{dateStr}}</p>
+          <p><strong>Revision:</strong> {{revisionCount}}</p>
+          <p><strong>Currency:</strong> {{currencyCode}}</p>
+          {{#if validStr}}<p><strong>Valid Until:</strong> {{validStr}}</p>{{/if}}
+        </div>
+      </div>
+    </div>
+
+    {{#if hasModeExtras}}
+    <div class="extras"><span><strong>Mode:</strong> {{mode}}</span>{{#if serviceMode}}<span><strong>Service:</strong> {{serviceMode}}</span>{{/if}}</div>
+    {{/if}}
+
+    <table class="items">
+      <thead>
+        <tr>
+          <th class="num">#</th>
+          <th>Item / Description</th>
+          <th class="num">Qty</th>
+          <th class="num">Weight / Vol</th>
+          <th class="right">Declared Value</th>
+          <th class="right">Shipping Charge</th>
+          <th class="right">Line Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each items}}
+        <tr>
+          <td class="num">{{index}}</td>
+          <td>
+            <div class="desc">{{description}}</div>
+            {{#if category}}<div class="cat">{{category}}</div>{{/if}}
+            {{#if isHazardous}}<div class="haz">&#9888; Hazardous</div>{{/if}}
+          </td>
+          <td class="num">{{quantity}}</td>
+          <td class="num">{{{weightLine}}}</td>
+          <td class="right">{{declaredValue}}</td>
+          <td class="right">{{{shippingCell}}}</td>
+          <td class="right">{{{lineTotalCell}}}</td>
+        </tr>
+        {{/each}}
+        {{#unless hasItems}}
+        <tr>
+          <td colspan="7" style="text-align:center;color:#6b7280;font-style:italic;padding:20px;">No items available currently.</td>
+        </tr>
+        {{/unless}}
+      </tbody>
+    </table>
+
+    <div class="bottom">
+      <div class="terms">
+        <h4>Terms &amp; Conditions:</h4>
+        <div>{{termsText}}</div>
+        {{#if hasAdditionalNotes}}
+        <div class="admin-note">
+          <strong>Admin Note:</strong>
+          {{additionalNotes}}
+        </div>
+        {{/if}}
+      </div>
+      <div class="summary">
+        {{#if showBaseFreight}}
+        <div class="summary-row"><span>Base Freight Charge</span><span>{{baseFreight}}</span></div>
+        {{/if}}
+        {{#if showHandling}}
+        <div class="summary-row"><span>Estimated Handling Fee</span><span>{{handling}}</span></div>
+        {{/if}}
+        {{#if showFirstMile}}
+        <div class="summary-row"><span>First Mile Charge</span><span>{{firstMile}}</span></div>
+        {{/if}}
+        {{#if showLastMile}}
+        <div class="summary-row"><span>Last Mile Charge</span><span>{{lastMile}}</span></div>
+        {{/if}}
+        {{#if showTax}}
+        <div class="summary-row"><span>{{taxLabel}}</span><span>{{tax}}</span></div>
+        {{/if}}
+        {{#if showDiscount}}
+        <div class="summary-row discount"><span>Discount</span><span>-{{discount}}</span></div>
+        {{/if}}
+        {{#if showFallbackTotalLine}}
+        <div class="summary-row"><span>Charges (consolidated)</span><span>{{fallbackTotal}}</span></div>
+        {{/if}}
+
+        <div class="summary-total">
+          <span class="label">{{totalLabel}}</span>
+          <span class="amt">{{{totalCell}}}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>This is a computer-generated document. No signature is required.</p>
+      <p>B&amp;B Logistics &amp; Management Solutions</p>
+    </div>
+  </div>
+</body>
+</html>

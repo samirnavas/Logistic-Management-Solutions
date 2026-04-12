@@ -176,6 +176,46 @@ exports.getClientQuotation = async (req, res) => {
     }
 };
 
+const { generateCustomPDF, generateInvoiceLedgerPdf } = require('../utils/pdfGenerator');
+const { buildInvoiceLedgerData } = require('../utils/invoicePdfData');
+
+/**
+ * GET PDF invoice (ledger layout, same data as admin LiveQuotationLedger).
+ * Client-only: must match authenticated user and quotation owner.
+ */
+exports.downloadClientInvoicePdf = async (req, res) => {
+    try {
+        const { id, clientId } = req.params;
+        const userId = req.user.id;
+
+        if (userId.toString() !== clientId.toString()) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        const quotation = await Quotation.findOne({ _id: id, clientId })
+            .populate('clientId', 'fullName email customerCode phone')
+            .populate('managerId', 'fullName email');
+
+        if (!quotation) {
+            return res.status(404).json({ message: 'Quotation not found' });
+        }
+
+        const data = buildInvoiceLedgerData(quotation);
+        const pdfBuffer = await generateInvoiceLedgerPdf(data);
+
+        const filename = `quotation-${quotation.quotationId || quotation.quotationNumber || id}.pdf`;
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+        res.send(pdfBuffer);
+    } catch (error) {
+        console.error('downloadClientInvoicePdf Error:', error);
+        res.status(500).json({
+            message: 'Failed to generate invoice PDF',
+            error: error.message,
+        });
+    }
+};
+
 // ============================================
 // Create new quotation (Originally created by client app as Request)
 // ============================================
@@ -189,6 +229,8 @@ exports.createQuotation = async (req, res) => {
             pickupDate,
             deliveryDate,
             cargoType,
+            mode,
+            serviceMode,
             serviceType,
             specialInstructions,
             handoverMethod,
@@ -214,6 +256,22 @@ exports.createQuotation = async (req, res) => {
         const allowedCurrencies = ['USD', 'EUR', 'GBP', 'CNY', 'JPY', 'AED', 'INR'];
         const resolvedCurrency = allowedCurrencies.includes(currency) ? currency : 'USD';
 
+        const allowedModes = ['Air', 'Sea', 'Land', 'Rail', 'Multimodal'];
+        const resolvedMode = allowedModes.includes(mode) ? mode : 'Air';
+        const allowedServiceModes = [
+            'Door to Door',
+            'Door to Warehouse',
+            'Warehouse to Door',
+            'Warehouse to Warehouse',
+        ];
+        const resolvedServiceMode = allowedServiceModes.includes(serviceMode)
+            ? serviceMode
+            : 'Door to Door';
+        const resolvedNotes =
+            specialInstructions === undefined || specialInstructions === ''
+                ? null
+                : specialInstructions;
+
         const newQuotation = new Quotation({
             clientId: userId,
             origin,
@@ -222,8 +280,10 @@ exports.createQuotation = async (req, res) => {
             pickupDate,
             deliveryDate,
             cargoType,
+            mode: resolvedMode,
+            serviceMode: resolvedServiceMode,
             serviceType,
-            specialInstructions,
+            specialInstructions: resolvedNotes,
             handoverMethod,
             pickupAddress,
             warehouseDropOffLocation,
@@ -445,7 +505,6 @@ exports.approveByManager = async (req, res) => {
 // ============================================
 // Send quotation to client app
 // ============================================
-const { generateCustomPDF } = require('../utils/pdfGenerator');
 const { cloudinary } = require('../config/cloudinary');
 const stream = require('stream');
 
@@ -1550,6 +1609,19 @@ function pushHistory(quotation, status, userId, reason) {
     });
 }
 
+/**
+ * Derive canonical serviceMode from fulfillment pickup/delivery types when the client omits it.
+ */
+function deriveServiceModeFromFulfillment(fd) {
+    if (!fd || !fd.pickupType || !fd.deliveryType) return 'Door to Door';
+    const originHome = fd.pickupType === 'HOME_PICKUP';
+    const destHome = fd.deliveryType === 'HOME_DELIVERY';
+    if (originHome && destHome) return 'Door to Door';
+    if (originHome && !destHome) return 'Door to Warehouse';
+    if (!originHome && destHome) return 'Warehouse to Door';
+    return 'Warehouse to Warehouse';
+}
+
 // ----------------------------------------------------------------
 // 1. CREATE DRAFT QUOTATION  (Customer — Phase 1)
 //    Accepts routingData + items.  Defaults to PENDING_ADMIN_REVIEW.
@@ -1561,6 +1633,7 @@ exports.createDraftQuotation = async (req, res) => {
             routingData,
             items,
             cargoType,
+            mode,
             serviceType,
             serviceMode,
             specialInstructions,
@@ -1593,14 +1666,31 @@ exports.createDraftQuotation = async (req, res) => {
         const allowedCurrencies = ['USD', 'EUR', 'GBP', 'CNY', 'JPY', 'AED', 'INR'];
         const resolvedCurrency = allowedCurrencies.includes(currency) ? currency : 'USD';
 
+        const allowedModes = ['Air', 'Sea', 'Land', 'Rail', 'Multimodal'];
+        const resolvedMode = allowedModes.includes(mode) ? mode : 'Air';
+        const allowedServiceModes = [
+            'Door to Door',
+            'Door to Warehouse',
+            'Warehouse to Door',
+            'Warehouse to Warehouse',
+        ];
+        const resolvedServiceMode = allowedServiceModes.includes(serviceMode)
+            ? serviceMode
+            : 'Door to Door';
+        const resolvedNotes =
+            specialInstructions === undefined || specialInstructions === ''
+                ? null
+                : specialInstructions;
+
         const newQuotation = new Quotation({
             clientId: userId,
             routingData,
             items: items || [],
             cargoType: cargoType || 'General Cargo',
+            mode: resolvedMode,
             serviceType: serviceType || 'Standard',
-            serviceMode: serviceMode || 'door_to_door',
-            specialInstructions: specialInstructions || '',
+            serviceMode: resolvedServiceMode,
+            specialInstructions: resolvedNotes,
             productPhotos: productPhotos || [],
             additionalNotes: additionalNotes || '',
             validUntil: validUntil || null,
@@ -1908,7 +1998,7 @@ exports.customerAcceptQuotation = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
-        const { fulfillmentDetails } = req.body;
+        const { fulfillmentDetails, serviceMode: bodyServiceMode } = req.body;
 
         const quotation = await Quotation.findById(id);
         if (!quotation) {
@@ -1977,8 +2067,27 @@ exports.customerAcceptQuotation = async (req, res) => {
             });
         }
 
+        const allowedServiceModes = [
+            'Door to Door',
+            'Door to Warehouse',
+            'Warehouse to Door',
+            'Warehouse to Warehouse',
+        ];
+        let resolvedServiceMode = bodyServiceMode;
+        if (resolvedServiceMode != null && resolvedServiceMode !== '') {
+            if (!allowedServiceModes.includes(resolvedServiceMode)) {
+                return res.status(400).json({
+                    message: `Invalid serviceMode: ${resolvedServiceMode}`,
+                    allowed: allowedServiceModes,
+                });
+            }
+        } else {
+            resolvedServiceMode = deriveServiceModeFromFulfillment(fulfillmentDetails);
+        }
+
         // --- Apply state changes ---
         quotation.fulfillmentDetails = fulfillmentDetails;
+        quotation.serviceMode = resolvedServiceMode;
         quotation.isAcceptedByClient = true;
         quotation.clientAcceptedAt = new Date();
         quotation.isLocked = true;

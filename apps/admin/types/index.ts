@@ -88,6 +88,8 @@ export interface Quotation {
     pickupDate?: Date | string;
     deliveryDate?: Date | string;
     cargoType: string;
+    mode?: 'Air' | 'Sea' | 'Land' | 'Rail' | 'Multimodal';
+    serviceMode?: string;
     serviceType: 'Standard' | 'Express' | 'Economy' | 'Priority';
     specialInstructions?: string;
 

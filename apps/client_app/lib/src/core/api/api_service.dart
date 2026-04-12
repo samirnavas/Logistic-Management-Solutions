@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:bb_logistics/src/core/errors/user_error.dart';
@@ -124,6 +125,36 @@ class ApiService {
       } else {
         throw _handleErrorResponse(response);
       }
+    } on UserError {
+      rethrow;
+    } on SocketException {
+      throw UserError.connectionError();
+    } on TimeoutException {
+      throw UserError.unknown('Connection timed out');
+    } catch (e) {
+      throw UserError.unknown(e.toString());
+    }
+  }
+
+  /// Binary GET (e.g. PDF). Does not JSON-decode the body.
+  Future<Uint8List> getBytes(String endpoint) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+    final token = await _storage.read(key: 'jwt_token');
+
+    try {
+      final response = await http
+          .get(
+            url,
+            headers: {
+              if (token != null) 'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 90));
+
+      if (response.statusCode == 200) {
+        return response.bodyBytes;
+      }
+      throw _handleErrorResponse(response);
     } on UserError {
       rethrow;
     } on SocketException {

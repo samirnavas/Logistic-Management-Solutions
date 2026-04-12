@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:bb_logistics/src/core/api/api_service.dart';
 import 'package:bb_logistics/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -87,6 +89,16 @@ class QuotationRepository {
       return null;
     }
     return null;
+  }
+
+  /// Ledger-style invoice PDF (matches admin Live Quotation Ledger).
+  Future<Uint8List> downloadQuotationInvoicePdf(String quotationId) async {
+    if (_currentUserId == null) {
+      throw StateError('Not signed in');
+    }
+    return _apiService.getBytes(
+      '/api/quotations/client/$_currentUserId/$quotationId/invoice',
+    );
   }
 
   /// Confirm address for quotation
@@ -198,11 +210,16 @@ class QuotationRepository {
   /// Accept quotation and provide exact fulfillment addresses
   Future<Quotation> customerAcceptQuotation(
     String id,
-    Map<String, dynamic> fulfillmentDetails,
-  ) async {
+    Map<String, dynamic> fulfillmentDetails, {
+    String? serviceMode,
+  }) async {
+    final body = <String, dynamic>{
+      'fulfillmentDetails': fulfillmentDetails,
+      if (serviceMode != null) 'serviceMode': serviceMode,
+    };
     final response = await _apiService.patchRequest(
       '/api/quotations/$id/workflow/accept',
-      {'fulfillmentDetails': fulfillmentDetails},
+      body,
     );
     // Backend returns { message, quotation, isLocked }
     if (response is Map<String, dynamic>) {
