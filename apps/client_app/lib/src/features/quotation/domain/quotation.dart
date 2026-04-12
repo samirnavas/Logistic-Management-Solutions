@@ -47,19 +47,16 @@ enum QuotationStatus {
   }
 }
 
-// ... (QuotationItem and QuotationAddress classes remain the same)
-
 /// Represents a single line item in a quotation
 class QuotationItem {
   final String description;
   final double cost;
-  // New Fields
   final int quantity;
   final double weight;
   final dynamic dimensions; // String "LxWxH" or map
   final List<String> images;
-  final double? declaredValue; // New field (commercial)
-  final double? shippingCharge; // New field (freight)
+  final String hsCode;
+  final double? lineTax;
   final String category;
   final bool isHazardous;
   final String? videoUrl;
@@ -74,8 +71,8 @@ class QuotationItem {
     this.weight = 0.0,
     this.dimensions = '',
     this.images = const [],
-    this.declaredValue,
-    this.shippingCharge,
+    this.hsCode = '',
+    this.lineTax,
     this.category = 'General',
     this.isHazardous = false,
     this.videoUrl,
@@ -91,8 +88,8 @@ class QuotationItem {
     double? weight,
     dynamic dimensions,
     List<String>? images,
-    double? declaredValue,
-    double? shippingCharge,
+    String? hsCode,
+    double? lineTax,
     String? category,
     bool? isHazardous,
     String? videoUrl,
@@ -107,8 +104,8 @@ class QuotationItem {
       weight: weight ?? this.weight,
       dimensions: dimensions ?? this.dimensions,
       images: images ?? this.images,
-      declaredValue: declaredValue ?? this.declaredValue,
-      shippingCharge: shippingCharge ?? this.shippingCharge,
+      hsCode: hsCode ?? this.hsCode,
+      lineTax: lineTax ?? this.lineTax,
       category: category ?? this.category,
       isHazardous: isHazardous ?? this.isHazardous,
       videoUrl: videoUrl ?? this.videoUrl,
@@ -121,14 +118,15 @@ class QuotationItem {
   factory QuotationItem.fromJson(Map<String, dynamic> json) {
     return QuotationItem(
       description: json['description'] as String? ?? '',
-      // Backend uses 'amount' for the total cost of the line item
-      cost: (json['amount'] ?? json['unitPrice'] ?? 0).toDouble(),
+      cost: ((json['amount'] as num?)?.toDouble()) ??
+          (((json['unitPrice'] as num?)?.toDouble() ?? 0) *
+              ((json['quantity'] as num?)?.toInt() ?? 1)),
       quantity: json['quantity'] as int? ?? 1,
       weight: (json['weight'] as num?)?.toDouble() ?? 0.0,
       dimensions: json['dimensions'] ?? '',
       images: (json['images'] as List?)?.map((e) => e as String).toList() ?? [],
-      declaredValue: (json['declaredValue'] as num?)?.toDouble(),
-      shippingCharge: (json['shippingCharge'] as num?)?.toDouble(),
+      hsCode: json['hsCode'] as String? ?? '',
+      lineTax: (json['lineTax'] as num?)?.toDouble(),
       category: json['category'] as String? ?? 'General',
       isHazardous: json['isHazardous'] as bool? ?? false,
       videoUrl: json['videoUrl'] as String?,
@@ -142,13 +140,13 @@ class QuotationItem {
     return {
       'description': description,
       'cost': cost,
-      'amount': cost, // Ensure backend sees amount if needed
+      'amount': cost,
       'quantity': quantity,
       'weight': weight,
       'dimensions': dimensions,
       'images': images,
-      'declaredValue': declaredValue,
-      'shippingCharge': shippingCharge,
+      'hsCode': hsCode,
+      'lineTax': lineTax,
       'category': category,
       'isHazardous': isHazardous,
       'videoUrl': videoUrl,
@@ -209,7 +207,6 @@ class QuotationAddress {
 class Quotation {
   final String id;
   final String? quotationId;
-  // final String requestId; // Removed in backend
   final DateTime createdDate;
   final double totalAmount;
   final QuotationStatus status;
@@ -217,30 +214,26 @@ class Quotation {
   final List<QuotationItem> items;
   final String? currency;
 
-  // New Fields
   final QuotationAddress? origin;
   final QuotationAddress? destination;
   final DateTime? pickupDate;
   final DateTime? deliveryDate;
   final String? cargoType;
-  /// Transport mode: Air, Sea, Land, Rail, Multimodal (matches backend).
   final String? mode;
   final String? serviceMode;
   final String? serviceType;
   final String? specialInstructions;
 
-  final String? additionalNotes; // Terms & Notes from admin
-  final String? adminFeedback; // Feedback for Info Required
+  final String? additionalNotes;
+  final String? adminFeedback;
   final String? handoverMethod;
   final String? warehouseDropOffLocation;
 
-  // Routing Data (Phase 1 — region/city strings only)
   final String? routingSourceRegion;
   final String? routingSourceCity;
   final String? routingDestinationRegion;
   final String? routingDestinationCity;
 
-  // Warehouse Routing Data
   final String? originWarehouseName;
   final String? originWarehouseCity;
   final String? originWarehouseState;
@@ -248,11 +241,12 @@ class Quotation {
   final String? destinationWarehouseCity;
   final String? destinationWarehouseState;
 
-  // New Pricing Breakdown Fields
   final double? baseFreightCharge;
   final double? estimatedHandlingFee;
   final double? firstMileCharge;
   final double? lastMileCharge;
+  /// Global shipment-level shipping charge (replaces per-item shipping).
+  final double? shippingCharge;
   final double? tax;
   final double? discount;
   final String? clientName;
@@ -288,6 +282,7 @@ class Quotation {
     this.estimatedHandlingFee,
     this.firstMileCharge,
     this.lastMileCharge,
+    this.shippingCharge,
     this.tax,
     this.discount,
     this.clientName,
@@ -319,6 +314,7 @@ class Quotation {
     String? serviceType,
     String? specialInstructions,
     String? additionalNotes,
+    String? adminFeedback,
     String? handoverMethod,
     String? warehouseDropOffLocation,
     String? routingSourceRegion,
@@ -331,6 +327,15 @@ class Quotation {
     String? destinationWarehouseName,
     String? destinationWarehouseCity,
     String? destinationWarehouseState,
+    double? baseFreightCharge,
+    double? estimatedHandlingFee,
+    double? firstMileCharge,
+    double? lastMileCharge,
+    double? shippingCharge,
+    double? tax,
+    double? discount,
+    String? clientName,
+    int? revisionCount,
   }) {
     return Quotation(
       id: id ?? this.id,
@@ -351,6 +356,7 @@ class Quotation {
       serviceType: serviceType ?? this.serviceType,
       specialInstructions: specialInstructions ?? this.specialInstructions,
       additionalNotes: additionalNotes ?? this.additionalNotes,
+      adminFeedback: adminFeedback ?? this.adminFeedback,
       handoverMethod: handoverMethod ?? this.handoverMethod,
       warehouseDropOffLocation:
           warehouseDropOffLocation ?? this.warehouseDropOffLocation,
@@ -364,6 +370,7 @@ class Quotation {
       estimatedHandlingFee: estimatedHandlingFee ?? this.estimatedHandlingFee,
       firstMileCharge: firstMileCharge ?? this.firstMileCharge,
       lastMileCharge: lastMileCharge ?? this.lastMileCharge,
+      shippingCharge: shippingCharge ?? this.shippingCharge,
       tax: tax ?? this.tax,
       discount: discount ?? this.discount,
       clientName: clientName ?? this.clientName,
@@ -422,13 +429,11 @@ class Quotation {
       adminFeedback: json['adminFeedback'] as String?,
       handoverMethod: json['handoverMethod'] as String?,
       warehouseDropOffLocation: json['warehouseDropOffLocation'] as String?,
-      // Phase 1 routing data
       routingSourceRegion: routingData?['sourceRegion'] as String?,
       routingSourceCity: routingData?['sourceCity'] as String?,
       routingDestinationRegion: routingData?['destinationRegion'] as String?,
       routingDestinationCity: routingData?['destinationCity'] as String?,
 
-      // Warehouse Routing Data
       originWarehouseName: routingData?['originWarehouseName'] as String?,
       originWarehouseCity: routingData?['originWarehouseCity'] as String?,
       originWarehouseState: routingData?['originWarehouseState'] as String?,
@@ -438,7 +443,6 @@ class Quotation {
           routingData?['destinationWarehouseCity'] as String?,
       destinationWarehouseState:
           routingData?['destinationWarehouseState'] as String?,
-      // Map Pricing Details
       baseFreightCharge:
           (json['pricing']?['baseFreightCharge'] ??
                   json['baseFreightCharge'] as num?)
@@ -454,6 +458,7 @@ class Quotation {
       lastMileCharge:
           (json['pricing']?['lastMileCharge'] ?? json['lastMileCharge'] as num?)
               ?.toDouble(),
+      shippingCharge: (json['shippingCharge'] as num?)?.toDouble(),
       tax: (json['pricing']?['tax'] ?? json['tax'] as num?)?.toDouble(),
       discount: (json['pricing']?['discount'] ?? json['discount'] as num?)
           ?.toDouble(),
@@ -571,7 +576,6 @@ class Quotation {
     return {
       'id': id,
       'quotationId': quotationId,
-      // 'requestId': requestId,
       'createdDate': createdDate.toIso8601String(),
       'totalAmount': totalAmount,
       'status': statusStr,
@@ -592,6 +596,7 @@ class Quotation {
       'adminFeedback': adminFeedback,
       'handoverMethod': handoverMethod,
       'warehouseDropOffLocation': warehouseDropOffLocation,
+      'shippingCharge': shippingCharge,
       'routingData': {
         'sourceRegion': routingSourceRegion,
         'sourceCity': routingSourceCity,

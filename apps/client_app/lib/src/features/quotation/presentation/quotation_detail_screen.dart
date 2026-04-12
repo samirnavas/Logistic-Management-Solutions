@@ -721,9 +721,9 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
             images: i.images,
             category: i.category,
             isHazardous: i.isHazardous,
+            hsCode: i.hsCode.isNotEmpty ? i.hsCode : null,
             videoUrl: i.videoUrl,
             targetRate: i.targetRate,
-            declaredValue: i.declaredValue,
             packingVolume: i.packingVolume,
             cost: i.cost,
           ),
@@ -919,9 +919,9 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                                               if (it.packingVolume != null)
                                                 'packingVolume':
                                                     it.packingVolume,
-                                              if (it.declaredValue != null)
-                                                'declaredValue':
-                                                    it.declaredValue,
+                                              if (it.hsCode != null &&
+                                                  it.hsCode!.isNotEmpty)
+                                                'hsCode': it.hsCode,
                                               if (it.videoUrl != null &&
                                                   it.videoUrl!.isNotEmpty)
                                                 'videoUrl': it.videoUrl,

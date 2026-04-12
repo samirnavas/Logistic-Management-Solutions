@@ -53,9 +53,10 @@ export interface LineItem {
     isHazardous?: boolean;
     weight?: number;
     packingVolume?: number;
-    declaredValue?: number;
     value?: number;
-    shippingCharge?: number;
+    hsCode?: string;
+    lineTax?: number;
+    images?: string[];
 }
 
 export type QuotationStatus =
@@ -103,6 +104,7 @@ export interface Quotation {
     estimatedHandlingFee?: number;
     firstMileCharge?: number;
     lastMileCharge?: number;
+    shippingCharge?: number;
     taxRate: number;
     tax: number;
     discount: number;

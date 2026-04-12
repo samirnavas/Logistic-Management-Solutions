@@ -80,8 +80,9 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
     const [baseFreightCharge, setBaseFreightCharge] = useState<number | string>('');
     const [estimatedHandlingFee, setEstimatedHandlingFee] = useState<number | string>('');
     const [pricingNotes, setPricingNotes] = useState('');
-    // keyed by item index
-    const [itemPrices, setItemPrices] = useState<Record<number, { shippingCharge: number }>>({});
+    /** Per-line admin inputs: unit price (line amount / qty), line tax, HS code */
+    const [itemLedger, setItemLedger] = useState<Record<number, { unitPrice: number; lineTax: number; hsCode: string }>>({});
+    const [globalShippingCharge, setGlobalShippingCharge] = useState<number | string>('');
 
     // Final charges state (AWAITING_FINAL_CHARGE_SHEET)
     const [firstMileCharge, setFirstMileCharge] = useState<number | string>('');
@@ -111,14 +112,18 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                 const data = await res.json();
                 setQuotation(data);
 
-                // Pre-fill items pricing mapping
                 if (data.items?.length) {
-                    const prices: Record<number, { shippingCharge: number }> = {};
+                    const ledger: Record<number, { unitPrice: number; lineTax: number; hsCode: string }> = {};
                     data.items.forEach((item: any, i: number) => {
-                        prices[i] = { shippingCharge: item.shippingCharge || item.unitPrice || 0 };
+                        ledger[i] = {
+                            unitPrice: Number(item.unitPrice) || 0,
+                            lineTax: Number(item.lineTax) || 0,
+                            hsCode: item.hsCode != null ? String(item.hsCode) : '',
+                        };
                     });
-                    setItemPrices(prices);
+                    setItemLedger(ledger);
                 }
+                setGlobalShippingCharge(data.shippingCharge != null && data.shippingCharge !== '' ? data.shippingCharge : '');
 
                 // Pre-fill form state for pending review edits
                 setBaseFreightCharge(data.pricing?.baseFreightCharge ?? data.baseFreightCharge ?? '');
@@ -199,13 +204,19 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
             setBaseFreightCharge(parseFloat(totalBaseFreight.toFixed(2)));
             setEstimatedHandlingFee(parseFloat(handlingFee.toFixed(2)));
 
-            // Per-item: apply each item's lineTotal as its shippingCharge
             if (receipt.breakdown.items?.length) {
-                const newPrices: Record<number, { shippingCharge: number }> = {};
-                receipt.breakdown.items.forEach((ri: any, i: number) => {
-                    newPrices[i] = { shippingCharge: parseFloat(ri.lineTotal.toFixed(2)) };
+                setItemLedger((prev) => {
+                    const next = { ...prev };
+                    receipt.breakdown.items.forEach((ri: any, i: number) => {
+                        const qty = ri.quantity || quotation?.items?.[i]?.quantity || 1;
+                        next[i] = {
+                            unitPrice: parseFloat((ri.lineTotal / qty).toFixed(2)),
+                            lineTax: 0,
+                            hsCode: quotation?.items?.[i]?.hsCode != null ? String(quotation.items[i].hsCode) : (prev[i]?.hsCode ?? ''),
+                        };
+                    });
+                    return next;
                 });
-                setItemPrices(newPrices);
             }
 
             showToast('✓ Estimate generated! Review the breakdown and adjust before submitting.');
@@ -214,34 +225,51 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
         } finally {
             setIsCalculating(false);
         }
-    }, [id, transportMode]);
+    }, [id, transportMode, quotation]);
 
     const handlePriceQuotation = async () => {
-        if (Number(baseFreightCharge) <= 0 && Number(estimatedHandlingFee) <= 0 && itemsTotal <= 0) {
+        const linesSum =
+            quotation.items?.reduce((sum: number, item: any, i: number) => {
+                const up = itemLedger[i]?.unitPrice ?? item.unitPrice ?? 0;
+                const lt = itemLedger[i]?.lineTax ?? item.lineTax ?? 0;
+                return sum + up * (item.quantity || 1) + lt;
+            }, 0) ?? 0;
+        const shipG = Number(globalShippingCharge) || 0;
+        if (
+            Number(baseFreightCharge) <= 0 &&
+            Number(estimatedHandlingFee) <= 0 &&
+            linesSum <= 0 &&
+            shipG <= 0
+        ) {
             showToast('Please enter at least one charge before submitting.', 'error');
             return;
         }
         setSending(true);
         try {
             const token = localStorage.getItem('token');
-            const updatedItems = quotation.items?.map((item: any, i: number) => ({
-                description: item.description,
-                quantity: item.quantity,
-                weight: item.weight,
-                category: item.category,
-                isHazardous: item.isHazardous,
-                // Preserve client commercial value
-                declaredValue: item.value || item.declaredValue || 0,
-                targetRate: item.targetRate || 0,
-                shippingCharge: itemPrices[i]?.shippingCharge || 0,
-                // Legacy fields
-                unitPrice: itemPrices[i]?.shippingCharge || 0,
-                amount: (itemPrices[i]?.shippingCharge || 0) * (item.quantity || 1),
-            })) || [];
+            const updatedItems = quotation.items?.map((item: any, i: number) => {
+                const up = itemLedger[i]?.unitPrice ?? item.unitPrice ?? 0;
+                const lt = itemLedger[i]?.lineTax ?? item.lineTax ?? 0;
+                const qty = item.quantity || 1;
+                return {
+                    description: item.description,
+                    quantity: qty,
+                    weight: item.weight,
+                    category: item.category,
+                    isHazardous: item.isHazardous,
+                    targetRate: item.targetRate || 0,
+                    hsCode: itemLedger[i]?.hsCode ?? item.hsCode ?? '',
+                    unitPrice: up,
+                    lineTax: lt,
+                    amount: up * qty,
+                    images: item.images,
+                };
+            }) || [];
 
             const body = {
                 baseFreightCharge: Number(baseFreightCharge),
                 estimatedHandlingFee: Number(estimatedHandlingFee),
+                shippingCharge: Number(globalShippingCharge) || 0,
                 items: updatedItems,
                 pricingNotes: pricingNotes.trim(),
             };
@@ -352,8 +380,22 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
     const currencySymbol = CURRENCY_SYMBOL[currency] || `${currency} `;
 
     // Derived values
-    const itemsTotal = Object.values(itemPrices).reduce((sum, ip) => sum + ((ip as any).shippingCharge || 0), 0);
-    const subtotal = Number(baseFreightCharge || 0) + Number(estimatedHandlingFee || 0) + itemsTotal;
+    const linesAmountSum =
+        quotation.items?.reduce((sum: number, item: any, i: number) => {
+            const up = itemLedger[i]?.unitPrice ?? item.unitPrice ?? 0;
+            return sum + up * (item.quantity || 1);
+        }, 0) ?? 0;
+    const lineTaxSum =
+        quotation.items?.reduce((sum: number, item: any, i: number) => {
+            const lt = itemLedger[i]?.lineTax ?? item.lineTax ?? 0;
+            return sum + lt;
+        }, 0) ?? 0;
+    const subtotal =
+        Number(baseFreightCharge || 0) +
+        Number(estimatedHandlingFee || 0) +
+        linesAmountSum +
+        lineTaxSum +
+        (Number(globalShippingCharge) || 0);
     const isPostAcceptance = ['AWAITING_FINAL_CHARGE_SHEET', 'PAYMENT_PENDING', 'ACCEPTED', 'CONVERTED_TO_SHIPMENT'].includes(quotation.status);
 
     // Helpers
@@ -398,10 +440,10 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                     <div className="flex items-center gap-3">
                         {isPostAcceptance || quotation.status === 'PENDING_CUSTOMER_APPROVAL' ? (
                             <button
-                                onClick={handleDownloadInvoice}
+                                onClick={() => router.push(`/quotations/${id}/invoice`)}
                                 className="flex items-center gap-2 text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg shadow-sm hover:shadow hover:bg-blue-100 active:scale-95 transition"
                             >
-                                <StickyNote className="w-4 h-4" /> Export PDF
+                                <StickyNote className="w-4 h-4" /> View Invoice
                             </button>
                         ) : null}
                         <button
@@ -548,7 +590,7 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                                                 <th className="px-5 py-4 text-center">Qty</th>
                                                 <th className="px-5 py-4 text-center">Weight</th>
                                                 <th className="px-5 py-4 text-center">CBM</th>
-                                                <th className="px-5 py-4 text-right min-w-[140px]">Declared Value</th>
+                                                <th className="px-5 py-4 text-left min-w-[100px]">HS Code</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100 text-slate-600">
@@ -576,12 +618,8 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                                                     <td className="px-5 py-4 text-center">
                                                         <div className="text-xs text-slate-500">{item.packingVolume ? <><span className="font-medium text-slate-700">{item.packingVolume}</span> CBM</> : '— CBM'}</div>
                                                     </td>
-                                                    <td className="px-5 py-4 text-right">
-                                                        {(item.value || item.declaredValue) ? (
-                                                            <div className="inline-flex items-center bg-emerald-50 text-emerald-800 font-bold px-3 py-1 rounded-full border border-slate-200">
-                                                                {currencySymbol}{Number(item.value || item.declaredValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                            </div>
-                                                        ) : formatPending(null)}
+                                                    <td className="px-5 py-4 text-left text-sm text-slate-700 font-mono">
+                                                        {item.hsCode ? item.hsCode : formatPending(null)}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -769,36 +807,133 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                                         />
                                     </div>
 
-                                    {/* Per-item shipping charges */}
                                     {quotation.items?.length > 0 && (
-                                        <div className="pt-2 border-t border-slate-200">
-                                            <label className="block text-sm font-semibold text-slate-600 mb-3 mt-4">Itemized Shipping Rates</label>
-                                            <div className="space-y-3">
-                                                {quotation.items.map((item: any, i: number) => (
-                                                    <div key={i} className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm hover:border-slate-300 transition-colors">
-                                                        <div className="flex justify-between items-start mb-2.5">
-                                                            <div className="text-xs font-bold text-slate-700 truncate pr-2 w-[70%]" title={item.description}>{item.description}</div>
-                                                            <div className="text-[10px] uppercase font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded shrink-0">Qty: {item.quantity || 1}</div>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <input
-                                                                type="number"
-                                                                min="0"
-                                                                step="0.01"
-                                                                placeholder={`${currencySymbol} 0.00`}
-                                                                value={itemPrices[i]?.shippingCharge || ''}
-                                                                onChange={e => setItemPrices(prev => ({
-                                                                    ...prev,
-                                                                    [i]: { shippingCharge: e.target.value ? Number(e.target.value) : 0 }
-                                                                }))}
-                                                                className="w-full text-sm font-medium border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition shadow-inner bg-slate-50"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                ))}
+                                        <div className="pt-2 border-t border-slate-200 overflow-x-auto">
+                                            <div className="flex items-center justify-between mb-3 mt-4">
+                                                <label className="text-sm font-semibold text-slate-700">Line Items &amp; Ledger</label>
+                                                <span className="text-[10px] text-slate-400 font-medium bg-slate-100 px-2 py-0.5 rounded">Enter unit price &amp; flat tax per item • HS Code pre-filled from client</span>
                                             </div>
+                                            <table className="w-full text-xs border-collapse border border-slate-200 min-w-[760px]">
+                                                <thead className="bg-slate-50">
+                                                    <tr>
+                                                        <th className="border border-slate-200 px-2 py-2 text-center w-8">#</th>
+                                                        <th className="border border-slate-200 px-2 py-2 text-left">Item / Description</th>
+                                                        <th className="border border-slate-200 px-2 py-2 text-center w-16">Image</th>
+                                                        <th className="border border-slate-200 px-2 py-2 text-left w-28">
+                                                            HS Code
+                                                            <div className="text-[9px] text-slate-400 font-normal">editable override</div>
+                                                        </th>
+                                                        <th className="border border-slate-200 px-2 py-2 text-right w-28">
+                                                            Line Tax
+                                                            <div className="text-[9px] text-slate-400 font-normal">flat {currencySymbol} amount</div>
+                                                        </th>
+                                                        <th className="border border-slate-200 px-2 py-2 text-right w-32">Line Total</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {quotation.items.map((item: any, i: number) => {
+                                                        const qty = item.quantity || 1;
+                                                        const up = itemLedger[i]?.unitPrice ?? item.unitPrice ?? 0;
+                                                        const lt = itemLedger[i]?.lineTax ?? item.lineTax ?? 0;
+                                                        const lineTotal = up * qty + lt;
+                                                        const img = item.images?.[0] as string | undefined;
+                                                        // Client-submitted HS code (from the quotation) as hint
+                                                        const clientHsCode = item.hsCode || '';
+                                                        return (
+                                                            <tr key={i} className="hover:bg-slate-50/50">
+                                                                <td className="border border-slate-200 px-2 py-2 text-center align-middle text-slate-500">{i + 1}</td>
+                                                                <td className="border border-slate-200 px-2 py-2 align-top">
+                                                                    <div className="font-semibold text-slate-800">{item.description}</div>
+                                                                    <div className="text-[10px] text-slate-500 mb-1">Qty: <strong>{qty}</strong>{item.weight ? ` · ${item.weight} kg` : ''}{item.packingVolume ? ` · ${item.packingVolume} CBM` : ''}</div>
+                                                                    <label className="text-[10px] text-slate-500 font-semibold">Unit Price ({currencySymbol})</label>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        step="0.01"
+                                                                        value={up || ''}
+                                                                        onChange={e => setItemLedger(prev => ({
+                                                                            ...prev,
+                                                                            [i]: {
+                                                                                unitPrice: e.target.value === '' ? 0 : Number(e.target.value),
+                                                                                lineTax: prev[i]?.lineTax ?? (itemLedger[i]?.lineTax ?? 0),
+                                                                                hsCode: prev[i]?.hsCode ?? (itemLedger[i]?.hsCode ?? ''),
+                                                                            },
+                                                                        }))}
+                                                                        className="mt-0.5 w-full border border-slate-200 rounded px-1.5 py-1 text-xs focus:ring-1 focus:ring-blue-400 focus:border-blue-400 outline-none"
+                                                                        placeholder="0.00"
+                                                                    />
+                                                                </td>
+                                                                <td className="border border-slate-200 px-1 py-2 text-center align-middle">
+                                                                    {img ? (
+                                                                        // eslint-disable-next-line @next/next/no-img-element
+                                                                        <img src={img} alt="" className="mx-auto w-10 h-10 object-cover rounded border border-slate-200" />
+                                                                    ) : (
+                                                                        <div className="mx-auto w-10 h-10 bg-slate-100 border border-dashed border-slate-300 rounded text-[8px] text-slate-400 flex items-center justify-center">N/A</div>
+                                                                    )}
+                                                                </td>
+                                                                {/* HS Code — pre-filled from client; admin can override */}
+                                                                <td className="border border-slate-200 px-1 py-1 align-top">
+                                                                    {clientHsCode && clientHsCode !== (itemLedger[i]?.hsCode ?? '') && (
+                                                                        <div className="text-[9px] text-blue-500 font-mono mb-0.5 px-0.5">
+                                                                            Client: {clientHsCode}
+                                                                        </div>
+                                                                    )}
+                                                                    <input
+                                                                        type="text"
+                                                                        value={itemLedger[i]?.hsCode ?? clientHsCode}
+                                                                        onChange={e => setItemLedger(prev => ({
+                                                                            ...prev,
+                                                                            [i]: {
+                                                                                unitPrice: prev[i]?.unitPrice ?? up,
+                                                                                lineTax: prev[i]?.lineTax ?? lt,
+                                                                                hsCode: e.target.value,
+                                                                            },
+                                                                        }))}
+                                                                        className="w-full border border-slate-200 rounded px-1.5 py-1 font-mono text-[11px] text-blue-700 focus:ring-1 focus:ring-blue-400 focus:border-blue-400 outline-none"
+                                                                        placeholder="e.g. 8471.30"
+                                                                    />
+                                                                </td>
+                                                                {/* Line Tax — flat amount added to line total */}
+                                                                <td className="border border-slate-200 px-1 py-1 align-middle">
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        step="0.01"
+                                                                        value={itemLedger[i]?.lineTax !== undefined ? (itemLedger[i].lineTax || '') : (item.lineTax || '')}
+                                                                        onChange={e => setItemLedger(prev => ({
+                                                                            ...prev,
+                                                                            [i]: {
+                                                                                unitPrice: prev[i]?.unitPrice ?? up,
+                                                                                lineTax: e.target.value === '' ? 0 : Number(e.target.value),
+                                                                                hsCode: prev[i]?.hsCode ?? (itemLedger[i]?.hsCode ?? clientHsCode),
+                                                                            },
+                                                                        }))}
+                                                                        className="w-full border border-emerald-200 bg-emerald-50/30 rounded px-1.5 py-1 text-right text-xs text-emerald-700 focus:ring-1 focus:ring-emerald-400 focus:border-emerald-400 outline-none"
+                                                                        placeholder="0.00"
+                                                                    />
+                                                                    {lt > 0 && (
+                                                                        <div className="text-[9px] text-emerald-600 text-right mt-0.5 font-semibold">+{currencySymbol}{lt.toFixed(2)} tax</div>
+                                                                    )}
+                                                                </td>
+                                                                <td className="border border-slate-200 px-2 py-2 text-right font-bold text-slate-900 align-middle">
+                                                                    {currencySymbol}{lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
                                         </div>
                                     )}
+
+                                    <div className="pt-2">
+                                        <InputField
+                                            label="Shipping Charge (global)"
+                                            prefix={currencySymbol}
+                                            value={globalShippingCharge}
+                                            onChange={setGlobalShippingCharge}
+                                        />
+                                    </div>
 
                                     {/* Notes */}
                                     <div className="pt-4 border-t border-slate-200">
@@ -818,9 +953,13 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                                             <span className="opacity-80">Base + Handling</span>
                                             <span className="text-slate-900 font-bold">{currencySymbol}{(Number(baseFreightCharge || 0) + Number(estimatedHandlingFee || 0)).toFixed(2)}</span>
                                         </div>
+                                        <div className="flex justify-between items-center text-sm mb-1 font-medium">
+                                            <span className="opacity-80">Line amounts + line tax</span>
+                                            <span className="text-slate-900 font-bold">{currencySymbol}{(linesAmountSum + lineTaxSum).toFixed(2)}</span>
+                                        </div>
                                         <div className="flex justify-between items-center text-sm mb-4 font-medium">
-                                            <span className="opacity-80">Items Shipping Block</span>
-                                            <span className="text-slate-900 font-bold">{currencySymbol}{itemsTotal.toFixed(2)}</span>
+                                            <span className="opacity-80">Global shipping</span>
+                                            <span className="text-slate-900 font-bold">{currencySymbol}{(Number(globalShippingCharge) || 0).toFixed(2)}</span>
                                         </div>
                                         <div className="flex justify-between items-center font-bold text-slate-900 border-t border-slate-200 pt-3 text-xl">
                                             <span className="text-slate-900">Subtotal ({currency})</span>

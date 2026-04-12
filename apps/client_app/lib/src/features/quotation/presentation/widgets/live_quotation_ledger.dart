@@ -13,9 +13,12 @@ class LiveQuotationLedger extends StatelessWidget {
         quotation.status == QuotationStatus.infoRequired;
   }
 
-  String _renderPrice(double? price) {
-    if (_isPendingReview || price == null || price <= 0) {
+  String _renderPrice(double? price, {String zeroFallback = '—'}) {
+    if (_isPendingReview || price == null) {
       return 'TBD';
+    }
+    if (price <= 0 && zeroFallback != '—') {
+      return zeroFallback;
     }
     final currencyName = quotation.currency ?? 'USD';
     final formatCurrency = NumberFormat.simpleCurrency(name: currencyName);
@@ -27,8 +30,39 @@ class LiveQuotationLedger extends StatelessWidget {
     return DateFormat.yMMMMd('en_US').format(date);
   }
 
+  List<String> _fromLines() {
+    final lines = <String>[];
+    final wh = quotation.originWarehouseName;
+    if (wh != null && wh.isNotEmpty) lines.add(wh);
+    final city = quotation.originWarehouseCity;
+    final st = quotation.originWarehouseState;
+    if ((city != null && city.isNotEmpty) || (st != null && st.isNotEmpty)) {
+      lines.add([city, st].whereType<String>().where((e) => e.isNotEmpty).join(', '));
+    }
+    final origin = quotation.origin;
+    if (origin != null && origin.addressLine.isNotEmpty) {
+      lines.add(origin.addressLine);
+    }
+    return lines;
+  }
+
+  double get _itemsAmountSum =>
+      quotation.items.fold(0.0, (s, it) => s + it.cost);
+
+  double get _subtotalNumeric =>
+      _itemsAmountSum +
+      (quotation.baseFreightCharge ?? 0) +
+      (quotation.estimatedHandlingFee ?? 0);
+
+  double get _shippingNumeric =>
+      (quotation.shippingCharge ?? 0) +
+      (quotation.firstMileCharge ?? 0) +
+      (quotation.lastMileCharge ?? 0);
+
   @override
   Widget build(BuildContext context) {
+    final fromLines = _fromLines();
+
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(maxWidth: 800),
@@ -37,7 +71,7 @@ class LiveQuotationLedger extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade300),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(13), // 0.05 * 255 ≈ 13
+            color: Colors.black.withAlpha(13),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -47,13 +81,11 @@ class LiveQuotationLedger extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Section
           Wrap(
             spacing: 24,
             runSpacing: 24,
             crossAxisAlignment: WrapCrossAlignment.start,
             children: [
-              // Top Left
               SizedBox(
                 width: 300,
                 child: Column(
@@ -65,7 +97,7 @@ class LiveQuotationLedger extends StatelessWidget {
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 2,
-                        color: Color(0xFF2563EB), // blue-600
+                        color: Color(0xFF2563EB),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -80,10 +112,7 @@ class LiveQuotationLedger extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        (quotation.serviceType == 'Priority' ||
-                                quotation.serviceType == 'Express')
-                            ? 'High Priority Shipment'
-                            : quotation.status.displayName,
+                        quotation.status.displayName,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -91,13 +120,51 @@ class LiveQuotationLedger extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    if (fromLines.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'FROM:',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue.shade800,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            ...fromLines.map(
+                              (l) => Padding(
+                                padding: const EdgeInsets.only(bottom: 2),
+                                child: Text(
+                                  l,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF374151),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
                     const Text(
                       'TO:',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF374151), // gray-700
+                        color: Color(0xFF374151),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -105,7 +172,7 @@ class LiveQuotationLedger extends StatelessWidget {
                       quotation.clientName ?? 'Customer Name',
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF1F2937), // gray-800
+                        color: Color(0xFF1F2937),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -134,8 +201,6 @@ class LiveQuotationLedger extends StatelessWidget {
                   ],
                 ),
               ),
-
-              // Top Right
               SizedBox(
                 width: 300,
                 child: Column(
@@ -146,7 +211,7 @@ class LiveQuotationLedger extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w900,
-                        color: Color(0xFF1D4ED8), // blue-700
+                        color: Color(0xFF1D4ED8),
                         height: 1.0,
                       ),
                     ),
@@ -165,7 +230,7 @@ class LiveQuotationLedger extends StatelessWidget {
                         fontSize: 10,
                         fontStyle: FontStyle.italic,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF3B82F6), // blue-500
+                        color: Color(0xFF3B82F6),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -187,7 +252,7 @@ class LiveQuotationLedger extends StatelessWidget {
                       _formatDate(
                         quotation.createdDate.add(const Duration(days: 30)),
                       ),
-                    ), // Assuming 30 days
+                    ),
                   ],
                 ),
               ),
@@ -196,42 +261,37 @@ class LiveQuotationLedger extends StatelessWidget {
 
           const SizedBox(height: 32),
 
-          // Main Item Table Wrapper (Horizontal Scroll on Mobile)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: SizedBox(
-              width: 800, // Enforce min-width so text doesn't collapse
+              width: 760,
               child: Table(
                 border: TableBorder.all(color: Colors.grey.shade300, width: 1),
                 columnWidths: const {
-                  0: FixedColumnWidth(40), // ITEM NO.
-                  1: FlexColumnWidth(2.5), // COMMODITY DESCRIPTION
-                  2: FixedColumnWidth(50), // QTY
-                  3: FlexColumnWidth(1), // WEIGHT
-                  4: FlexColumnWidth(1), // CBM
-                  5: FlexColumnWidth(1.2), // DECLARED VALUE
-                  6: FlexColumnWidth(1.2), // SHIPPING CHARGE
-                  7: FlexColumnWidth(1.2), // TTL VALUE
+                  0: FixedColumnWidth(36),
+                  1: FlexColumnWidth(2.2),
+                  2: FixedColumnWidth(72),
+                  3: FixedColumnWidth(88),
+                  4: FixedColumnWidth(72),
+                  5: FixedColumnWidth(88),
                 },
                 children: [
-                  // Header Row
                   TableRow(
                     decoration: BoxDecoration(color: Colors.grey.shade50),
                     children: [
-                      _buildTableHeader('NO.', TextAlign.center),
-                      _buildTableHeader('DESCRIPTION', TextAlign.left),
-                      _buildTableHeader('QTY', TextAlign.center),
-                      _buildTableHeader('WEIGHT', TextAlign.center),
-                      _buildTableHeader('CBM', TextAlign.center),
-                      _buildTableHeader('DECLARED\nVALUE', TextAlign.right),
-                      _buildTableHeader('SHIPPING\nCHARGE', TextAlign.right),
-                      _buildTableHeader('LINE\nTOTAL', TextAlign.right),
+                      _buildTableHeader('#', TextAlign.center),
+                      _buildTableHeader('ITEM / DESCRIPTION', TextAlign.left),
+                      _buildTableHeader('IMAGE', TextAlign.center),
+                      _buildTableHeader('HS CODE', TextAlign.left),
+                      _buildTableHeader('TAX', TextAlign.right),
+                      _buildTableHeader('LINE TOTAL', TextAlign.right),
                     ],
                   ),
-                  // Item Rows
                   ...quotation.items.asMap().entries.map((entry) {
                     final index = entry.key;
                     final item = entry.value;
+                    final lt = item.lineTax ?? 0;
+                    final lineTotal = item.cost + lt;
                     return TableRow(
                       children: [
                         _buildTableCell('${index + 1}', TextAlign.center),
@@ -266,59 +326,51 @@ class LiveQuotationLedger extends StatelessWidget {
                             ],
                           ),
                         ),
-                        _buildTableCell('${item.quantity}', TextAlign.center),
-                        _buildTableCell(
-                          item.weight != null ? '${item.weight} kg' : '—',
-                          TextAlign.center,
+                        Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: _itemThumb(item),
                         ),
                         _buildTableCell(
-                          item.packingVolume != null
-                              ? '${item.packingVolume} CBM'
-                              : '—',
-                          TextAlign.center,
+                          item.hsCode.isNotEmpty ? item.hsCode : '—',
+                          TextAlign.left,
                         ),
                         _buildTableCell(
-                          item.declaredValue != null
-                              ? _renderPrice(item.declaredValue)
-                              : '—',
+                          _isPendingReview
+                              ? 'TBD'
+                              : _renderPrice(lt, zeroFallback: r'$0.00'),
                           TextAlign.right,
                         ),
                         _buildTableCell(
-                          _renderPrice(
-                            item.cost / (item.quantity > 0 ? item.quantity : 1),
-                          ),
-                          TextAlign.right,
-                        ),
-                        _buildTableCell(
-                          _renderPrice(item.cost),
+                          _isPendingReview || (item.cost == 0 && lt == 0)
+                              ? 'TBD'
+                              : _renderPrice(lineTotal, zeroFallback: r'$0.00'),
                           TextAlign.right,
                           isBold: true,
                         ),
                       ],
                     );
                   }),
-                  // Empty State
                   if (quotation.items.isEmpty)
                     TableRow(
                       children: [
+                        const SizedBox.shrink(),
                         Padding(
                           padding: const EdgeInsets.all(16.0),
-                          child: Text(
-                            'No items available currently.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.grey.shade500,
-                              fontStyle: FontStyle.italic,
+                          child: Center(
+                            child: Text(
+                              'No items available currently.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontStyle: FontStyle.italic,
+                              ),
                             ),
                           ),
                         ),
-                        const SizedBox(),
-                        const SizedBox(),
-                        const SizedBox(),
-                        const SizedBox(),
-                        const SizedBox(),
-                        const SizedBox(),
-                        const SizedBox(),
+                        const SizedBox.shrink(),
+                        const SizedBox.shrink(),
+                        const SizedBox.shrink(),
+                        const SizedBox.shrink(),
                       ],
                     ),
                 ],
@@ -328,16 +380,14 @@ class LiveQuotationLedger extends StatelessWidget {
 
           const SizedBox(height: 32),
 
-          // Pricing & Freight Summary
           LayoutBuilder(
             builder: (context, constraints) {
-              bool isMobile = constraints.maxWidth < 600;
+              final isMobile = constraints.maxWidth < 600;
               return Flex(
                 direction: isMobile ? Axis.vertical : Axis.horizontal,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Terms & Conditions
                   Flexible(
                     flex: isMobile ? 0 : 1,
                     fit: isMobile ? FlexFit.loose : FlexFit.tight,
@@ -350,27 +400,48 @@ class LiveQuotationLedger extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Terms & Conditions:',
+                            'Terms & Conditions (Short Version)',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
+                              fontSize: 13,
                               color: Color(0xFF1F2937),
                             ),
                           ),
                           const SizedBox(height: 8),
-                          Text(
-                            quotation.additionalNotes ??
-                                'Standard B&B International shipping terms apply. Liability limited as per standard waybill terms. Rates subject to final verification of weights and dimensions.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
+                          _termsParagraph(
+                            'Payment: 50% advance, balance 50% payable within 20 days from invoice/shipment date.',
+                          ),
+                          _termsParagraph(
+                            'Delivery: Timelines are approximate. Delays due to natural calamities, war, pandemic, port congestion, or customs/legal procedures are not our responsibility.',
+                          ),
+                          _termsParagraph(
+                            'Customer Information: Customer must provide accurate product details and documents. We are not liable for losses due to incorrect or incomplete information.',
+                          ),
+                          _termsParagraph(
+                            'Penalties: Any fines, penalties, or charges arising from wrong declaration will be borne by the customer.',
+                          ),
+                          _termsParagraph(
+                            'Certifications: Customer must provide all required certifications (e.g., CE, BIS, SABER/SABRE, etc.) as applicable.',
+                          ),
+                          _termsParagraph(
+                            'Packaging: Goods must be packed as per our instructions. We are not responsible for damage due to improper packaging.',
+                          ),
+                          _termsParagraph(
+                            'Customs Issues: Any delay, detention, or seizure due to documentation errors or non-compliance will be at customer’s risk and cost.',
+                          ),
+                          _termsParagraph(
+                            'Shipment Impact: If one customer’s cargo affects clearance of the full shipment/container, all related charges will be borne by that customer.',
+                          ),
+                          _termsParagraph(
+                            'Liability: Our liability is limited to service charges only. No responsibility for indirect or consequential losses.',
+                          ),
+                          _termsParagraph(
+                            'Acceptance: Payment or order confirmation implies acceptance of these terms.',
                           ),
                         ],
                       ),
                     ),
                   ),
-
-                  // Summary Box
                   Flexible(
                     flex: isMobile ? 0 : 1,
                     fit: isMobile ? FlexFit.loose : FlexFit.tight,
@@ -383,95 +454,61 @@ class LiveQuotationLedger extends StatelessWidget {
                           border: Border.all(color: Colors.grey.shade200),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withAlpha(
-                                5,
-                              ), // 0.02 * 255 ≈ 5
+                              color: Colors.black.withAlpha(5),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             ),
                           ],
                         ),
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            if ((quotation.baseFreightCharge ?? 0) > 0) ...[
-                              _buildSummaryRow(
-                                'Base Freight Charge',
-                                _renderPrice(quotation.baseFreightCharge),
+                            _buildSummaryRow(
+                              'Subtotal',
+                              _isPendingReview
+                                  ? '—'
+                                  : _renderPrice(_subtotalNumeric, zeroFallback: r'$0.00'),
+                            ),
+                            const SizedBox(height: 8),
+                            _buildSummaryRow(
+                              'Shipping Charge',
+                              _isPendingReview
+                                  ? '—'
+                                  : _renderPrice(_shippingNumeric, zeroFallback: r'$0.00'),
+                            ),
+                            const SizedBox(height: 8),
+                            _buildSummaryRow(
+                              'Tax',
+                              _isPendingReview
+                                  ? '—'
+                                  : _renderPrice(quotation.tax, zeroFallback: r'$0.00'),
+                            ),
+                            const SizedBox(height: 8),
+                            _buildSummaryRow(
+                              'Discount',
+                              '-${_renderPrice(quotation.discount, zeroFallback: r'$0.00')}',
+                              valueStyle: const TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.w500,
                               ),
-                              const SizedBox(height: 8),
-                            ],
-                            if ((quotation.estimatedHandlingFee ?? 0) > 0) ...[
-                              _buildSummaryRow(
-                                'Estimated Handling Fee',
-                                _renderPrice(quotation.estimatedHandlingFee),
-                              ),
-                              const SizedBox(height: 8),
-                            ],
-                            if ((quotation.firstMileCharge ?? 0) > 0) ...[
-                              _buildSummaryRow(
-                                'First Mile Charge',
-                                _renderPrice(quotation.firstMileCharge),
-                              ),
-                              const SizedBox(height: 8),
-                            ],
-                            if ((quotation.lastMileCharge ?? 0) > 0) ...[
-                              _buildSummaryRow(
-                                'Last Mile Charge',
-                                _renderPrice(quotation.lastMileCharge),
-                              ),
-                              const SizedBox(height: 8),
-                            ],
-                            if ((quotation.tax ?? 0) > 0) ...[
-                              _buildSummaryRow(
-                                'Tax',
-                                _renderPrice(quotation.tax),
-                              ),
-                              const SizedBox(height: 8),
-                            ],
-                            if ((quotation.discount ?? 0) > 0) ...[
-                              _buildSummaryRow(
-                                'Discount',
-                                '-${_renderPrice(quotation.discount)}',
-                                valueStyle: const TextStyle(
-                                  color: Colors.green,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                            ],
-
-                            // Fallback if no specific charges are mapped yet, just to avoid an empty box
-                            if ((quotation.baseFreightCharge ?? 0) == 0 &&
-                                quotation.totalAmount > 0 &&
-                                !_isPendingReview) ...[
-                              _buildSummaryRow(
-                                'Base Freight Charges',
-                                _renderPrice(quotation.totalAmount),
-                              ),
-                              const SizedBox(height: 8),
-                            ],
-
-                            const SizedBox(height: 4),
+                            ),
+                            const SizedBox(height: 8),
                             Divider(color: Colors.grey.shade300),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 8),
                             Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Expanded(
                                   child: Text(
                                     _isPendingReview
                                         ? 'Quote Pending'
-                                        : 'Final Quoted Amount',
+                                        : 'Grand Total',
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
-                                      color: Color(0xFF1F2937), // gray-800
+                                      color: Color(0xFF1F2937),
                                     ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
                                 Flexible(
                                   child: _isPendingReview
                                       ? const Text(
@@ -482,18 +519,18 @@ class LiveQuotationLedger extends StatelessWidget {
                                             color: Colors.deepOrange,
                                           ),
                                           textAlign: TextAlign.end,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
                                         )
                                       : Text(
-                                          _renderPrice(quotation.totalAmount),
+                                          _renderPrice(
+                                            quotation.totalAmount,
+                                            zeroFallback: r'$0.00',
+                                          ),
                                           style: const TextStyle(
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold,
-                                            color: Color(0xFF1D4ED8), // blue-700
+                                            color: Color(0xFF1D4ED8),
                                           ),
                                           textAlign: TextAlign.end,
-                                          overflow: TextOverflow.ellipsis,
                                         ),
                                 ),
                               ],
@@ -509,8 +546,6 @@ class LiveQuotationLedger extends StatelessWidget {
           ),
 
           const SizedBox(height: 48),
-
-          // Footer
           Center(
             child: Column(
               children: [
@@ -526,6 +561,48 @@ class LiveQuotationLedger extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _termsParagraph(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Text(
+        text,
+        style: TextStyle(fontSize: 11, height: 1.45, color: Colors.grey.shade700),
+      ),
+    );
+  }
+
+  Widget _itemThumb(QuotationItem item) {
+    if (item.images.isEmpty) {
+      return Container(
+        width: 48,
+        height: 48,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text('N/A', style: TextStyle(fontSize: 9, color: Colors.grey.shade600)),
+      );
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: Image.network(
+        item.images.first,
+        width: 48,
+        height: 48,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          width: 48,
+          height: 48,
+          color: Colors.grey.shade100,
+          alignment: Alignment.center,
+          child: const Text('N/A', style: TextStyle(fontSize: 9)),
+        ),
       ),
     );
   }
@@ -556,13 +633,13 @@ class LiveQuotationLedger extends StatelessWidget {
 
   Widget _buildTableHeader(String text, TextAlign align) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
+      padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 10.0),
       child: Text(
         text,
         textAlign: align,
         style: const TextStyle(
           fontWeight: FontWeight.w600,
-          fontSize: 12,
+          fontSize: 11,
           color: Color(0xFF374151),
         ),
       ),
@@ -571,12 +648,12 @@ class LiveQuotationLedger extends StatelessWidget {
 
   Widget _buildTableCell(String text, TextAlign align, {bool isBold = false}) {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(6.0),
       child: Text(
         text,
         textAlign: align,
         style: TextStyle(
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
           color: const Color(0xFF1F2937),
         ),
@@ -592,8 +669,6 @@ class LiveQuotationLedger extends StatelessWidget {
           child: Text(
             label,
             style: const TextStyle(fontSize: 14, color: Color(0xFF374151)),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
           ),
         ),
         const SizedBox(width: 8),
@@ -608,7 +683,6 @@ class LiveQuotationLedger extends StatelessWidget {
                   color: Color(0xFF1F2937),
                 ),
             textAlign: TextAlign.end,
-            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],

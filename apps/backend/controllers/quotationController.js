@@ -307,11 +307,20 @@ exports.createQuotation = async (req, res) => {
                 ? null
                 : specialInstructions;
 
+        // Normalize items — explicitly pass hsCode so Mongoose doesn't silently
+        // discard it if the client sends it as an empty string or null.
+        const normalizedItems = Array.isArray(items)
+            ? items.map(item => ({
+                ...item,
+                hsCode: item.hsCode != null ? String(item.hsCode) : '',
+            }))
+            : [];
+
         const newQuotation = new Quotation({
             clientId: userId,
             origin,
             destination,
-            items, // Initial items from request
+            items: normalizedItems,
             pickupDate,
             deliveryDate,
             cargoType,
@@ -628,54 +637,60 @@ exports.sendToClient = async (req, res) => {
         // }
 
         // ============================================
-        // 1. Prepare Data for PDF
+        // 1. Prepare Data for PDF (quotation.html — global shipping + 6-column line table)
         // ============================================
-        // Filter items for the table (Goods) vs Charges
-        // Assuming 'Freight', 'Insurance', 'Packaging', 'Handling', 'Tax' are charges
-        const chargeCategories = ['freight', 'insurance', 'packaging', 'handling', 'tax'];
-
-        const goodsItems = quotation.items.filter(item => !chargeCategories.includes(item.category.toLowerCase()));
-
-        // Calculate charges from items or use specific fields if logic dictates
-        const getCharge = (cat) => quotation.items
-            .filter(i => i.category.toLowerCase() === cat)
-            .reduce((sum, i) => sum + (i.amount || 0), 0);
-
-        const shippingCharge = getCharge('freight');
-        const pickupCharge = getCharge('handling');
-        const packagingCharge = getCharge('packaging');
-        const insuranceCharge = getCharge('insurance');
-
-        // Format Currency
         const formatCurrency = (amount) => {
-            return amount.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+            const n = Number(amount) || 0;
+            return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         };
 
+        const curSym = quotation.currency === 'USD' ? '$' : (quotation.currency === 'INR' ? '₹' : `${quotation.currency} `);
+
+        const rd = quotation.routingData || {};
+        const fd = quotation.fulfillmentDetails || {};
+        const fromParts = [
+            rd.originWarehouseName,
+            [rd.originWarehouseCity, rd.originWarehouseState].filter(Boolean).join(', '),
+            fd.pickupAddressLine,
+            fd.senderName ? `Attn: ${fd.senderName}` : null,
+            fd.senderPhone ? `Tel: ${fd.senderPhone}` : null,
+        ].filter(Boolean);
+        const fromHtml = fromParts.length ? fromParts.join('<br/>') : '—';
+
+        const dest = quotation.destination || {};
+        const itemsSubtotal = (quotation.items || []).reduce((s, it) => s + (Number(it.amount) || 0), 0);
+
         const pdfData = {
+            fromHtml,
             clientName: quotation.clientId.fullName,
-            clientAddress: `${quotation.destination.addressLine}, ${quotation.destination.city}`,
-            clientPhone: quotation.clientId.phone || quotation.destination.phone || '',
-            quotationId: quotation.quotationNumber,
+            clientAddress: dest.addressLine
+                ? `${dest.addressLine}, ${dest.city || ''}`
+                : (quotation.clientId.email || ''),
+            clientPhone: quotation.clientId.phone || dest.phone || '',
+            quotationId: quotation.quotationId || quotation.quotationNumber,
             date: new Date(quotation.createdAt).toLocaleDateString('en-GB'),
-            validityDate: new Date(quotation.validUntil).toLocaleDateString('en-GB'),
-            items: goodsItems.map((item, index) => ({
-                index: index + 1,
-                image: item.images && item.images.length > 0 ? item.images[0] : null,
-                category: item.category,
-                description: item.description,
-                hsCode: '8320',
-                boxes: item.quantity,
-                weight: item.weight + ' kg',
-                cbm: item.packingVolume || 0
-            })),
-            currency: quotation.currency === 'USD' ? '$' : (quotation.currency === 'INR' ? '₹' : quotation.currency),
-            shippingCharge: formatCurrency(shippingCharge),
-            pickupCharge: formatCurrency(pickupCharge),
-            packagingCharge: formatCurrency(packagingCharge),
-            insuranceCharge: formatCurrency(insuranceCharge),
-            tax: formatCurrency(quotation.tax),
-            totalAmount: formatCurrency(quotation.totalAmount),
-            totalAmountInWords: numberToWords(quotation.totalAmount)
+            validityDate: quotation.validUntil
+                ? new Date(quotation.validUntil).toLocaleDateString('en-GB')
+                : '',
+            currencySymbol: curSym,
+            items: (quotation.items || []).map((item, index) => {
+                const amt = Number(item.amount) || 0;
+                const lt = Number(item.lineTax) || 0;
+                return {
+                    index: index + 1,
+                    description: item.description || '',
+                    imageUrl: item.images && item.images.length > 0 ? item.images[0] : '',
+                    hsCode: item.hsCode || '',
+                    taxFormatted: `${curSym}${formatCurrency(lt)}`,
+                    lineTotalFormatted: `${curSym}${formatCurrency(amt + lt)}`,
+                };
+            }),
+            subtotal: `${curSym}${formatCurrency(itemsSubtotal)}`,
+            shippingCharge: `${curSym}${formatCurrency(quotation.shippingCharge)}`,
+            tax: `${curSym}${formatCurrency(quotation.tax)}`,
+            discount: `${curSym}${formatCurrency(quotation.discount)}`,
+            totalAmount: `${curSym}${formatCurrency(quotation.totalAmount)}`,
+            totalAmountInWords: numberToWords(quotation.totalAmount),
         };
 
         // 2. Generate PDF
@@ -1863,17 +1878,26 @@ exports.adminPriceQuotation = async (req, res) => {
         if (additionalNotes !== undefined) quotation.additionalNotes = additionalNotes;
         if (req.body.pricingNotes !== undefined) quotation.additionalNotes = req.body.pricingNotes;
 
-        // Admin sets shippingCharge per item — declaredValue (commercial value) is NEVER overwritten.
+        if (req.body.shippingCharge !== undefined && req.body.shippingCharge !== null) {
+            quotation.shippingCharge = Math.max(0, Number(req.body.shippingCharge));
+        }
+
+        // Admin sets unit price + line tax + HS code per item; global shipping is quotation.shippingCharge.
         if (items && Array.isArray(items) && items.length > 0) {
             quotation.items = quotation.items.map((existingItem, i) => {
                 const adminInput = items[i] || {};
+                const ex = existingItem.toObject ? existingItem.toObject() : { ...existingItem };
+                delete ex.shippingCharge;
+                delete ex.declaredValue;
+                const qty = Number(existingItem.quantity) || 1;
+                const unitPrice = Number(adminInput.unitPrice ?? adminInput.unit_price ?? 0);
+                const lineTax = Math.max(0, Number(adminInput.lineTax ?? adminInput.line_tax ?? 0));
                 return {
-                    ...existingItem.toObject(),            // keep all client fields intact
-                    shippingCharge: Number(adminInput.shippingCharge ?? adminInput.unitPrice ?? 0),
-                    // Also mirror into legacy fields for backward compat
-                    unitPrice: Number(adminInput.shippingCharge ?? adminInput.unitPrice ?? 0),
-                    amount: Number(adminInput.shippingCharge ?? adminInput.unitPrice ?? 0) * (existingItem.quantity || 1),
-                    // declaredValue is NOT updated here — stays as client provided it
+                    ...ex,
+                    hsCode: adminInput.hsCode != null ? String(adminInput.hsCode) : (ex.hsCode || ''),
+                    unitPrice,
+                    amount: unitPrice * qty,
+                    lineTax,
                 };
             });
         }
@@ -1971,11 +1995,13 @@ exports.customerReviseQuotation = async (req, res) => {
             // Preserve client fields AND preserve existing admin pricing on each item
             quotation.items = items.map((item, i) => {
                 const oldItem = quotation.items && quotation.items.length > i ? quotation.items[i] : {};
+                const o = oldItem.toObject ? oldItem.toObject() : { ...oldItem };
                 return {
                     ...item,
-                    shippingCharge: oldItem.shippingCharge || 0,
-                    unitPrice: oldItem.unitPrice || 0,
-                    amount: oldItem.amount || 0,
+                    hsCode: item.hsCode != null ? String(item.hsCode) : (o.hsCode || ''),
+                    unitPrice: o.unitPrice || 0,
+                    amount: o.amount || 0,
+                    lineTax: o.lineTax || 0,
                 };
             });
         }

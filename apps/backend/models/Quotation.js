@@ -38,6 +38,7 @@ const lineItemSchema = new mongoose.Schema({
     },
     hsCode: {
         type: String,
+        default: '',
         trim: true,
     },
     videoUrl: {
@@ -56,17 +57,11 @@ const lineItemSchema = new mongoose.Schema({
         enum: ['Standard', 'Express'],
         default: 'Standard',
     },
-    // Financial fields (populated by Manager)
-    declaredValue: {
+    /** Per-line tax amount (admin-entered). Summed into quotation.tax in calculateTotals(). */
+    lineTax: {
         type: Number,
         default: 0,
-        min: [0, 'Declared value cannot be negative'],
-    },
-    // Admin-set shipping charge for this specific line item
-    shippingCharge: {
-        type: Number,
-        default: 0,
-        min: [0, 'Shipping charge cannot be negative'],
+        min: [0, 'Line tax cannot be negative'],
     },
     // Legacy fields kept for backward compatibility
     unitPrice: {
@@ -445,6 +440,16 @@ const quotationSchema = new mongoose.Schema({
     },
 
     /**
+     * Global shipping charge (single shipment-level freight line).
+     * Replaces per–line-item shippingCharge.
+     */
+    shippingCharge: {
+        type: Number,
+        default: 0,
+        min: [0, 'Shipping charge cannot be negative'],
+    },
+
+    /**
      * Grand total: baseFreightCharge + estimatedHandlingFee + firstMileCharge
      * + lastMileCharge + any other ad-hoc charges, minus discounts.
      * Recalculated on every save when the pricing fields change.
@@ -752,6 +757,7 @@ quotationSchema.pre('save', async function () {
         'pricing.estimatedHandlingFee',
         'firstMileCharge',
         'lastMileCharge',
+        'shippingCharge',
     ];
     if (pricingFields.some(f => this.isModified(f))) {
         this.calculateTotals();
@@ -766,49 +772,47 @@ quotationSchema.pre('save', async function () {
  * Recalculate totalAmount from the structured pricing fields.
  *
  * Formula:
- *   totalAmount = baseFreightCharge
- *               + estimatedHandlingFee
- *               + firstMileCharge
- *               + lastMileCharge
- *               + tax (derived from subtotal × taxRate)
+ *   totalAmount = sum(line amounts)
+ *               + pricing.baseFreightCharge + pricing.estimatedHandlingFee
+ *               + shippingCharge (global)
+ *               + firstMileCharge + lastMileCharge
+ *               + sum(line item lineTax values, stored in this.tax)
  *               − discount
  *
- * `subtotal` here is the sum of all lineItem.amount values and is used purely
- * as the basis for tax calculation — it is NOT stored separately any more.
+ * Line amount = quantity × unitPrice. Per-line tax is item.lineTax (not taxRate × line).
  */
 quotationSchema.methods.calculateTotals = function () {
-    // 1. Accumulate granular totals directly from the line-item quantities and unit prices
     let itemsSubtotal = 0;
+    let taxSum = 0;
     if (this.items && Array.isArray(this.items)) {
         this.items.forEach(item => {
             const qty = Number(item.quantity) || 0;
             const price = Number(item.unitPrice) || 0;
-            
-            // Set the strict line-item derived amount
             item.amount = qty * price;
             itemsSubtotal += item.amount;
+            taxSum += Number(item.lineTax) || 0;
         });
     }
 
-    // 2. Clear out the top-down manual pricing data to prevent discrepancies
-    if (this.pricing) {
-        this.pricing.baseFreightCharge = 0;
-        this.pricing.estimatedHandlingFee = 0;
-    }
+    this.tax = taxSum;
 
-    // 3. Optional: Only reset firstMile/lastMile if they are completely decoupled from individual shipments
-    // For backwards safety and based on the schema comments, we'll retain first/last mile charges here, 
-    // but the primary top-down freight amounts are zeroed.
+    const baseF = this.pricing ? (Number(this.pricing.baseFreightCharge) || 0) : 0;
+    const handl = this.pricing ? (Number(this.pricing.estimatedHandlingFee) || 0) : 0;
+    const ship = Number(this.shippingCharge) || 0;
     const firstMile = Number(this.firstMileCharge) || 0;
     const lastMile = Number(this.lastMileCharge) || 0;
+    const disc = Number(this.discount) || 0;
 
-    // 4. Calculate dynamic tax based purely on the newly computed subtotal
-    this.tax = (itemsSubtotal * (this.taxRate || 0)) / 100;
+    const rawTotal =
+        itemsSubtotal +
+        baseF +
+        handl +
+        ship +
+        firstMile +
+        lastMile +
+        this.tax -
+        disc;
 
-    // 5. Build final amount (Itemized Subtotal + Delivery Fees + Tax - Discounts)
-    const rawTotal = itemsSubtotal + firstMile + lastMile + this.tax - (this.discount || 0);
-
-    // Guarantee absolute minimum of 0
     this.totalAmount = Math.max(0, rawTotal);
 };
 
@@ -921,10 +925,9 @@ quotationSchema.methods.toClientJSON = function () {
     if (!this.isApprovedByManager) {
         obj.items = (obj.items || []).map(item => ({
             ...item,
-            shippingCharge: 0,
             amount: 0,
             unitPrice: 0,
-            // (Client should be able to see their own declared value, but no freight charges)
+            lineTax: 0,
         }));
         obj.itemizedCosts = [];
         if (!obj.pricing) obj.pricing = {};
@@ -932,6 +935,7 @@ quotationSchema.methods.toClientJSON = function () {
         obj.pricing.estimatedHandlingFee = null;
         obj.firstMileCharge = null;
         obj.lastMileCharge = null;
+        obj.shippingCharge = null;
         obj.totalAmount = null;
         obj.discount = null;
         obj.tax = null;
