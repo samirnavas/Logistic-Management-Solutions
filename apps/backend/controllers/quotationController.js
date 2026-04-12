@@ -1,6 +1,7 @@
 const Quotation = require('../models/Quotation');
 const Notification = require('../models/Notification');
 const Shipment = require('../models/Shipment');
+const QUOTATION_STATUSES = require('../constants/quotationStatuses');
 
 // ============================================
 // Get all quotations (Manager view)
@@ -216,6 +217,40 @@ exports.downloadClientInvoicePdf = async (req, res) => {
     }
 };
 
+/**
+ * GET PDF invoice (admin).
+ */
+exports.downloadInvoicePdf = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Optionally restrict by role if needed, but 'protect' middleware handles basic auth.
+        // Assuming ops/admin/manager can view any quotation's invoice.
+
+        const quotation = await Quotation.findById(id)
+            .populate('clientId', 'fullName email customerCode phone')
+            .populate('managerId', 'fullName email');
+
+        if (!quotation) {
+            return res.status(404).json({ message: 'Quotation not found' });
+        }
+
+        const data = buildInvoiceLedgerData(quotation);
+        const pdfBuffer = await generateInvoiceLedgerPdf(data);
+
+        const filename = `quotation-${quotation.quotationId || quotation.quotationNumber || id}.pdf`;
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+        res.send(pdfBuffer);
+    } catch (error) {
+        console.error('downloadInvoicePdf Error:', error);
+        res.status(500).json({
+            message: 'Failed to generate invoice PDF',
+            error: error.message,
+        });
+    }
+};
+
 // ============================================
 // Create new quotation (Originally created by client app as Request)
 // ============================================
@@ -316,6 +351,17 @@ exports.updateQuotation = async (req, res) => {
         const { id } = req.params;
         let updateData = { ...req.body };
 
+        // Payload Validation Check
+        if (updateData.taxRate !== undefined && (typeof updateData.taxRate !== 'number' || updateData.taxRate < 0)) {
+            return res.status(400).json({ message: "Invalid payload: taxRate must be a positive number" });
+        }
+        if (updateData.discount !== undefined && (typeof updateData.discount !== 'number' || updateData.discount < 0)) {
+            return res.status(400).json({ message: "Invalid payload: discount must be a positive number" });
+        }
+        if (updateData.items !== undefined && !Array.isArray(updateData.items)) {
+            return res.status(400).json({ message: "Invalid payload: items must be an array" });
+        }
+
         console.log('\n========== UPDATE QUOTATION REQUEST ==========');
         console.log('[1] Quotation ID:', id);
         console.log('[2] User Role:', req.user.role);
@@ -352,12 +398,12 @@ exports.updateQuotation = async (req, res) => {
             console.log('    Current status:', currentQuotation.status);
             console.log('    Is VERIFIED?', currentQuotation.status === 'VERIFIED');
 
-            if (currentQuotation.status === 'VERIFIED') {
+            if (currentQuotation.status === QUOTATION_STATUSES.VERIFIED) {
                 console.log('[9] ✓✓✓ VERIFIED status confirmed - FORCING status to ADDRESS_PROVIDED');
-                updateData.status = 'ADDRESS_PROVIDED';
+                updateData.status = QUOTATION_STATUSES.ADDRESS_PROVIDED;
             }
             // C) SECURITY: Prevent changing status if not in Draft/Info phase
-            else if (currentQuotation.status !== 'DRAFT' && currentQuotation.status !== 'INFO_REQUIRED') {
+            else if (currentQuotation.status !== QUOTATION_STATUSES.DRAFT && currentQuotation.status !== QUOTATION_STATUSES.INFO_REQUIRED) {
                 console.log('[9] ✗ Not in editable status - Removing any status field from update');
                 delete updateData.status;
             } else {
@@ -401,6 +447,18 @@ exports.updateQuotation = async (req, res) => {
 exports.updateQuotePrice = async (req, res) => {
     try {
         const { items, taxRate, discount, internalNotes, additionalNotes, validUntil, status } = req.body;
+
+        // Payload Validation Check
+        if (taxRate !== undefined && (typeof taxRate !== 'number' || taxRate < 0)) {
+            return res.status(400).json({ message: "Invalid payload: taxRate must be a positive number" });
+        }
+        if (discount !== undefined && (typeof discount !== 'number' || discount < 0)) {
+            return res.status(400).json({ message: "Invalid payload: discount must be a positive number" });
+        }
+        if (items !== undefined && !Array.isArray(items)) {
+            return res.status(400).json({ message: "Invalid payload: items must be a properly structured array" });
+        }
+
         const quotation = await Quotation.findById(req.params.id);
 
         if (!quotation) {
@@ -426,7 +484,7 @@ exports.updateQuotePrice = async (req, res) => {
         if (validUntil !== undefined) quotation.validUntil = validUntil;
 
         // Set status - use passed status or default to QUOTATION_GENERATED (pricing has been calculated)
-        quotation.status = status || 'QUOTATION_GENERATED';
+        quotation.status = status || QUOTATION_STATUSES.QUOTATION_GENERATED;
 
         // Recalculate totals
         quotation.calculateTotals();
@@ -455,7 +513,7 @@ exports.rejectQuotation = async (req, res) => {
             return res.status(404).json({ message: 'Quotation not found' });
         }
 
-        quotation.status = 'REJECTED';
+        quotation.status = QUOTATION_STATUSES.REJECTED;
         const updatedQuotation = await quotation.save();
 
         // Notify client app

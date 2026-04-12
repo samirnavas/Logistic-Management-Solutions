@@ -237,6 +237,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Table Section */}
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Requests</h2>
             <div className="bg-card rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-border p-4 md:p-6">
 
                 {/* Filters */}
@@ -299,79 +300,67 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Table */}
-                <div className="w-full overflow-x-auto shadow-sm rounded-lg border border-gray-100">
-                    <table className="min-w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
-                                <th className="px-4 py-4 whitespace-nowrap">SI No.</th>
-                                <th className="px-4 py-4 whitespace-nowrap">Name</th>
-                                <th className="px-4 py-4 whitespace-nowrap">Location</th>
-                                <th className="px-4 py-4 whitespace-nowrap">Contact</th>
-                                <th className="px-4 py-4 whitespace-nowrap">Delivery Type</th>
-                                <th className="px-4 py-4 whitespace-nowrap">#Boxes</th>
-                                <th className="px-4 py-4 whitespace-nowrap">CBM</th>
-                                <th className="px-4 py-4 whitespace-nowrap">Weight</th>
-                                <th className="px-4 py-4 whitespace-nowrap">Destination</th>
-                                <th className="px-4 py-4 whitespace-nowrap">Request#</th>
-                                <th className="px-4 py-4 whitespace-nowrap">Expiry#</th>
-                                <th className="px-4 py-4 whitespace-nowrap">Status</th>
-                                <th className="px-4 py-4 whitespace-nowrap">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody className="text-sm text-slate-600 divide-y divide-gray-100">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={13} className="px-4 py-8 text-center text-slate-400">Loading data...</td>
+                <div className="w-full overflow-x-auto">
+                    <div className="min-w-full shadow-sm rounded-lg border border-gray-100 overflow-hidden">
+                        <table className="min-w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
+                                    <th className="px-4 py-4 whitespace-nowrap">Request ID</th>
+                                    <th className="px-4 py-4 whitespace-nowrap">Client Name</th>
+                                    <th className="px-4 py-4 whitespace-nowrap">Service Mode</th>
+                                    <th className="px-4 py-4 whitespace-nowrap">Status</th>
+                                    <th className="px-4 py-4 whitespace-nowrap">Creation Date</th>
+                                    <th className="px-4 py-4 whitespace-nowrap">Action</th>
                                 </tr>
-                            ) : quotations.length === 0 ? (
-                                <tr>
-                                    <td colSpan={13} className="px-4 py-8 text-center text-slate-400">No records found</td>
-                                </tr>
-                            ) : (
-                                quotations.map((row, index) => (
-                                    <tr key={row._id || row.id || index} className="hover:bg-gray-50 transition-colors group">
-                                        <td className="px-4 py-4 text-slate-400 whitespace-nowrap">
-                                            #{String((currentPage - 1) * itemsPerPage + index + 1).padStart(3, '0')}
-                                        </td>
-                                        <td className="px-4 py-4 font-medium text-slate-700 whitespace-nowrap" title={typeof row.clientId === 'object' && row.clientId !== null && 'fullName' in row.clientId ? (row.clientId as any).fullName : 'Unknown'}>
-                                            <div className="truncate max-w-[150px]">
-                                                {typeof row.clientId === 'object' && row.clientId !== null && 'fullName' in row.clientId
-                                                    ? (row.clientId as any).fullName
-                                                    : 'Unknown'}
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-4 text-slate-500 whitespace-nowrap">{row.origin?.city || '-'}</td>
-                                        <td className="px-4 py-4 text-slate-500 text-xs whitespace-nowrap">
-                                            {typeof row.clientId === 'object' && row.clientId !== null && 'phone' in row.clientId
-                                                ? (row.clientId as any).phone
-                                                : row.origin?.phone || '-'}
-                                        </td>
-                                        <td className="px-4 py-4 text-slate-500 text-xs whitespace-nowrap">{row.serviceType || 'Standard'}</td>
-                                        <td className="px-4 py-4 text-center whitespace-nowrap">{row.items?.reduce((a, b) => a + (b.quantity || 0), 0) || 0}</td>
-                                        <td className="px-4 py-4 text-center whitespace-nowrap">{'-'}</td>
-                                        <td className="px-4 py-4 text-center whitespace-nowrap">{'-'}</td>
-                                        <td className="px-4 py-4 text-slate-500 whitespace-nowrap">{row.destination?.city || '-'}</td>
-                                        <td className="px-4 py-4 text-xs whitespace-nowrap">{row.quotationId?.split('-').pop() || row.quotationNumber?.slice(-6) || 'N/A'}</td>
-                                        <td className="px-4 py-4 text-xs whitespace-nowrap">{row.validUntil ? formatDate(row.validUntil) : '-'}</td>
-                                        <td className="px-4 py-4 whitespace-nowrap">
-                                            <StatusBadge status={row.status} />
-                                        </td>
-                                        <td className="px-4 py-4 relative whitespace-nowrap">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setSelectedRequestId(row._id || row.id);
-                                                }}
-                                                className="text-gray-400 hover:text-blue-600 px-3 py-1 rounded-md text-sm transition-colors border border-transparent hover:border-gray-200 hover:bg-white min-h-[32px]"
-                                            >
-                                                View
-                                            </button>
-                                        </td>
+                            </thead>
+                            <tbody className="text-sm text-slate-600 divide-y divide-gray-100">
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-4 py-8 text-center text-slate-400">Loading data...</td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                ) : quotations.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-4 py-8 text-center text-slate-400">No records found</td>
+                                    </tr>
+                                ) : (
+                                    quotations.slice(0, 5).map((row, index) => (
+                                        <tr key={row._id || row.id || index} className="hover:bg-gray-50 transition-colors group">
+                                            <td className="px-4 py-4 text-xs whitespace-nowrap">
+                                                {row.quotationId?.split('-').pop() || row.quotationNumber?.slice(-6) || 'N/A'}
+                                            </td>
+                                            <td className="px-4 py-4 font-medium text-slate-700 whitespace-nowrap" title={typeof row.clientId === 'object' && row.clientId !== null && 'fullName' in row.clientId ? (row.clientId as any).fullName : 'Unknown'}>
+                                                <div className="truncate max-w-[150px]">
+                                                    {typeof row.clientId === 'object' && row.clientId !== null && 'fullName' in row.clientId
+                                                        ? (row.clientId as any).fullName
+                                                        : 'Unknown'}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4 text-slate-500 whitespace-nowrap">
+                                                {row.mode || row.serviceMode || 'Standard'}
+                                            </td>
+                                            <td className="px-4 py-4 whitespace-nowrap">
+                                                <StatusBadge status={row.status} />
+                                            </td>
+                                            <td className="px-4 py-4 text-slate-500 whitespace-nowrap">
+                                                {row.createdAt ? formatDate(row.createdAt) : '-'}
+                                            </td>
+                                            <td className="px-4 py-4 relative whitespace-nowrap">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedRequestId(row._id || row.id);
+                                                    }}
+                                                    className="text-gray-400 hover:text-blue-600 px-3 py-1 rounded-md text-sm transition-colors border border-transparent hover:border-gray-200 hover:bg-white min-h-[32px]"
+                                                >
+                                                    View
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 {/* Pagination */}

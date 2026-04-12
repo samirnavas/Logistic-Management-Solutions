@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:bb_logistics/src/core/api/upload_service.dart';
 
 class RequestShipmentScreen extends ConsumerStatefulWidget {
   final Quotation? existingQuotation;
@@ -148,24 +149,31 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      final items = formState.items
-          .map(
-            (i) => {
-              'description': i.description,
-              'quantity': i.quantity,
-              'weight': i.weight,
-              'dimensions': i.dimensions ?? 'N/A',
-              'category': i.category,
-              'isHazardous': i.isHazardous,
-              'images': i.images,
-              if (i.videoUrl != null) 'videoUrl': i.videoUrl,
-              if (i.targetRate != null) 'targetRate': i.targetRate,
-              if (i.declaredValue != null) 'declaredValue': i.declaredValue,
-              if (i.packingVolume != null) 'packingVolume': i.packingVolume,
-              'priority': _servicePriority,
-            },
-          )
-          .toList();
+      final items = <Map<String, dynamic>>[];
+      for (final i in formState.items) {
+        List<String> imageUrls = List<String>.from(i.images);
+        if (i.localPhotos.isNotEmpty) {
+          final uploadService = UploadService();
+          final newUrls =
+              await uploadService.uploadProductPhotos(i.localPhotos);
+          imageUrls.addAll(newUrls);
+        }
+
+        items.add({
+          'description': i.description,
+          'quantity': i.quantity,
+          'weight': i.weight,
+          'dimensions': i.dimensions ?? 'N/A',
+          'category': i.category,
+          'isHazardous': i.isHazardous,
+          'images': imageUrls,
+          if (i.videoUrl != null) 'videoUrl': i.videoUrl,
+          if (i.targetRate != null) 'targetRate': i.targetRate,
+          if (i.declaredValue != null) 'declaredValue': i.declaredValue,
+          if (i.packingVolume != null) 'packingVolume': i.packingVolume,
+          'priority': _servicePriority,
+        });
+      }
 
       // Warehouse-based routing payload
       final originW = _selectedOriginWarehouse;

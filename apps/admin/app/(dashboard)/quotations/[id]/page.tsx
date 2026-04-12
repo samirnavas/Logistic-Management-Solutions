@@ -134,6 +134,32 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
         }
     }, [id]);
 
+    const handleDownloadInvoice = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`/api/quotations/${id}/invoice`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) {
+                showToast('Failed to download invoice', 'error');
+                return;
+            }
+            
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `quotation-invoice-${id}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            showToast('✓ Invoice PDF downloaded');
+        } catch (error) {
+            showToast('Network error while downloading PDF', 'error');
+        }
+    };
+
     useEffect(() => { fetchQuotation(); }, [fetchQuotation]);
 
     useEffect(() => {
@@ -369,12 +395,22 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                             </p>
                         </div>
                     </div>
-                    <button
-                        onClick={fetchQuotation}
-                        className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-600 transition bg-white border border-slate-200 px-4 py-2 rounded-lg shadow-sm hover:shadow active:scale-95"
-                    >
-                        <RefreshCw className="w-4 h-4" /> Refresh
-                    </button>
+                    <div className="flex items-center gap-3">
+                        {isPostAcceptance || quotation.status === 'PENDING_CUSTOMER_APPROVAL' ? (
+                            <button
+                                onClick={handleDownloadInvoice}
+                                className="flex items-center gap-2 text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg shadow-sm hover:shadow hover:bg-blue-100 active:scale-95 transition"
+                            >
+                                <StickyNote className="w-4 h-4" /> Export PDF
+                            </button>
+                        ) : null}
+                        <button
+                            onClick={fetchQuotation}
+                            className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-600 transition bg-white border border-slate-200 px-4 py-2 rounded-lg shadow-sm hover:shadow active:scale-95"
+                        >
+                            <RefreshCw className="w-4 h-4" /> Refresh
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -510,7 +546,8 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                                             <tr>
                                                 <th className="px-5 py-4 min-w-[200px]">Description & Type</th>
                                                 <th className="px-5 py-4 text-center">Qty</th>
-                                                <th className="px-5 py-4 text-center">Metrics</th>
+                                                <th className="px-5 py-4 text-center">Weight</th>
+                                                <th className="px-5 py-4 text-center">CBM</th>
                                                 <th className="px-5 py-4 text-right min-w-[140px]">Declared Value</th>
                                             </tr>
                                         </thead>
@@ -533,9 +570,11 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                                                         </div>
                                                     </td>
                                                     <td className="px-5 py-4 text-center font-bold text-slate-800">{formatPending(item.quantity)}</td>
-                                                    <td className="px-5 py-4 text-center space-y-1">
+                                                    <td className="px-5 py-4 text-center">
                                                         <div className="text-xs">{item.weight ? <><span className="font-semibold text-slate-800">{item.weight}</span> kg</> : formatPending(null)}</div>
-                                                        <div className="text-xs text-slate-400">{item.packingVolume ? <><span className="font-medium text-slate-600">{item.packingVolume}</span> CBM</> : '— CBM'}</div>
+                                                    </td>
+                                                    <td className="px-5 py-4 text-center">
+                                                        <div className="text-xs text-slate-500">{item.packingVolume ? <><span className="font-medium text-slate-700">{item.packingVolume}</span> CBM</> : '— CBM'}</div>
                                                     </td>
                                                     <td className="px-5 py-4 text-right">
                                                         {(item.value || item.declaredValue) ? (

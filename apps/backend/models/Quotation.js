@@ -777,23 +777,38 @@ quotationSchema.pre('save', async function () {
  * as the basis for tax calculation — it is NOT stored separately any more.
  */
 quotationSchema.methods.calculateTotals = function () {
-    // Sum of per-item shipping charges (admin-set) — falls back to legacy 'amount' for old data
-    const itemsSubtotal = (this.items || []).reduce((sum, item) =>
-        sum + (item.shippingCharge || item.amount || 0), 0);
+    // 1. Accumulate granular totals directly from the line-item quantities and unit prices
+    let itemsSubtotal = 0;
+    if (this.items && Array.isArray(this.items)) {
+        this.items.forEach(item => {
+            const qty = Number(item.quantity) || 0;
+            const price = Number(item.unitPrice) || 0;
+            
+            // Set the strict line-item derived amount
+            item.amount = qty * price;
+            itemsSubtotal += item.amount;
+        });
+    }
 
-    // Tax on items subtotal
+    // 2. Clear out the top-down manual pricing data to prevent discrepancies
+    if (this.pricing) {
+        this.pricing.baseFreightCharge = 0;
+        this.pricing.estimatedHandlingFee = 0;
+    }
+
+    // 3. Optional: Only reset firstMile/lastMile if they are completely decoupled from individual shipments
+    // For backwards safety and based on the schema comments, we'll retain first/last mile charges here, 
+    // but the primary top-down freight amounts are zeroed.
+    const firstMile = Number(this.firstMileCharge) || 0;
+    const lastMile = Number(this.lastMileCharge) || 0;
+
+    // 4. Calculate dynamic tax based purely on the newly computed subtotal
     this.tax = (itemsSubtotal * (this.taxRate || 0)) / 100;
 
-    // Grand total
-    const rawTotal =
-        (this.pricing?.baseFreightCharge || 0) +
-        (this.pricing?.estimatedHandlingFee || 0) +
-        (this.firstMileCharge || 0) +
-        (this.lastMileCharge || 0) +
-        itemsSubtotal +
-        this.tax -
-        (this.discount || 0);
+    // 5. Build final amount (Itemized Subtotal + Delivery Fees + Tax - Discounts)
+    const rawTotal = itemsSubtotal + firstMile + lastMile + this.tax - (this.discount || 0);
 
+    // Guarantee absolute minimum of 0
     this.totalAmount = Math.max(0, rawTotal);
 };
 

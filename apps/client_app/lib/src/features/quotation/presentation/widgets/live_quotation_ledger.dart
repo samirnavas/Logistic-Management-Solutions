@@ -207,10 +207,11 @@ class LiveQuotationLedger extends StatelessWidget {
                   0: FixedColumnWidth(40), // ITEM NO.
                   1: FlexColumnWidth(2.5), // COMMODITY DESCRIPTION
                   2: FixedColumnWidth(50), // QTY
-                  3: FlexColumnWidth(1), // VOL / WGT
-                  4: FlexColumnWidth(1.2), // DECLARED VALUE
-                  5: FlexColumnWidth(1.2), // SHIPPING CHARGE
-                  6: FlexColumnWidth(1.2), // TTL VALUE
+                  3: FlexColumnWidth(1), // WEIGHT
+                  4: FlexColumnWidth(1), // CBM
+                  5: FlexColumnWidth(1.2), // DECLARED VALUE
+                  6: FlexColumnWidth(1.2), // SHIPPING CHARGE
+                  7: FlexColumnWidth(1.2), // TTL VALUE
                 },
                 children: [
                   // Header Row
@@ -220,7 +221,8 @@ class LiveQuotationLedger extends StatelessWidget {
                       _buildTableHeader('NO.', TextAlign.center),
                       _buildTableHeader('DESCRIPTION', TextAlign.left),
                       _buildTableHeader('QTY', TextAlign.center),
-                      _buildTableHeader('WGT/VOL', TextAlign.center),
+                      _buildTableHeader('WEIGHT', TextAlign.center),
+                      _buildTableHeader('CBM', TextAlign.center),
                       _buildTableHeader('DECLARED\nVALUE', TextAlign.right),
                       _buildTableHeader('SHIPPING\nCHARGE', TextAlign.right),
                       _buildTableHeader('LINE\nTOTAL', TextAlign.right),
@@ -266,7 +268,13 @@ class LiveQuotationLedger extends StatelessWidget {
                         ),
                         _buildTableCell('${item.quantity}', TextAlign.center),
                         _buildTableCell(
-                          '${item.weight} kg\n${item.packingVolume != null ? '${item.packingVolume} cbm' : ''}',
+                          item.weight != null ? '${item.weight} kg' : '—',
+                          TextAlign.center,
+                        ),
+                        _buildTableCell(
+                          item.packingVolume != null
+                              ? '${item.packingVolume} CBM'
+                              : '—',
                           TextAlign.center,
                         ),
                         _buildTableCell(
@@ -304,6 +312,7 @@ class LiveQuotationLedger extends StatelessWidget {
                             ),
                           ),
                         ),
+                        const SizedBox(),
                         const SizedBox(),
                         const SizedBox(),
                         const SizedBox(),

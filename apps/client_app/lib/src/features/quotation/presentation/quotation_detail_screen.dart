@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:flutter/services.dart';
 
@@ -13,8 +13,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:bb_logistics/src/features/quotation/presentation/quotation_invoice_pdf_screen.dart';
-import 'package:bb_logistics/src/features/quotation/presentation/widgets/live_quotation_ledger.dart';
 import 'package:bb_logistics/src/features/quotation/presentation/fulfillment_service_mode_provider.dart';
+import 'package:intl/intl.dart';
 
 class QuotationDetailScreen extends ConsumerStatefulWidget {
   final String quotationId;
@@ -78,13 +78,6 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
               const SnackBar(content: Text('Sharing coming soon...')),
             );
           },
-        ),
-        IconButton(
-          icon: const Icon(Icons.download_outlined),
-          tooltip: 'Download invoice PDF',
-          onPressed: quotation != null
-              ? () => _downloadAndShowInvoicePdf(context, ref, quotation.id)
-              : null,
         ),
       ],
     );
@@ -186,6 +179,21 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     );
   }
 
+  bool _isPendingReview(Quotation quotation) {
+    return quotation.status == QuotationStatus.draft ||
+        quotation.status == QuotationStatus.requestSent ||
+        quotation.status == QuotationStatus.infoRequired;
+  }
+
+  String _renderPrice(Quotation quotation, double? price) {
+    if (_isPendingReview(quotation) || price == null || price <= 0) {
+      return 'TBD';
+    }
+    final currencyName = quotation.currency ?? 'USD';
+    final formatCurrency = NumberFormat.simpleCurrency(name: currencyName);
+    return formatCurrency.format(price);
+  }
+
   Widget _buildContent(BuildContext context, Quotation quotation) {
     return Column(
       children: [
@@ -195,15 +203,333 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
               ref.invalidate(quotationByIdProvider(widget.quotationId));
               return Future<void>.delayed(const Duration(milliseconds: 500));
             },
-            child: SingleChildScrollView(
+            child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
-              child: Center(child: LiveQuotationLedger(quotation: quotation)),
+              children: [
+                _buildRoutingOverview(quotation),
+                const SizedBox(height: 16),
+                _buildInvoiceButton(context, quotation),
+                const SizedBox(height: 24),
+                Text(
+                  'Inventory Items',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryBlue,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildExpandableItems(quotation),
+                const SizedBox(height: 24),
+                _buildResponsiveLedger(quotation),
+              ],
             ),
           ),
         ),
         _buildActionBottomBar(context, quotation),
       ],
+    );
+  }
+
+  Widget _buildRoutingOverview(Quotation quotation) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('From', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                      Text(quotation.routingSourceCity ?? quotation.origin?.city ?? 'Origin', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      if (quotation.origin?.addressLine != null && quotation.origin!.addressLine!.isNotEmpty)
+                        Text(
+                          quotation.origin!.addressLine!,
+                          style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_outlined, color: AppTheme.primaryBlue),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('To', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                      Text(quotation.routingDestinationCity ?? quotation.destination?.city ?? 'Destination', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      if (quotation.destination?.addressLine != null && quotation.destination!.addressLine!.isNotEmpty)
+                        Text(
+                          quotation.destination!.addressLine!,
+                          style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                          textAlign: TextAlign.right,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Total Cost', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  _renderPrice(quotation, quotation.totalAmount),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primaryBlue),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInvoiceButton(BuildContext context, Quotation quotation) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        icon: const Icon(Icons.receipt_long),
+        label: const Text('View Official Invoice'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppTheme.primaryBlue,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
+        onPressed: () => _downloadAndShowInvoicePdf(context, ref, quotation.id),
+      ),
+    );
+  }
+
+  Widget _buildExpandableItems(Quotation quotation) {
+    if (quotation.items.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Text(
+          'No items available currently.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.grey.shade500,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: quotation.items.length,
+      itemBuilder: (context, index) {
+        final item = quotation.items[index];
+        return Card(
+           elevation: 0,
+           shape: RoundedRectangleBorder(
+             borderRadius: BorderRadius.circular(12),
+             side: BorderSide(color: Colors.grey.shade200),
+           ),
+           margin: const EdgeInsets.only(bottom: 12),
+           child: Theme(
+             data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+             child: ExpansionTile(
+               title: Row(
+                 crossAxisAlignment: CrossAxisAlignment.start,
+                 children: [
+                   Expanded(
+                     child: Text(item.description, style: const TextStyle(fontWeight: FontWeight.bold)),
+                   ),
+                   const SizedBox(width: 8),
+                   Text(
+                     _renderPrice(quotation, item.cost),
+                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                   ),
+                 ],
+               ),
+               subtitle: Text('${item.quantity} Units', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+               children: [
+                 Container(
+                   decoration: BoxDecoration(
+                     color: Colors.grey.shade50,
+                     borderRadius: const BorderRadius.only(
+                       bottomLeft: Radius.circular(12),
+                       bottomRight: Radius.circular(12),
+                     ),
+                   ),
+                   padding: const EdgeInsets.all(16),
+                   child: Column(
+                     crossAxisAlignment: CrossAxisAlignment.start,
+                     children: [
+                       Row(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+                           Expanded(
+                             child: Column(
+                               crossAxisAlignment: CrossAxisAlignment.start,
+                               children: [
+                                 _buildDetailRow('Weight', item.weight != null ? '${item.weight} kg' : '—'),
+                                 const SizedBox(height: 8),
+                                 _buildDetailRow('CBM', item.packingVolume != null ? '${item.packingVolume} CBM' : '—'),
+                               ],
+                             ),
+                           ),
+                           const SizedBox(width: 16),
+                           Expanded(
+                             child: Column(
+                               crossAxisAlignment: CrossAxisAlignment.start,
+                               children: [
+                                 _buildDetailRow('Dimensions', (item.dimensions != null && item.dimensions!.isNotEmpty) ? item.dimensions! : '—'),
+                                 const SizedBox(height: 8),
+                                 _buildDetailRow('Unit Price', _renderPrice(quotation, item.quantity > 0 ? item.cost / item.quantity : 0)),
+                               ],
+                             ),
+                           ),
+                         ],
+                       ),
+                       if (item.images.isNotEmpty) ...[
+                         const SizedBox(height: 16),
+                         Text('Images', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                         const SizedBox(height: 6),
+                         SizedBox(
+                           height: 60,
+                           child: ListView.builder(
+                             scrollDirection: Axis.horizontal,
+                             itemCount: item.images.length,
+                             itemBuilder: (context, imgIndex) {
+                               return Container(
+                                 margin: const EdgeInsets.only(right: 8),
+                                 width: 60,
+                                 height: 60,
+                                 decoration: BoxDecoration(
+                                   color: Colors.grey.shade200,
+                                   borderRadius: BorderRadius.circular(8),
+                                   image: DecorationImage(
+                                     image: NetworkImage(item.images[imgIndex]),
+                                     fit: BoxFit.cover,
+                                   ),
+                                 ),
+                               );
+                             },
+                           ),
+                         ),
+                       ],
+                     ],
+                   ),
+                 )
+               ],
+             ),
+           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+        const SizedBox(height: 2),
+        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+      ],
+    );
+  }
+
+  Widget _buildResponsiveLedger(Quotation quotation) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Financial Summary', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            _buildLedgerRow('Base Freight', _renderPrice(quotation, quotation.baseFreightCharge)),
+            if ((quotation.estimatedHandlingFee ?? 0) > 0) ...[
+              const SizedBox(height: 8),
+              _buildLedgerRow('Handling Fee', _renderPrice(quotation, quotation.estimatedHandlingFee)),
+            ],
+            if ((quotation.firstMileCharge ?? 0) > 0) ...[
+               const SizedBox(height: 8),
+               _buildLedgerRow('First Mile', _renderPrice(quotation, quotation.firstMileCharge)),
+            ],
+            if ((quotation.lastMileCharge ?? 0) > 0) ...[
+               const SizedBox(height: 8),
+               _buildLedgerRow('Last Mile', _renderPrice(quotation, quotation.lastMileCharge)),
+            ],
+            const SizedBox(height: 8),
+            _buildLedgerRow('Tax', _renderPrice(quotation, quotation.tax)),
+            if ((quotation.discount ?? 0) > 0) ...[
+              const SizedBox(height: 8),
+              _buildLedgerRow('Discount', '-${_renderPrice(quotation, quotation.discount)}', isDiscount: true),
+            ],
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Divider(),
+            ),
+            _buildLedgerRow(
+              'Final Amount', 
+              _renderPrice(quotation, quotation.totalAmount), 
+              isTotal: true
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLedgerRow(String label, String amount, {bool isTotal = false, bool isDiscount = false}) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+                  fontSize: isTotal ? 16 : 14,
+                  color: isTotal ? Colors.black87 : Colors.grey.shade700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              amount,
+              style: TextStyle(
+                fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
+                fontSize: isTotal ? 16 : 14,
+                color: isDiscount ? Colors.green : (isTotal ? AppTheme.primaryBlue : Colors.black87),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -688,7 +1014,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
   }
 
   // â”€â”€ Accept Quotation: collect fulfillmentDetails â†’ PATCH /workflow/accept â”€â”€
-  void _showFulfillmentDialog(BuildContext context, Quotation quotation) {
+  void _showFulfillmentDialog(BuildContext screenContext, Quotation quotation) {
     final formKey = GlobalKey<FormState>();
 
     // Pickup fields
@@ -741,13 +1067,13 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     String deliveryType = 'HOME_DELIVERY'; // or WAREHOUSE_PICKUP
 
     showDialog(
-      context: context,
+      context: screenContext,
       barrierDismissible: false,
       barrierColor: Colors.black54,
       builder: (ctx) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: Consumer(
-          builder: (context, ref, _) {
+          builder: (_, ref, __) {
             return StatefulBuilder(
               builder: (ctx, setDialogState) {
                 final computedServiceMode = ref.watch(
@@ -1079,10 +1405,10 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                               if (formKey.currentState?.validate() != true)
                                 return;
                               Navigator.pop(ctx); // close form dialog
-                              // Show loading
-                              if (context.mounted) {
-                                showDialog(
-                                  context: context,
+                              // Show loading (use screenContext — Consumer context is unmounted after pop)
+                              if (screenContext.mounted) {
+                                showDialog<void>(
+                                  context: screenContext,
                                   barrierDismissible: false,
                                   builder: (_) => const Center(
                                     child: CircularProgressIndicator(),
@@ -1130,13 +1456,13 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                                       ),
                                     );
 
-                                if (context.mounted) {
-                                  Navigator.pop(context); // close loader
+                                if (screenContext.mounted) {
+                                  Navigator.of(screenContext).pop(); // close loader
                                   ref.invalidate(
                                     quotationByIdProvider(quotation.id),
                                   );
                                   ref.invalidate(quotationsProvider);
-                                  ScaffoldMessenger.of(context).showSnackBar(
+                                  ScaffoldMessenger.of(screenContext).showSnackBar(
                                     const SnackBar(
                                       content: Text(
                                         'âœ“ Quotation accepted! Admin will issue the charge sheet.',
@@ -1147,9 +1473,9 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                                   );
                                 }
                               } catch (e) {
-                                if (context.mounted) {
-                                  Navigator.pop(context); // close loader
-                                  ScaffoldMessenger.of(context).showSnackBar(
+                                if (screenContext.mounted) {
+                                  Navigator.of(screenContext).pop(); // close loader
+                                  ScaffoldMessenger.of(screenContext).showSnackBar(
                                     SnackBar(
                                       content: Text('Error: $e'),
                                       backgroundColor: Colors.red,

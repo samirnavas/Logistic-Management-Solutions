@@ -77,6 +77,7 @@ export const LiveQuotationLedger: React.FC<LiveQuotationLedgerProps> = ({ quotat
                         <th className="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700">Item / Description</th>
                         <th className="border border-gray-300 px-3 py-2 text-center font-semibold text-gray-700 w-16">Qty</th>
                         <th className="border border-gray-300 px-3 py-2 text-center font-semibold text-gray-700 w-24">Weight</th>
+                        <th className="border border-gray-300 px-3 py-2 text-center font-semibold text-gray-700 w-24">CBM</th>
                         <th className="border border-gray-300 px-3 py-2 text-right font-semibold text-blue-700 w-32">
                             Declared Value<br /><span className="text-xs font-normal text-blue-400">(Commercial)</span>
                         </th>
@@ -101,7 +102,9 @@ export const LiveQuotationLedger: React.FC<LiveQuotationLedgerProps> = ({ quotat
                                 <td className="border border-gray-300 px-3 py-3 text-center text-gray-800">{item.quantity}</td>
                                 <td className="border border-gray-300 px-3 py-3 text-center text-gray-600 text-xs">
                                     {item.weight ? `${item.weight} kg` : '—'}
-                                    {item.packingVolume ? <><br />{item.packingVolume} CBM</> : null}
+                                </td>
+                                <td className="border border-gray-300 px-3 py-3 text-center text-gray-600 text-xs">
+                                    {item.packingVolume ? `${item.packingVolume} CBM` : '—'}
                                 </td>
                                 {/* Client-provided commercial value — read-only context for admin */}
                                 <td className="border border-gray-300 px-3 py-3 text-right text-blue-700 font-medium">
@@ -125,7 +128,7 @@ export const LiveQuotationLedger: React.FC<LiveQuotationLedgerProps> = ({ quotat
                     })}
                     {(!quotation.items || quotation.items.length === 0) && (
                         <tr>
-                            <td colSpan={7} className="border border-gray-300 px-3 py-6 text-center text-gray-500 italic">
+                            <td colSpan={8} className="border border-gray-300 px-3 py-6 text-center text-gray-500 italic">
                                 No items available currently.
                             </td>
                         </tr>
