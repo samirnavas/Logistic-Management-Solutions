@@ -178,7 +178,7 @@ exports.getClientQuotation = async (req, res) => {
 };
 
 const { generateCustomPDF, generateInvoiceLedgerPdf } = require('../utils/pdfGenerator');
-const { buildInvoiceLedgerData } = require('../utils/invoicePdfData');
+const { buildInvoiceLedgerData, buildQuotationPdfData } = require('../utils/invoicePdfData');
 
 /**
  * GET PDF invoice (ledger layout, same data as admin LiveQuotationLedger).
@@ -204,7 +204,7 @@ exports.downloadClientInvoicePdf = async (req, res) => {
         const data = buildInvoiceLedgerData(quotation);
         const pdfBuffer = await generateInvoiceLedgerPdf(data);
 
-        const filename = `quotation-${quotation.quotationId || quotation.quotationNumber || id}.pdf`;
+        const filename = `${data.invoiceNumber}.pdf`;
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
         res.send(pdfBuffer);
@@ -238,7 +238,7 @@ exports.downloadInvoicePdf = async (req, res) => {
         const data = buildInvoiceLedgerData(quotation);
         const pdfBuffer = await generateInvoiceLedgerPdf(data);
 
-        const filename = `quotation-${quotation.quotationId || quotation.quotationNumber || id}.pdf`;
+        const filename = `${data.invoiceNumber}.pdf`;
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
         res.send(pdfBuffer);
@@ -637,61 +637,10 @@ exports.sendToClient = async (req, res) => {
         // }
 
         // ============================================
-        // 1. Prepare Data for PDF (quotation.html — global shipping + 6-column line table)
+        // 1. Prepare Data for PDF (quotation.html — pro-forma quotation)
         // ============================================
-        const formatCurrency = (amount) => {
-            const n = Number(amount) || 0;
-            return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        };
-
-        const curSym = quotation.currency === 'USD' ? '$' : (quotation.currency === 'INR' ? '₹' : `${quotation.currency} `);
-
-        const rd = quotation.routingData || {};
-        const fd = quotation.fulfillmentDetails || {};
-        const fromParts = [
-            rd.originWarehouseName,
-            [rd.originWarehouseCity, rd.originWarehouseState].filter(Boolean).join(', '),
-            fd.pickupAddressLine,
-            fd.senderName ? `Attn: ${fd.senderName}` : null,
-            fd.senderPhone ? `Tel: ${fd.senderPhone}` : null,
-        ].filter(Boolean);
-        const fromHtml = fromParts.length ? fromParts.join('<br/>') : '—';
-
-        const dest = quotation.destination || {};
-        const itemsSubtotal = (quotation.items || []).reduce((s, it) => s + (Number(it.amount) || 0), 0);
-
-        const pdfData = {
-            fromHtml,
-            clientName: quotation.clientId.fullName,
-            clientAddress: dest.addressLine
-                ? `${dest.addressLine}, ${dest.city || ''}`
-                : (quotation.clientId.email || ''),
-            clientPhone: quotation.clientId.phone || dest.phone || '',
-            quotationId: quotation.quotationId || quotation.quotationNumber,
-            date: new Date(quotation.createdAt).toLocaleDateString('en-GB'),
-            validityDate: quotation.validUntil
-                ? new Date(quotation.validUntil).toLocaleDateString('en-GB')
-                : '',
-            currencySymbol: curSym,
-            items: (quotation.items || []).map((item, index) => {
-                const amt = Number(item.amount) || 0;
-                const lt = Number(item.lineTax) || 0;
-                return {
-                    index: index + 1,
-                    description: item.description || '',
-                    imageUrl: item.images && item.images.length > 0 ? item.images[0] : '',
-                    hsCode: item.hsCode || '',
-                    taxFormatted: `${curSym}${formatCurrency(lt)}`,
-                    lineTotalFormatted: `${curSym}${formatCurrency(amt + lt)}`,
-                };
-            }),
-            subtotal: `${curSym}${formatCurrency(itemsSubtotal)}`,
-            shippingCharge: `${curSym}${formatCurrency(quotation.shippingCharge)}`,
-            tax: `${curSym}${formatCurrency(quotation.tax)}`,
-            discount: `${curSym}${formatCurrency(quotation.discount)}`,
-            totalAmount: `${curSym}${formatCurrency(quotation.totalAmount)}`,
-            totalAmountInWords: numberToWords(quotation.totalAmount),
-        };
+        const pdfData = buildQuotationPdfData(quotation);
+        pdfData.totalAmountInWords = numberToWords(quotation.totalAmount);
 
         // 2. Generate PDF
         const pdfBuffer = await generateCustomPDF(pdfData);

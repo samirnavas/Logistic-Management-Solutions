@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Quotation {{quotationId}}</title>
+  <title>TAX INVOICE {{invoiceNumber}}</title>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -29,11 +29,19 @@
       gap: 24px;
     }
     .title {
-      font-size: 32px;
+      font-size: 28px;
       font-weight: 800;
-      letter-spacing: 0.08em;
-      color: #2563eb;
+      letter-spacing: 0.06em;
+      color: #1e3a8a;
       margin: 0 0 8px 0;
+    }
+    .doc-tag {
+      font-size: 10px;
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
     }
     .badge {
       display: inline-block;
@@ -55,11 +63,20 @@
     }
     .address-content { padding-top: 4px; }
     .address-content strong { color: #111827; }
+    .gstin-line {
+      margin-top: 8px;
+      padding: 8px 10px;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      border-radius: 4px;
+      font-size: 10px;
+      color: #475569;
+    }
     .brand { text-align: right; }
     .brand h2 { margin: 0; font-size: 22px; font-weight: 900; color: #1d4ed8; line-height: 1; }
     .brand h3 { margin: 0; font-size: 17px; font-weight: 700; color: #1d4ed8; }
     .brand .tag { font-size: 9px; color: #3b82f6; font-style: italic; font-weight: 500; margin-top: 2px; }
-    .meta { text-align: right; font-size: 12px; color: #374151; line-height: 1.6; }
+    .meta { text-align: right; font-size: 12px; color: #374151; line-height: 1.65; }
     .meta strong { font-weight: 600; }
     table.items {
       width: 100%;
@@ -92,6 +109,7 @@
     .pending { color: #ea580c; font-style: italic; font-size: 10px; }
     .awaiting { color: #ea580c; font-style: italic; font-size: 14px; }
     .tax-badge { font-size: 10px; color: #15803d; font-weight: 600; }
+
     .bottom {
       display: flex;
       justify-content: space-between;
@@ -157,15 +175,19 @@
   <div class="ledger">
     <div class="row-top">
       <div>
-        <h1 class="title">QUOTATION</h1>
+        <div class="doc-tag">Legal bill of supply</div>
+        <h1 class="title">TAX INVOICE</h1>
         <div class="badge">{{statusLabel}}</div>
         <div class="address-section">
           <div class="address-box">
             <div class="address-label">From</div>
             <div class="address-content">{{{fromHtml}}}</div>
+            <div class="gstin-line">
+              Company Tax ID (GSTIN): <strong>[Placeholder — e.g. 27AABCU9603R1ZM]</strong>
+            </div>
           </div>
           <div class="address-box">
-            <div class="address-label">To</div>
+            <div class="address-label">Bill To</div>
             <div class="address-content">
               <strong>{{clientName}}</strong><br>
               {{#if routingFrom}}{{routingFrom}}<br>{{/if}}
@@ -179,12 +201,12 @@
         <h3>INTERNATIONAL</h3>
         <div class="tag">Serving You Beyond Borders</div>
         <div class="meta" style="margin-top: 20px;">
-          <p><strong>Quotation #:</strong> {{quotationId}}</p>
-          {{#if quotationNumber}}<p><strong>Ref:</strong> {{quotationNumber}}</p>{{/if}}
+          <p><strong>Invoice #:</strong> {{invoiceNumber}}</p>
+          <p><strong>Ref Quote #:</strong> {{refQuoteNumber}}</p>
           <p><strong>Date:</strong> {{dateStr}}</p>
+          <p><strong>Payment Due Date:</strong> {{paymentDueStr}}</p>
           <p><strong>Revision:</strong> {{revisionCount}}</p>
           <p><strong>Currency:</strong> {{currencyCode}}</p>
-          {{#if validStr}}<p><strong>Valid Until:</strong> {{validStr}}</p>{{/if}}
         </div>
       </div>
     </div>
@@ -197,13 +219,9 @@
       <thead>
         <tr>
           <th class="num">#</th>
-          <th>Item / Description</th>
+          <th>Description</th>
           <th class="img">Image</th>
-          <th class="center">Qty</th>
-          <th class="right">Weight</th>
-          <th class="right">CBM</th>
-          <th>HS Code</th>
-          <th class="right">Unit Price</th>
+          <th class="center">HS Code</th>
           <th class="right">Tax</th>
           <th class="right">Line Total</th>
         </tr>
@@ -218,22 +236,20 @@
             {{#if isHazardous}}<div class="haz">&#9888; Hazardous</div>{{/if}}
           </td>
           <td class="img">{{{imageCell}}}</td>
-          <td class="center">{{qty}}</td>
-          <td class="right">{{#if weight}}{{weight}} kg{{else}}—{{/if}}</td>
-          <td class="right">{{#if cbm}}{{cbm}} CBM{{else}}—{{/if}}</td>
-          <td>{{#if hsCode}}<span class="hs-code">{{hsCode}}</span>{{else}}—{{/if}}</td>
-          <td class="right">{{{unitPriceCell}}}</td>
+          <td class="center">{{{hsCodeCell}}}</td>
           <td class="right"><span class="tax-badge">{{{taxCell}}}</span></td>
           <td class="right"><strong>{{{lineTotalCell}}}</strong></td>
         </tr>
         {{/each}}
         {{#unless hasItems}}
         <tr>
-          <td colspan="10" style="text-align:center;color:#6b7280;font-style:italic;padding:20px;">No items available currently.</td>
+          <td colspan="6" style="text-align:center;color:#6b7280;font-style:italic;padding:20px;">No items available currently.</td>
         </tr>
         {{/unless}}
       </tbody>
     </table>
+
+
 
     <div class="bottom">
       <div class="terms">
@@ -271,7 +287,7 @@
     </div>
 
     <div class="footer">
-      <p>This is a computer-generated document. No signature is required.</p>
+      <p>This is a computer-generated tax invoice. Retain for your records.</p>
       <p>B&amp;B Logistics &amp; Management Solutions</p>
     </div>
   </div>

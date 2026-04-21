@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import StatusBadge from './StatusBadge';
 
 interface RequestDetailsModalProps {
@@ -9,6 +10,7 @@ interface RequestDetailsModalProps {
 }
 
 export default function RequestDetailsModal({ requestId, onClose, onStatusChange }: RequestDetailsModalProps) {
+    const router = useRouter();
     const [request, setRequest] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [showQuoteForm, setShowQuoteForm] = useState(false);
@@ -627,7 +629,10 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                         <div className="sticky bottom-0 bg-gray-50 p-4 border-t border-gray-200 flex justify-end gap-3 rounded-b-xl z-20">
                             {['PENDING_ADMIN_REVIEW'].includes(request.status) && (
                                 <button
-                                    onClick={handleApproveRequest}
+                                    onClick={() => {
+                                        onClose();
+                                        router.push(`/quotations/${requestId}`);
+                                    }}
                                     className="px-6 py-2.5 rounded-md bg-[#0557A5] text-white text-sm font-medium hover:bg-[#044580] transition-colors shadow-sm"
                                 >
                                     Approve Request

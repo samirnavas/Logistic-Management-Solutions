@@ -1,5 +1,123 @@
 /**
- * Builds plain data for quotation_invoice_ledger.html (aligned with admin LiveQuotationLedger).
+ * PDF data mappers for pro-forma quotations (quotation.html) and tax invoices (quotation_invoice_ledger.html).
+ * @param {import('mongoose').Document | object} quotation - Quotation (clientId, managerId optional)
+ */
+
+function addDays(date, days) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    return d;
+}
+
+function formatDateGB(d) {
+    return new Date(d).toLocaleDateString('en-GB');
+}
+
+function formatDateUSLong(d) {
+    return new Date(d).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    });
+}
+
+function yyyymmdd(d) {
+    const x = new Date(d);
+    const y = x.getFullYear();
+    const m = String(x.getMonth() + 1).padStart(2, '0');
+    const day = String(x.getDate()).padStart(2, '0');
+    return `${y}${m}${day}`;
+}
+
+/**
+ * Data for apps/backend/templates/quotation.html (pro-forma quotation / estimate).
+ */
+function buildQuotationPdfData(quotation) {
+    const q = quotation.toObject ? quotation.toObject() : quotation;
+
+    const formatCurrency = (amount) => {
+        const n = Number(amount) || 0;
+        return n.toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+    };
+
+    const curSym =
+        q.currency === 'USD'
+            ? '$'
+            : q.currency === 'INR'
+              ? '₹'
+              : `${q.currency} `;
+
+    const created = q.createdAt ? new Date(q.createdAt) : new Date();
+    const quoteValidityDate = q.validUntil
+        ? new Date(q.validUntil)
+        : addDays(created, 7);
+
+    const rd = q.routingData || {};
+    const fd = q.fulfillmentDetails || {};
+    const fromParts = [
+        rd.originWarehouseName,
+        [rd.originWarehouseCity, rd.originWarehouseState].filter(Boolean).join(', '),
+        fd.pickupAddressLine,
+        fd.senderName ? `Attn: ${fd.senderName}` : null,
+        fd.senderPhone ? `Tel: ${fd.senderPhone}` : null,
+    ].filter(Boolean);
+    const fromHtml = fromParts.length ? fromParts.join('<br/>') : '—';
+
+    const dest = q.destination || {};
+    const itemsSubtotal = (q.items || []).reduce(
+        (s, it) => s + (Number(it.amount) || 0),
+        0,
+    );
+
+    return {
+        fromHtml,
+        clientName: q.clientId?.fullName || 'Customer',
+        clientAddress: dest.addressLine
+            ? `${dest.addressLine}, ${dest.city || ''}`
+            : q.clientId?.email || '',
+        clientPhone: q.clientId?.phone || dest.phone || '',
+        quotationId: q.quotationId || q.quotationNumber,
+        date: formatDateGB(created),
+        quoteValidityDate: formatDateGB(quoteValidityDate),
+        currencySymbol: curSym,
+        items: (q.items || []).map((item, index) => {
+            const amt = Number(item.amount) || 0;
+            const lt = Number(item.lineTax) || 0;
+            const cbmRaw = Number(item.packingVolume) || 0;
+            const w = item.weight;
+            const hasWeight = w !== null && w !== undefined && w !== '';
+            return {
+                index: index + 1,
+                description: item.description || '',
+                imageUrl:
+                    item.images && item.images.length > 0 ? item.images[0] : '',
+                weightDisplay: hasWeight
+                    ? `${Number(w).toFixed(2)} kg`
+                    : '—',
+                cbmDisplay: cbmRaw
+                    ? `${cbmRaw.toFixed(3)} CBM`
+                    : '—',
+                hsCode:
+                    item.hsCode && String(item.hsCode).trim()
+                        ? String(item.hsCode).trim()
+                        : '',
+                taxFormatted: `${curSym}${formatCurrency(lt)}`,
+                lineTotalFormatted: `${curSym}${formatCurrency(amt + lt)}`,
+            };
+        }),
+        subtotal: `${curSym}${formatCurrency(itemsSubtotal)}`,
+        shippingCharge: `${curSym}${formatCurrency(q.shippingCharge)}`,
+        tax: `${curSym}${formatCurrency(q.tax)}`,
+        discount: `${curSym}${formatCurrency(q.discount)}`,
+        totalAmount: `${curSym}${formatCurrency(q.totalAmount)}`,
+    };
+}
+
+/**
+ * Data for apps/backend/templates/quotation_invoice_ledger.html (tax invoice).
  * @param {import('mongoose').Document} quotation - Populated Quotation (clientId, managerId optional)
  */
 function buildInvoiceLedgerData(quotation) {
@@ -45,7 +163,8 @@ function buildInvoiceLedgerData(quotation) {
         statusRaw === 'PENDING_ADMIN_REVIEW' || statusRaw === 'DRAFT';
 
     const formatMoney = (val, fallback = '—') => {
-        if (val === null || val === undefined || Number(val) === 0) return fallback;
+        if (val === null || val === undefined || Number(val) === 0)
+            return fallback;
         return `${sym}${Number(val).toLocaleString('en-US', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
@@ -59,8 +178,6 @@ function buildInvoiceLedgerData(quotation) {
         })}`;
 
     const items = (q.items || []).map((item, index) => {
-        const qty = item.quantity || 1;
-        const unitPrice = Number(item.unitPrice) || 0;
         const amt = Number(item.amount) || 0;
         const lt = Number(item.lineTax) || 0;
         const img =
@@ -69,21 +186,18 @@ function buildInvoiceLedgerData(quotation) {
             ? `<div style="display:flex;align-items:center;justify-content:center;"><img src="${img}" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;display:block;"></div>`
             : '<div style="width:56px;height:56px;background:#f1f5f9;border:1px dashed #cbd5e1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#94a3b8;margin:auto;">N/A</div>';
 
-        // CBM from packingVolume (stored as cubic metres)
-        const cbmRaw = Number(item.packingVolume) || 0;
+        const hsRaw = item.hsCode != null ? String(item.hsCode).trim() : '';
+        const hsCode = hsRaw || '';
 
         return {
             index: index + 1,
             description: item.description || '',
             category: item.category || '',
             isHazardous: !!item.isHazardous,
-            qty,
-            weight: item.weight ? Number(item.weight).toFixed(2) : '',
-            cbm: cbmRaw ? cbmRaw.toFixed(3) : '',
-            hsCode: item.hsCode && String(item.hsCode).trim() ? String(item.hsCode).trim() : '',
-            unitPriceCell: isPendingReview
-                ? '<span class="pending">Pending</span>'
-                : formatMoney(unitPrice, '—'),
+            hsCode,
+            hsCodeCell: hsRaw
+                ? `<span class="hs-code">${hsRaw}</span>`
+                : '—',
             taxCell: isPendingReview
                 ? '<span class="pending">Pending</span>'
                 : formatMoney(lt, '—'),
@@ -101,7 +215,6 @@ function buildInvoiceLedgerData(quotation) {
         (s, it) => s + (Number(it.amount) || 0),
         0,
     );
-    // subtotal shown in the items section = item line amounts only (excl. freight/handling)
     const subtotalNumeric = itemsAmountSum;
     const shippingNumeric =
         Number(q.shippingCharge || 0) +
@@ -109,19 +222,30 @@ function buildInvoiceLedgerData(quotation) {
         Number(q.lastMileCharge || 0);
 
     const created = q.createdAt ? new Date(q.createdAt) : new Date();
-    const dateStr = created.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-    });
 
-    const validStr = q.validUntil
-        ? new Date(q.validUntil).toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-          })
-        : '';
+    /** Pro-forma validity reference: stored value or createdAt + 7 days */
+    const quoteValidUntil = q.validUntil
+        ? new Date(q.validUntil)
+        : addDays(created, 7);
+    const quoteValidityStr = formatDateUSLong(quoteValidUntil);
+
+    /** Invoice: due date = first acceptance/approval timestamp + 20 days */
+    const approvalBase =
+        q.clientAcceptedAt || q.managerApprovedAt || q.createdAt;
+    const dueDate = addDays(new Date(approvalBase), 20);
+    const paymentDueStr = formatDateUSLong(dueDate);
+
+    const invoiceDateBase =
+        q.clientAcceptedAt || q.managerApprovedAt || q.createdAt;
+    const invoiceDate = new Date(invoiceDateBase);
+    const dateStr = formatDateUSLong(invoiceDate);
+
+    const idHex = String(q._id || '').replace(/[^a-f0-9]/gi, '');
+    const idSuffix = (idHex.slice(-8) || '00000000').toUpperCase();
+    const invoiceNumber = `INV-${yyyymmdd(invoiceDate)}-${idSuffix}`;
+
+    const refQuoteNumber =
+        q.quotationNumber || q.quotationId || String(q._id || '').slice(-8);
 
     return {
         clientName,
@@ -131,17 +255,19 @@ function buildInvoiceLedgerData(quotation) {
         routingTo,
         quotationId: q.quotationId || String(q._id || '').slice(-8),
         quotationNumber: q.quotationNumber || '',
+        refQuoteNumber,
+        invoiceNumber,
         dateStr,
+        paymentDueStr,
+        quoteValidityStr,
         revisionCount: q.revisionCount ?? 0,
         currencyCode: cur,
-        validStr,
         mode: q.mode || '',
         serviceMode: q.serviceMode || '',
         hasModeExtras: !!(q.mode || q.serviceMode),
         items,
         hasItems: items.length > 0,
         isPendingReview,
-        // Summary breakdown rows (shown conditionally if > 0)
         baseFreight: Number(baseFreight) > 0 ? fmt0(baseFreight) : '',
         handlingFee: Number(handling) > 0 ? fmt0(handling) : '',
         subtotal: fmt0(subtotalNumeric),
@@ -158,4 +284,4 @@ function buildInvoiceLedgerData(quotation) {
     };
 }
 
-module.exports = { buildInvoiceLedgerData };
+module.exports = { buildInvoiceLedgerData, buildQuotationPdfData };
