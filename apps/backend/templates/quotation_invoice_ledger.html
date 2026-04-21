@@ -1,10 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>TAX INVOICE {{invoiceNumber}}</title>
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       font-size: 11px;
@@ -13,14 +17,16 @@
       padding: 24px;
       background: #fff;
     }
+
     .ledger {
       max-width: 900px;
       margin: 0 auto;
       border: 1px solid #d1d5db;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
       padding: 32px;
       background: #fff;
     }
+
     .row-top {
       display: flex;
       justify-content: space-between;
@@ -28,6 +34,7 @@
       margin-bottom: 20px;
       gap: 24px;
     }
+
     .title {
       font-size: 28px;
       font-weight: 800;
@@ -35,6 +42,7 @@
       color: #1e3a8a;
       margin: 0 0 8px 0;
     }
+
     .doc-tag {
       font-size: 10px;
       color: #64748b;
@@ -43,6 +51,7 @@
       letter-spacing: 0.08em;
       margin-bottom: 12px;
     }
+
     .badge {
       display: inline-block;
       padding: 4px 12px;
@@ -54,15 +63,39 @@
       color: #1f2937;
       text-transform: capitalize;
     }
-    .address-section { margin-top: 24px; display: flex; flex-direction: column; gap: 16px; }
-    .address-box { font-size: 11px; line-height: 1.5; color: #374151; }
-    .address-label {
-      font-weight: 700; color: #111827; margin-bottom: 4px; font-size: 11px;
-      text-transform: uppercase; letter-spacing: 0.05em;
-      border-bottom: 1px solid #e5e7eb; padding-bottom: 4px;
+
+    .address-section {
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
-    .address-content { padding-top: 4px; }
-    .address-content strong { color: #111827; }
+
+    .address-box {
+      font-size: 11px;
+      line-height: 1.5;
+      color: #374151;
+    }
+
+    .address-label {
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 4px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 4px;
+    }
+
+    .address-content {
+      padding-top: 4px;
+    }
+
+    .address-content strong {
+      color: #111827;
+    }
+
     .gstin-line {
       margin-top: 8px;
       padding: 8px 10px;
@@ -72,24 +105,63 @@
       font-size: 10px;
       color: #475569;
     }
-    .brand { text-align: right; }
-    .brand h2 { margin: 0; font-size: 22px; font-weight: 900; color: #1d4ed8; line-height: 1; }
-    .brand h3 { margin: 0; font-size: 17px; font-weight: 700; color: #1d4ed8; }
-    .brand .tag { font-size: 9px; color: #3b82f6; font-style: italic; font-weight: 500; margin-top: 2px; }
-    .meta { text-align: right; font-size: 12px; color: #374151; line-height: 1.65; }
-    .meta strong { font-weight: 600; }
+
+    .brand {
+      text-align: right;
+    }
+
+    .brand h2 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 900;
+      color: #1d4ed8;
+      line-height: 1;
+    }
+
+    .brand h3 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 700;
+      color: #1d4ed8;
+    }
+
+    .brand .tag {
+      font-size: 9px;
+      color: #3b82f6;
+      font-style: italic;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    .meta {
+      text-align: right;
+      font-size: 12px;
+      color: #374151;
+      line-height: 1.65;
+    }
+
+    .meta strong {
+      font-weight: 600;
+    }
+
     table.items {
       width: 100%;
       border-collapse: collapse;
       margin-bottom: 28px;
       font-size: 10.5px;
     }
-    table.items th, table.items td {
+
+    table.items th,
+    table.items td {
       border: 1px solid #d1d5db;
       padding: 7px 8px;
       vertical-align: middle;
     }
-    table.items thead { background: #f3f4f6; }
+
+    table.items thead {
+      background: #f3f4f6;
+    }
+
     table.items th {
       font-weight: 700;
       color: #111827;
@@ -98,50 +170,135 @@
       letter-spacing: 0.03em;
       text-transform: uppercase;
     }
-    table.items th.num, table.items td.num { text-align: center; width: 32px; }
-    table.items th.right, table.items td.right { text-align: right; }
-    table.items th.center, table.items td.center { text-align: center; }
-    table.items th.img, table.items td.img { text-align: center; width: 76px; vertical-align: middle; padding: 6px 4px; }
-    .desc { font-weight: 600; color: #111827; }
-    .cat { font-size: 9.5px; color: #6b7280; margin-top: 2px; text-transform: capitalize; }
-    .haz { font-size: 9.5px; color: #dc2626; font-weight: 700; margin-top: 2px; }
-    .hs-code { font-family: monospace; font-size: 10px; color: #1e40af; background:#eff6ff; padding: 2px 5px; border-radius: 3px; }
-    .pending { color: #ea580c; font-style: italic; font-size: 10px; }
-    .awaiting { color: #ea580c; font-style: italic; font-size: 14px; }
-    .tax-badge { font-size: 10px; color: #15803d; font-weight: 600; }
 
-    .bottom {
+    table.items th.num,
+    table.items td.num {
+      text-align: center;
+      width: 32px;
+    }
+
+    table.items th.right,
+    table.items td.right {
+      text-align: right;
+    }
+
+    table.items th.center,
+    table.items td.center {
+      text-align: center;
+    }
+
+    table.items th.img,
+    table.items td.img {
+      text-align: center;
+      width: 76px;
+      vertical-align: middle;
+      padding: 6px 4px;
+    }
+
+    .desc {
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .cat {
+      font-size: 9.5px;
+      color: #6b7280;
+      margin-top: 2px;
+      text-transform: capitalize;
+    }
+
+    .haz {
+      font-size: 9.5px;
+      color: #dc2626;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .hs-code {
+      font-family: monospace;
+      font-size: 10px;
+      color: #1e40af;
+      background: #eff6ff;
+      padding: 2px 5px;
+      border-radius: 3px;
+    }
+
+    .pending {
+      color: #ea580c;
+      font-style: italic;
+      font-size: 10px;
+    }
+
+    .awaiting {
+      color: #ea580c;
+      font-style: italic;
+      font-size: 14px;
+    }
+
+    .tax-badge {
+      font-size: 10px;
+      color: #15803d;
+      font-weight: 600;
+    }
+
+    .summary-flex-container {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       gap: 24px;
     }
+
     .terms {
       flex: 1;
       min-width: 0;
-      font-size: 10px;
+      font-size: 8.5px;
       color: #333;
-      line-height: 1.55;
+      line-height: 1.3;
     }
-    .terms p { margin: 0 0 8px 0; }
+
+    .terms p {
+      margin: 0 0 6px 0;
+    }
+
+    .terms ul {
+      margin: 0;
+      padding-left: 16px;
+    }
+
+    .terms ul li {
+      margin-bottom: 3px;
+    }
+
     .admin-note {
       margin-top: 12px;
       padding: 10px 12px;
-      background: #fffbeb;
-      border: 1px solid #fde68a;
+      background: #ffffff;
+      border: 1px solid #e3e3e3;
       border-radius: 8px;
       font-size: 10px;
       color: #92400e;
     }
-    .admin-note strong { display: block; margin-bottom: 4px; color: #b45309; }
-    .summary {
+
+    .admin-note strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #b45309;
+    }
+
+    .summary-wrapper {
       width: 340px;
       flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .summary {
       background: #f9fafb;
       border: 1px solid #e5e7eb;
       padding: 14px 16px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     }
+
     .summary-row {
       display: flex;
       justify-content: space-between;
@@ -149,7 +306,11 @@
       color: #374151;
       margin-bottom: 8px;
     }
-    .summary-row.discount { color: #15803d; }
+
+    .summary-row.discount {
+      color: #15803d;
+    }
+
     .summary-total {
       display: flex;
       justify-content: space-between;
@@ -158,8 +319,19 @@
       padding-top: 10px;
       border-top: 1px solid #d1d5db;
     }
-    .summary-total .label { font-size: 16px; font-weight: 700; color: #1f2937; }
-    .summary-total .amt { font-size: 20px; font-weight: 800; color: #1d4ed8; }
+
+    .summary-total .label {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1f2937;
+    }
+
+    .summary-total .amt {
+      font-size: 20px;
+      font-weight: 800;
+      color: #1d4ed8;
+    }
+
     .footer {
       margin-top: 36px;
       text-align: center;
@@ -167,10 +339,29 @@
       color: #9ca3af;
       line-height: 1.5;
     }
-    .extras { font-size: 10px; color: #6b7280; margin: 8px 0 16px 0; }
-    .extras span { margin-right: 16px; }
+
+    .extras {
+      font-size: 10px;
+      color: #6b7280;
+      margin: 8px 0 16px 0;
+    }
+
+    .extras span {
+      margin-right: 16px;
+    }
+
+    @media print {
+      table.items tr {
+        page-break-inside: avoid;
+      }
+
+      .summary-flex-container {
+        page-break-inside: avoid;
+      }
+    }
   </style>
 </head>
+
 <body>
   <div class="ledger">
     <div class="row-top">
@@ -183,7 +374,7 @@
             <div class="address-label">From</div>
             <div class="address-content">{{{fromHtml}}}</div>
             <div class="gstin-line">
-              Company Tax ID (GSTIN): <strong>[Placeholder — e.g. 27AABCU9603R1ZM]</strong>
+              Company Tax ID (GSTIN): <strong>27AABCU9603R1ZM</strong>
             </div>
           </div>
           <div class="address-box">
@@ -212,7 +403,8 @@
     </div>
 
     {{#if hasModeExtras}}
-    <div class="extras"><span><strong>Mode:</strong> {{mode}}</span>{{#if serviceMode}}<span><strong>Service:</strong> {{serviceMode}}</span>{{/if}}</div>
+    <div class="extras"><span><strong>Mode:</strong> {{mode}}</span>{{#if serviceMode}}<span><strong>Service:</strong>
+        {{serviceMode}}</span>{{/if}}</div>
     {{/if}}
 
     <table class="items">
@@ -243,7 +435,8 @@
         {{/each}}
         {{#unless hasItems}}
         <tr>
-          <td colspan="6" style="text-align:center;color:#6b7280;font-style:italic;padding:20px;">No items available currently.</td>
+          <td colspan="6" style="text-align:center;color:#6b7280;font-style:italic;padding:20px;">No items available
+            currently.</td>
         </tr>
         {{/unless}}
       </tbody>
@@ -251,38 +444,53 @@
 
 
 
-    <div class="bottom">
+    <div class="summary-flex-container">
       <div class="terms">
         <p><b>Terms &amp; Conditions (Short Version)</b></p>
-        <p>Payment: 50% advance, balance 50% payable within 20 days from invoice/shipment date.</p>
-        <p>Delivery: Timelines are approximate. Delays due to natural calamities, war, pandemic, port congestion, or customs/legal procedures are not our responsibility.</p>
-        <p>Customer Information: Customer must provide accurate product details and documents. We are not liable for losses due to incorrect or incomplete information.</p>
-        <p>Penalties: Any fines, penalties, or charges arising from wrong declaration will be borne by the customer.</p>
-        <p>Certifications: Customer must provide all required certifications (e.g., CE, BIS, SABER/SABRE, etc.) as applicable.</p>
-        <p>Packaging: Goods must be packed as per our instructions. We are not responsible for damage due to improper packaging.</p>
-        <p>Customs Issues: Any delay, detention, or seizure due to documentation errors or non-compliance will be at customer’s risk and cost.</p>
-        <p>Shipment Impact: If one customer’s cargo affects clearance of the full shipment/container, all related charges will be borne by that customer.</p>
-        <p>Liability: Our liability is limited to service charges only. No responsibility for indirect or consequential losses.</p>
-        <p>Acceptance: Payment or order confirmation implies acceptance of these terms.</p>
+        <ul>
+          <li>Payment: 50% advance, balance 50% payable within 20 days from invoice/shipment date.</li>
+          <li>Delivery: Timelines are approximate. Delays due to natural calamities, war, pandemic, port congestion, or
+            customs/legal procedures are not our responsibility.</li>
+          <li>Customer Information: Customer must provide accurate product details and documents. We are not liable for
+            losses due to incorrect or incomplete information.</li>
+          <li>Penalties: Any fines, penalties, or charges arising from wrong declaration will be borne by the customer.
+          </li>
+          <li>Certifications: Customer must provide all required certifications (e.g., CE, BIS, SABER/SABRE, etc.) as
+            applicable.</li>
+          <li>Packaging: Goods must be packed as per our instructions. We are not responsible for damage due to improper
+            packaging.</li>
+          <li>Customs Issues: Any delay, detention, or seizure due to documentation errors or non-compliance will be at
+            customer’s risk and cost.</li>
+          <li>Shipment Impact: If one customer’s cargo affects clearance of the full shipment/container, all related
+            charges will be borne by that customer.</li>
+          <li>Liability: Our liability is limited to service charges only. No responsibility for indirect or
+            consequential losses.</li>
+          <li>Acceptance: Payment or order confirmation implies acceptance of these terms.</li>
+        </ul>
+      </div>
+      <div class="summary-wrapper">
+        <div class="summary">
+          {{#if baseFreight}}<div class="summary-row"><span>Base Freight</span><span>{{baseFreight}}</span></div>{{/if}}
+          {{#if handlingFee}}<div class="summary-row"><span>Handling Fee</span><span>{{handlingFee}}</span></div>{{/if}}
+          <div class="summary-row"><span>Items Subtotal</span><span>{{subtotal}}</span></div>
+          {{#if shippingCharge}}<div class="summary-row"><span>Shipping / Mile
+              Charges</span><span>{{shippingCharge}}</span></div>{{/if}}
+          {{#if tax}}<div class="summary-row"><span>Tax (line items)</span><span>{{tax}}</span></div>{{/if}}
+          {{#if discount}}<div class="summary-row discount"><span>Discount</span><span>- {{discount}}</span></div>
+          {{/if}}
+
+          <div class="summary-total">
+            <span class="label">{{totalLabel}}</span>
+            <span class="amt">{{{totalCell}}}</span>
+          </div>
+        </div>
+
         {{#if hasAdditionalNotes}}
         <div class="admin-note">
           <strong>Admin Note:</strong>
           {{additionalNotes}}
         </div>
         {{/if}}
-      </div>
-      <div class="summary">
-        {{#if baseFreight}}<div class="summary-row"><span>Base Freight</span><span>{{baseFreight}}</span></div>{{/if}}
-        {{#if handlingFee}}<div class="summary-row"><span>Handling Fee</span><span>{{handlingFee}}</span></div>{{/if}}
-        <div class="summary-row"><span>Items Subtotal</span><span>{{subtotal}}</span></div>
-        {{#if shippingCharge}}<div class="summary-row"><span>Shipping / Mile Charges</span><span>{{shippingCharge}}</span></div>{{/if}}
-        {{#if tax}}<div class="summary-row"><span>Tax (line items)</span><span>{{tax}}</span></div>{{/if}}
-        {{#if discount}}<div class="summary-row discount"><span>Discount</span><span>- {{discount}}</span></div>{{/if}}
-
-        <div class="summary-total">
-          <span class="label">{{totalLabel}}</span>
-          <span class="amt">{{{totalCell}}}</span>
-        </div>
       </div>
     </div>
 
@@ -292,4 +500,5 @@
     </div>
   </div>
 </body>
+
 </html>

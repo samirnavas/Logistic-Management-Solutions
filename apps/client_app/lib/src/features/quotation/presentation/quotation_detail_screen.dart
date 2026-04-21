@@ -15,6 +15,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:bb_logistics/src/features/quotation/presentation/quotation_invoice_pdf_screen.dart';
 import 'package:bb_logistics/src/features/quotation/presentation/fulfillment_service_mode_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:bb_logistics/src/core/utils/currency_utils.dart' as cu;
 
 class QuotationDetailScreen extends ConsumerStatefulWidget {
   final String quotationId;
@@ -189,9 +190,7 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
     if (_isPendingReview(quotation) || price == null || price <= 0) {
       return 'TBD';
     }
-    final currencyName = quotation.currency ?? 'USD';
-    final formatCurrency = NumberFormat.simpleCurrency(name: currencyName);
-    return formatCurrency.format(price);
+    return cu.currencyFormat(quotation.currency ?? 'INR').format(price);
   }
 
   Widget _buildContent(BuildContext context, Quotation quotation) {
@@ -251,10 +250,10 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('From', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-                      Text(quotation.routingSourceCity ?? quotation.origin?.city ?? 'Origin', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      if (quotation.origin?.addressLine != null && quotation.origin!.addressLine!.isNotEmpty)
+                      Text(quotation.originWarehouseCity ?? quotation.routingSourceCity ?? quotation.origin?.city ?? 'Origin', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      if ((quotation.originWarehouseName ?? quotation.origin?.addressLine ?? '').isNotEmpty)
                         Text(
-                          quotation.origin!.addressLine!,
+                          quotation.originWarehouseName ?? quotation.origin!.addressLine ?? '',
                           style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -268,10 +267,10 @@ class _QuotationDetailScreenState extends ConsumerState<QuotationDetailScreen>
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text('To', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-                      Text(quotation.routingDestinationCity ?? quotation.destination?.city ?? 'Destination', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      if (quotation.destination?.addressLine != null && quotation.destination!.addressLine!.isNotEmpty)
+                      Text(quotation.destinationWarehouseCity ?? quotation.routingDestinationCity ?? quotation.destination?.city ?? 'Destination', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      if ((quotation.destinationWarehouseName ?? quotation.destination?.addressLine ?? '').isNotEmpty)
                         Text(
-                          quotation.destination!.addressLine!,
+                          quotation.destinationWarehouseName ?? quotation.destination!.addressLine ?? '',
                           style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
                           textAlign: TextAlign.right,
                           maxLines: 2,

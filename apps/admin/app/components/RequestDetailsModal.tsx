@@ -659,9 +659,23 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
 
                             {['cost_calculated', 'sent', 'accepted', 'ready_for_pickup', 'shipped', 'delivered'].includes(request.status) && (
                                 <button
-                                    onClick={() => {
-                                        setShowQuoteForm(true);
-                                        setQuotationViewMode('view');
+                                    onClick={async () => {
+                                        try {
+                                            const token = localStorage.getItem('token');
+                                            const res = await fetch(`/api/quotations/${requestId}/pdf?hideFooter=true`, {
+                                                headers: { 'Authorization': `Bearer ${token}` }
+                                            });
+                                            if (res.ok) {
+                                                const blob = await res.blob();
+                                                const objectUrl = URL.createObjectURL(blob);
+                                                window.open(objectUrl, '_blank');
+                                            } else {
+                                                console.error('Failed to load PDF preview');
+                                                alert('Failed to load PDF preview');
+                                            }
+                                        } catch (err) {
+                                            console.error('Error fetching PDF:', err);
+                                        }
                                     }}
                                     className="px-6 py-2.5 rounded-md bg-[#0557A5] text-white text-sm font-medium hover:bg-[#044580] transition-colors shadow-sm"
                                 >

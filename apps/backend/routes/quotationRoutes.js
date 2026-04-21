@@ -21,6 +21,9 @@ router.get('/stats', protect, quotationController.getStats);
 // Get quotation details by ID
 router.get('/:id', protect, quotationController.getQuotation);
 
+// Get quotation PDF preview (Admin)
+router.get('/:id/pdf', protect, quotationController.downloadQuotationPdf);
+
 // Get quotation invoice PDF (Admin)
 router.get('/:id/invoice', protect, quotationController.downloadInvoicePdf);
 

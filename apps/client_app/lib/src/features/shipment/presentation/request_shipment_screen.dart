@@ -32,11 +32,10 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
   Warehouse? _selectedDestinationWarehouse;
 
   // --- Global Currency ---
-  String _selectedCurrency = 'USD';
   static const List<String> _supportedCurrencies = [
+    'INR',
     'USD',
     'AED',
-    'INR',
     'EUR',
     'GBP',
     'CNY',
@@ -205,7 +204,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
           'destinationWarehouseCity': destinationW.address.city,
           'destinationWarehouseState': destinationW.address.state,
         },
-        'currency': _selectedCurrency,
+        'currency': formState.selectedCurrency,
         'items': items,
         'cargoType': _cargoType,
         'mode': _shippingMode == 'By Sea' ? 'Sea' : 'Air',
@@ -996,10 +995,12 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
               const SizedBox(height: 12),
               _buildFlatDropdownContainer(
                 child: _buildStyledStringDropdown(
-                  value: _selectedCurrency,
+                  value: ref.watch(shipmentFormProvider).selectedCurrency,
                   values: _supportedCurrencies,
                   onChanged: (v) {
-                    if (v != null) setState(() => _selectedCurrency = v);
+                    if (v != null) {
+                      ref.read(shipmentFormProvider.notifier).setCurrency(v);
+                    }
                   },
                   denseSelectedText: false,
                 ),
@@ -1277,6 +1278,7 @@ class _RequestShipmentScreenState extends ConsumerState<RequestShipmentScreen> {
                                 ShipmentItemForm(
                                   index: index ?? 0,
                                   item: localItem,
+                                  currency: ref.read(shipmentFormProvider).selectedCurrency,
                                   onChanged: (updated) {
                                     setModalState(() => localItem = updated);
                                   },

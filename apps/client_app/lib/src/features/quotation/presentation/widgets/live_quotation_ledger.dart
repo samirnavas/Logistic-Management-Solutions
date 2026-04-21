@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:bb_logistics/src/core/utils/currency_utils.dart' as cu;
 import '../../domain/quotation.dart';
 
 class LiveQuotationLedger extends StatelessWidget {
@@ -13,16 +14,20 @@ class LiveQuotationLedger extends StatelessWidget {
         quotation.status == QuotationStatus.infoRequired;
   }
 
-  String _renderPrice(double? price, {String zeroFallback = '—'}) {
+  String get _currencyName => quotation.currency ?? 'INR';
+
+  NumberFormat get _currencyFormat => cu.currencyFormat(_currencyName);
+
+  String get _zeroFormatted => _currencyFormat.format(0);
+
+  String _renderPrice(double? price, {bool showZero = false}) {
     if (_isPendingReview || price == null) {
       return 'TBD';
     }
-    if (price <= 0 && zeroFallback != '—') {
-      return zeroFallback;
+    if (price <= 0 && showZero) {
+      return _zeroFormatted;
     }
-    final currencyName = quotation.currency ?? 'USD';
-    final formatCurrency = NumberFormat.simpleCurrency(name: currencyName);
-    return formatCurrency.format(price);
+    return _currencyFormat.format(price);
   }
 
   String _formatDate(DateTime? date) {
@@ -246,7 +251,7 @@ class LiveQuotationLedger extends StatelessWidget {
                       'Revision:',
                       '${quotation.revisionCount ?? 0}',
                     ),
-                    _buildMetaRow('Currency:', quotation.currency ?? 'USD'),
+                    _buildMetaRow('Currency:', quotation.currency ?? 'INR'),
                     _buildMetaRow(
                       'Validity:',
                       _formatDate(
@@ -337,13 +342,13 @@ class LiveQuotationLedger extends StatelessWidget {
                         _buildTableCell(
                           _isPendingReview
                               ? 'TBD'
-                              : _renderPrice(lt, zeroFallback: r'$0.00'),
+                              : _renderPrice(lt, showZero: true),
                           TextAlign.right,
                         ),
                         _buildTableCell(
                           _isPendingReview || (item.cost == 0 && lt == 0)
                               ? 'TBD'
-                              : _renderPrice(lineTotal, zeroFallback: r'$0.00'),
+                              : _renderPrice(lineTotal, showZero: true),
                           TextAlign.right,
                           isBold: true,
                         ),
@@ -467,26 +472,26 @@ class LiveQuotationLedger extends StatelessWidget {
                               'Subtotal',
                               _isPendingReview
                                   ? '—'
-                                  : _renderPrice(_subtotalNumeric, zeroFallback: r'$0.00'),
+                                  : _renderPrice(_subtotalNumeric, showZero: true),
                             ),
                             const SizedBox(height: 8),
                             _buildSummaryRow(
                               'Shipping Charge',
                               _isPendingReview
                                   ? '—'
-                                  : _renderPrice(_shippingNumeric, zeroFallback: r'$0.00'),
+                                  : _renderPrice(_shippingNumeric, showZero: true),
                             ),
                             const SizedBox(height: 8),
                             _buildSummaryRow(
                               'Tax',
                               _isPendingReview
                                   ? '—'
-                                  : _renderPrice(quotation.tax, zeroFallback: r'$0.00'),
+                                  : _renderPrice(quotation.tax, showZero: true),
                             ),
                             const SizedBox(height: 8),
                             _buildSummaryRow(
                               'Discount',
-                              '-${_renderPrice(quotation.discount, zeroFallback: r'$0.00')}',
+                              '-${_renderPrice(quotation.discount, showZero: true)}',
                               valueStyle: const TextStyle(
                                 color: Colors.green,
                                 fontWeight: FontWeight.w500,
@@ -523,7 +528,7 @@ class LiveQuotationLedger extends StatelessWidget {
                                       : Text(
                                           _renderPrice(
                                             quotation.totalAmount,
-                                            zeroFallback: r'$0.00',
+                                            showZero: true,
                                           ),
                                           style: const TextStyle(
                                             fontSize: 20,

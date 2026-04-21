@@ -77,6 +77,7 @@ class ShipmentFormState {
   final String? error;
   final String? successMessage;
   final String selectedServiceMode;
+  final String selectedCurrency;
 
   const ShipmentFormState({
     required this.items,
@@ -84,6 +85,7 @@ class ShipmentFormState {
     this.error,
     this.successMessage,
     this.selectedServiceMode = 'Door to Door',
+    this.selectedCurrency = 'INR',
   });
 
   ShipmentFormState copyWith({
@@ -92,6 +94,7 @@ class ShipmentFormState {
     String? error,
     String? successMessage,
     String? selectedServiceMode,
+    String? selectedCurrency,
   }) {
     return ShipmentFormState(
       items: items ?? this.items,
@@ -100,6 +103,7 @@ class ShipmentFormState {
           error, // Pass null to clear if needed, but normally we explicitly manage it
       successMessage: successMessage,
       selectedServiceMode: selectedServiceMode ?? this.selectedServiceMode,
+      selectedCurrency: selectedCurrency ?? this.selectedCurrency,
     );
   }
 }
@@ -147,6 +151,10 @@ class ShipmentFormNotifier extends StateNotifier<ShipmentFormState> {
 
   void setServiceMode(String mode) {
     state = state.copyWith(selectedServiceMode: mode);
+  }
+
+  void setCurrency(String currency) {
+    state = state.copyWith(selectedCurrency: currency);
   }
 
   Future<void> saveDraft(Map<String, dynamic> data) async {

@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 class ShipmentItemForm extends StatefulWidget {
   final int index;
   final ShipmentItemFormData item;
+  final String currency;
   final ValueChanged<ShipmentItemFormData> onChanged;
   final VoidCallback onRemove;
   final bool isExpanded;
@@ -15,6 +16,7 @@ class ShipmentItemForm extends StatefulWidget {
     super.key,
     required this.index,
     required this.item,
+    this.currency = 'INR',
     required this.onChanged,
     required this.onRemove,
     this.isExpanded = false,
@@ -25,6 +27,19 @@ class ShipmentItemForm extends StatefulWidget {
 }
 
 class _ShipmentItemFormState extends State<ShipmentItemForm> {
+  /// Currency code → symbol mapping for declared-value field decoration.
+  static const _currencySymbols = <String, String>{
+    'INR': '₹',
+    'USD': r'$',
+    'AED': 'د.إ',
+    'EUR': '€',
+    'GBP': '£',
+    'CNY': '¥',
+  };
+
+  String get _currencySymbol =>
+      _currencySymbols[widget.currency] ?? widget.currency;
+
   /// Per-box CBM from dimensions in cm: (L×B×H) / 1e6; total CBM = per-box × box count.
   int _parseBoxCountForForm() {
     final t = _quantityController.text.trim();
@@ -297,7 +312,7 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
           children: [
             Expanded(child: _buildFieldLabel('CATEGORY')),
             const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel('DECLARED VALUE')),
+            Expanded(child: _buildFieldLabel('DECLARED VALUE (${widget.currency})')),
           ],
         ),
         Row(
@@ -320,7 +335,8 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
             Expanded(
               child: _buildTextField(
                 controller: _targetRateController,
-                hint: '₹ 0.00',
+                hint: '$_currencySymbol 0.00',
+                prefixText: '$_currencySymbol ',
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
@@ -491,10 +507,11 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
     TextInputType? keyboardType,
     Function(String)? onChanged,
     bool readOnly = false,
+    String? prefixText,
   }) {
     return TextFormField(
       controller: controller,
-      decoration: _inputDecoration(hint: hint),
+      decoration: _inputDecoration(hint: hint, prefixText: prefixText),
       keyboardType: keyboardType,
       onChanged: onChanged,
       readOnly: readOnly,
@@ -557,9 +574,15 @@ class _ShipmentItemFormState extends State<ShipmentItemForm> {
     );
   }
 
-  InputDecoration _inputDecoration({String? hint}) {
+  InputDecoration _inputDecoration({String? hint, String? prefixText}) {
     return InputDecoration(
       hintText: hint,
+      prefixText: prefixText,
+      prefixStyle: const TextStyle(
+        fontSize: 14,
+        color: Color(0xFF4B5563),
+        fontWeight: FontWeight.w700,
+      ),
       hintStyle: const TextStyle(
         fontSize: 14,
         color: Color(0xFF9CA3AF),

@@ -93,7 +93,7 @@ function buildQuotationPdfData(quotation) {
                 index: index + 1,
                 description: item.description || '',
                 imageUrl:
-                    item.images && item.images.length > 0 ? item.images[0] : '',
+                    item.imageUrl ? item.imageUrl : (item.images && item.images.length > 0 ? item.images[0] : (q.productPhotos && q.productPhotos.length > 0 ? q.productPhotos[0] : '')),
                 weightDisplay: hasWeight
                     ? `${Number(w).toFixed(2)} kg`
                     : '—',
@@ -181,7 +181,7 @@ function buildInvoiceLedgerData(quotation) {
         const amt = Number(item.amount) || 0;
         const lt = Number(item.lineTax) || 0;
         const img =
-            item.images && item.images.length > 0 ? item.images[0] : '';
+            item.imageUrl ? item.imageUrl : (item.images && item.images.length > 0 ? item.images[0] : (q.productPhotos && q.productPhotos.length > 0 ? q.productPhotos[0] : ''));
         const imageCell = img
             ? `<div style="display:flex;align-items:center;justify-content:center;"><img src="${img}" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;display:block;"></div>`
             : '<div style="width:56px;height:56px;background:#f1f5f9;border:1px dashed #cbd5e1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#94a3b8;margin:auto;">N/A</div>';

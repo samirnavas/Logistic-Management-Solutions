@@ -641,6 +641,7 @@ exports.sendToClient = async (req, res) => {
         // ============================================
         const pdfData = buildQuotationPdfData(quotation);
         pdfData.totalAmountInWords = numberToWords(quotation.totalAmount);
+        pdfData.showFooter = true; // Ensure standard PDFs include the footer
 
         // 2. Generate PDF
         const pdfBuffer = await generateCustomPDF(pdfData);
@@ -1106,6 +1107,37 @@ exports.confirmAddress = async (req, res) => {
     }
 };
 
+exports.downloadQuotationPdf = async (req, res) => {
+    try {
+        const quotation = await Quotation.findById(req.params.id)
+            .populate('clientId', 'fullName email companyName address phone')
+            .populate('assignedTo', 'name email');
+
+        if (!quotation) {
+            return res.status(404).json({ success: false, message: 'Quotation not found' });
+        }
+
+        const { numberToWords } = require('../utils/numberUtils');
+        const pdfData = buildQuotationPdfData(quotation);
+        pdfData.totalAmountInWords = numberToWords(quotation.totalAmount);
+        
+        pdfData.showFooter = req.query.hideFooter !== 'true';
+
+        const pdfBuffer = await generateCustomPDF(pdfData);
+
+        const filename = `quotation-${quotation.quotationId || quotation._id}.pdf`;
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+        res.send(pdfBuffer);
+    } catch (error) {
+        console.error('downloadQuotationPdf Error:', error);
+        res.status(500).json({ success: false, message: 'Failed to generate quotation PDF' });
+    }
+};
+
+// ============================================
+// Standard CRUD
+// ============================================
 // ============================================
 // Get Quotation Stats
 // ============================================

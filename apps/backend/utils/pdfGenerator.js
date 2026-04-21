@@ -69,7 +69,7 @@ const generateInvoiceLedgerPdf = async (data) => {
         const template = handlebars.compile(templateHtml);
         const html = template(data);
 
-        return await htmlToPdfBuffer(html, 'domcontentloaded');
+        return await htmlToPdfBuffer(html, 'networkidle0');
     } catch (error) {
         console.error('Error generating invoice PDF:', error);
         throw error;

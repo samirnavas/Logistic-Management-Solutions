@@ -127,6 +127,9 @@ class Shipment {
   /// Shipment Mode (Air, Sea, etc.)
   final String mode;
 
+  /// Currency code (INR, USD, AED, etc.)
+  final String currency;
+
   const Shipment({
     required this.id,
     required this.trackingNumber,
@@ -145,6 +148,7 @@ class Shipment {
     this.destLat,
     this.destLng,
     this.mode = 'Air',
+    this.currency = 'INR',
   });
 
   /// Creates a copy of this [Shipment] with the given fields replaced
@@ -166,6 +170,7 @@ class Shipment {
     double? destLat,
     double? destLng,
     String? mode,
+    String? currency,
   }) {
     return Shipment(
       id: id ?? this.id,
@@ -185,6 +190,7 @@ class Shipment {
       destLat: destLat ?? this.destLat,
       destLng: destLng ?? this.destLng,
       mode: mode ?? this.mode,
+      currency: currency ?? this.currency,
     );
   }
 
@@ -275,6 +281,7 @@ class Shipment {
       destLat: dLat,
       destLng: dLng,
       mode: (json['mode'] ?? 'Air') as String,
+      currency: (json['currency'] ?? 'INR') as String,
     );
   }
 
@@ -294,6 +301,7 @@ class Shipment {
       'totalWeight': totalWeight,
       'createdAt': createdAt.toIso8601String(),
       'mode': mode,
+      'currency': currency,
     };
   }
 

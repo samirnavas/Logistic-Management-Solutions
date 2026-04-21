@@ -81,7 +81,7 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
     const [estimatedHandlingFee, setEstimatedHandlingFee] = useState<number | string>('');
     const [pricingNotes, setPricingNotes] = useState('');
     /** Per-line admin inputs: unit price (line amount / qty), line tax, HS code */
-    const [itemLedger, setItemLedger] = useState<Record<number, { unitPrice: number; lineTax: number; hsCode: string }>>({});
+    const [itemLedger, setItemLedger] = useState<Record<number, { unitPrice: number; lineTax: number; hsCode: string; taxType?: 'fixed' | 'percentage'; taxInput?: number }>>({});
     const [globalShippingCharge, setGlobalShippingCharge] = useState<number | string>('');
 
     // Final charges state (AWAITING_FINAL_CHARGE_SHEET)
@@ -113,12 +113,14 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                 setQuotation(data);
 
                 if (data.items?.length) {
-                    const ledger: Record<number, { unitPrice: number; lineTax: number; hsCode: string }> = {};
+                    const ledger: Record<number, { unitPrice: number; lineTax: number; hsCode: string; taxType?: 'fixed' | 'percentage'; taxInput?: number }> = {};
                     data.items.forEach((item: any, i: number) => {
                         ledger[i] = {
                             unitPrice: Number(item.unitPrice) || 0,
                             lineTax: Number(item.lineTax) || 0,
                             hsCode: item.hsCode != null ? String(item.hsCode) : '',
+                            taxType: 'fixed',
+                            taxInput: Number(item.lineTax) || 0,
                         };
                     });
                     setItemLedger(ledger);
@@ -213,6 +215,8 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                             unitPrice: parseFloat((ri.lineTotal / qty).toFixed(2)),
                             lineTax: 0,
                             hsCode: quotation?.items?.[i]?.hsCode != null ? String(quotation.items[i].hsCode) : (prev[i]?.hsCode ?? ''),
+                            taxType: 'fixed',
+                            taxInput: 0,
                         };
                     });
                     return next;
@@ -823,9 +827,9 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                                                             HS Code
                                                             <div className="text-[9px] text-slate-400 font-normal">editable override</div>
                                                         </th>
-                                                        <th className="border border-slate-200 px-2 py-2 text-right w-28">
+                                                        <th className="border border-slate-200 px-2 py-2 text-right w-36">
                                                             Line Tax
-                                                            <div className="text-[9px] text-slate-400 font-normal">flat {currencySymbol} amount</div>
+                                                            <div className="text-[9px] text-slate-400 font-normal">flat {currencySymbol} or %</div>
                                                         </th>
                                                         <th className="border border-slate-200 px-2 py-2 text-right w-32">Line Total</th>
                                                     </tr>
@@ -851,14 +855,22 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                                                                         min="0"
                                                                         step="0.01"
                                                                         value={up || ''}
-                                                                        onChange={e => setItemLedger(prev => ({
-                                                                            ...prev,
-                                                                            [i]: {
-                                                                                unitPrice: e.target.value === '' ? 0 : Number(e.target.value),
-                                                                                lineTax: prev[i]?.lineTax ?? (itemLedger[i]?.lineTax ?? 0),
-                                                                                hsCode: prev[i]?.hsCode ?? (itemLedger[i]?.hsCode ?? ''),
-                                                                            },
-                                                                        }))}
+                                                                        onChange={e => setItemLedger(prev => {
+                                                                            const newUp = e.target.value === '' ? 0 : Number(e.target.value);
+                                                                            const tType = prev[i]?.taxType ?? 'fixed';
+                                                                            const tInput = prev[i]?.taxInput ?? prev[i]?.lineTax ?? item.lineTax ?? 0;
+                                                                            return {
+                                                                                ...prev,
+                                                                                [i]: {
+                                                                                    ...(prev[i] || {}),
+                                                                                    unitPrice: newUp,
+                                                                                    lineTax: tType === 'percentage' ? (newUp * qty * (tInput / 100)) : tInput,
+                                                                                    hsCode: prev[i]?.hsCode ?? (itemLedger[i]?.hsCode ?? ''),
+                                                                                    taxType: tType,
+                                                                                    taxInput: tInput,
+                                                                                },
+                                                                            };
+                                                                        })}
                                                                         className="mt-0.5 w-full border border-slate-200 rounded px-1.5 py-1 text-xs focus:ring-1 focus:ring-blue-400 focus:border-blue-400 outline-none"
                                                                         placeholder="0.00"
                                                                     />
@@ -893,24 +905,56 @@ export default function QuotationDetailsPage({ params }: { params: Promise<{ id:
                                                                         placeholder="e.g. 8471.30"
                                                                     />
                                                                 </td>
-                                                                {/* Line Tax — flat amount added to line total */}
+                                                                {/* Line Tax — flat or percentage amount added to line total */}
                                                                 <td className="border border-slate-200 px-1 py-1 align-middle">
-                                                                    <input
-                                                                        type="number"
-                                                                        min="0"
-                                                                        step="0.01"
-                                                                        value={itemLedger[i]?.lineTax !== undefined ? (itemLedger[i].lineTax || '') : (item.lineTax || '')}
-                                                                        onChange={e => setItemLedger(prev => ({
-                                                                            ...prev,
-                                                                            [i]: {
-                                                                                unitPrice: prev[i]?.unitPrice ?? up,
-                                                                                lineTax: e.target.value === '' ? 0 : Number(e.target.value),
-                                                                                hsCode: prev[i]?.hsCode ?? (itemLedger[i]?.hsCode ?? clientHsCode),
-                                                                            },
-                                                                        }))}
-                                                                        className="w-full border border-emerald-200 bg-emerald-50/30 rounded px-1.5 py-1 text-right text-xs text-emerald-700 focus:ring-1 focus:ring-emerald-400 focus:border-emerald-400 outline-none"
-                                                                        placeholder="0.00"
-                                                                    />
+                                                                    <div className="flex items-center gap-1">
+                                                                        <select
+                                                                            value={itemLedger[i]?.taxType ?? 'fixed'}
+                                                                            onChange={e => {
+                                                                                const newType = e.target.value as 'fixed' | 'percentage';
+                                                                                const rawInput = itemLedger[i]?.taxInput !== undefined ? itemLedger[i]?.taxInput : (item.lineTax || 0);
+                                                                                const newLt = newType === 'percentage' ? (up * qty * ((rawInput || 0) / 100)) : (rawInput || 0);
+                                                                                setItemLedger(prev => ({
+                                                                                    ...prev,
+                                                                                    [i]: {
+                                                                                        ...(prev[i] || {}),
+                                                                                        unitPrice: prev[i]?.unitPrice ?? up,
+                                                                                        hsCode: prev[i]?.hsCode ?? clientHsCode,
+                                                                                        taxType: newType,
+                                                                                        taxInput: rawInput,
+                                                                                        lineTax: newLt,
+                                                                                    }
+                                                                                }));
+                                                                            }}
+                                                                            className="w-10 text-[10px] border border-emerald-200 bg-emerald-50 rounded px-0.5 py-1.5 outline-none text-emerald-800 focus:ring-1 focus:ring-emerald-400"
+                                                                        >
+                                                                            <option value="fixed">{currencySymbol}</option>
+                                                                            <option value="percentage">%</option>
+                                                                        </select>
+                                                                        <input
+                                                                            type="number"
+                                                                            min="0"
+                                                                            step="0.01"
+                                                                            value={itemLedger[i]?.taxInput !== undefined ? (itemLedger[i].taxInput === 0 ? '' : itemLedger[i].taxInput) : (item.lineTax || '')}
+                                                                            onChange={e => {
+                                                                                const inputVal = e.target.value === '' ? 0 : Number(e.target.value);
+                                                                                const tType = itemLedger[i]?.taxType ?? 'fixed';
+                                                                                setItemLedger(prev => ({
+                                                                                    ...prev,
+                                                                                    [i]: {
+                                                                                        ...(prev[i] || {}),
+                                                                                        unitPrice: prev[i]?.unitPrice ?? up,
+                                                                                        hsCode: prev[i]?.hsCode ?? clientHsCode,
+                                                                                        taxType: tType,
+                                                                                        taxInput: inputVal,
+                                                                                        lineTax: tType === 'percentage' ? (up * qty * (inputVal / 100)) : inputVal,
+                                                                                    }
+                                                                                }));
+                                                                            }}
+                                                                            className="flex-1 w-full border border-emerald-200 bg-emerald-50/30 rounded px-1.5 py-1 text-right text-xs text-emerald-700 focus:ring-1 focus:ring-emerald-400 focus:border-emerald-400 outline-none"
+                                                                            placeholder="0.00"
+                                                                        />
+                                                                    </div>
                                                                     {lt > 0 && (
                                                                         <div className="text-[9px] text-emerald-600 text-right mt-0.5 font-semibold">+{currencySymbol}{lt.toFixed(2)} tax</div>
                                                                     )}

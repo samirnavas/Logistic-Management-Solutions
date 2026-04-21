@@ -145,6 +145,7 @@
     <div style="font-size: 11px; margin-top: 5px; color: #555;">Estimated total (in words)<br><strong style="color: #000; font-size: 13px;">{{totalAmountInWords}}</strong></div>
   </div>
 
+  {{#if showFooter}}
   <div class="footer">
     <p><b>Terms &amp; Conditions (Pro-forma)</b></p>
     <p>This document is a non-binding estimate. Pricing, duties, and charges may change until a formal agreement or tax invoice is issued.</p>
@@ -158,5 +159,6 @@
     <p>Liability: Our liability is limited to service charges only. No responsibility for indirect or consequential losses.</p>
     <p>Acceptance: A signed order or confirmed payment against a subsequent invoice constitutes acceptance of applicable commercial terms.</p>
   </div>
+  {{/if}}
 </body>
 </html>

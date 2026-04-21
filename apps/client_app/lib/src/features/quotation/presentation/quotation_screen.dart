@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:bb_logistics/src/core/utils/currency_utils.dart' as cu;
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -400,10 +401,7 @@ class _QuotationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd MMM yyyy');
-    final currencyFormat = NumberFormat.currency(
-      symbol: '\$',
-      decimalDigits: 2,
-    );
+    final currencyFmt = cu.currencyFormat(quotation.currency ?? 'INR');
 
     // Get screen width for responsive layout
     final screenWidth = MediaQuery.of(context).size.width;
@@ -519,7 +517,7 @@ class _QuotationCard extends StatelessWidget {
                                           ),
                                     )
                                   : Text(
-                                      currencyFormat.format(
+                                      currencyFmt.format(
                                         quotation.totalAmount,
                                       ),
                                       style: Theme.of(context)
