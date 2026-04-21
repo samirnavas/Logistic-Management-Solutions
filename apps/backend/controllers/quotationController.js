@@ -637,14 +637,13 @@ exports.sendToClient = async (req, res) => {
         // }
 
         // ============================================
-        // 1. Prepare Data for PDF (quotation.html — pro-forma quotation)
+        // 1. Prepare Data for PDF (invoice.html — pro-forma commercial bill)
         // ============================================
         const pdfData = buildQuotationPdfData(quotation);
         pdfData.totalAmountInWords = numberToWords(quotation.totalAmount);
-        pdfData.showFooter = true; // Ensure standard PDFs include the footer
 
         // 2. Generate PDF
-        const pdfBuffer = await generateCustomPDF(pdfData);
+        const pdfBuffer = await generateCustomPDF(pdfData, 'invoice.html');
 
         // 3. Upload to Cloudinary
         const uploadResult = await new Promise((resolve, reject) => {
@@ -1120,10 +1119,8 @@ exports.downloadQuotationPdf = async (req, res) => {
         const { numberToWords } = require('../utils/numberUtils');
         const pdfData = buildQuotationPdfData(quotation);
         pdfData.totalAmountInWords = numberToWords(quotation.totalAmount);
-        
-        pdfData.showFooter = req.query.hideFooter !== 'true';
 
-        const pdfBuffer = await generateCustomPDF(pdfData);
+        const pdfBuffer = await generateCustomPDF(pdfData, 'quotation.html');
 
         const filename = `quotation-${quotation.quotationId || quotation._id}.pdf`;
         res.setHeader('Content-Type', 'application/pdf');

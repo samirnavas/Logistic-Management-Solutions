@@ -662,7 +662,8 @@ export default function RequestDetailsModal({ requestId, onClose, onStatusChange
                                     onClick={async () => {
                                         try {
                                             const token = localStorage.getItem('token');
-                                            const res = await fetch(`/api/quotations/${requestId}/pdf?hideFooter=true`, {
+                                            const pdfUrl = `/api/quotations/${requestId}/pdf`;
+                                            const res = await fetch(pdfUrl, {
                                                 headers: { 'Authorization': `Bearer ${token}` }
                                             });
                                             if (res.ok) {

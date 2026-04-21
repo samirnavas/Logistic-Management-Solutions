@@ -33,9 +33,9 @@ async function htmlToPdfBuffer(html, waitUntil = 'networkidle0') {
     }
 }
 
-const generateCustomPDF = async (data) => {
+const generateCustomPDF = async (data, templateName = 'quotation.html') => {
     try {
-        const templatePath = path.join(__dirname, '../templates', 'quotation.html');
+        const templatePath = path.join(__dirname, '../templates', templateName);
         if (!fs.existsSync(templatePath)) {
             throw new Error(`Template file not found at ${templatePath}`);
         }
